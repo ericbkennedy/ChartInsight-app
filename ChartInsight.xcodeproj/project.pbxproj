@@ -1,0 +1,417 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0B1BD559183C351100EE97D1 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B1BD558183C351100EE97D1 /* QuartzCore.framework */; };
+		0B1BD55B183C351A00EE97D1 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B1BD55A183C351A00EE97D1 /* libsqlite3.dylib */; };
+		0B42BC001C420B2700139C33 /* AddFundamentalController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */; };
+		0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC011C420BE400139C33 /* ChartOptionsController.m */; };
+		0B42BC0A1C420BE500139C33 /* ScrollChartController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC021C420BE400139C33 /* ScrollChartController.m */; };
+		0B42BC0B1C420BE500139C33 /* FindSeriesController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC041C420BE500139C33 /* FindSeriesController.m */; };
+		0B42BC0C1C420BE500139C33 /* ProgressIndicator.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC051C420BE500139C33 /* ProgressIndicator.m */; };
+		0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC111C420C1A00139C33 /* RootViewController.m */; };
+		0B42BC211C420C2F00139C33 /* MoveDB.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC131C420C2F00139C33 /* MoveDB.m */; };
+		0B42BC221C420C2F00139C33 /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC141C420C2F00139C33 /* StockData.m */; };
+		0B42BC231C420C2F00139C33 /* DataAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC151C420C2F00139C33 /* DataAPI.m */; };
+		0B42BC241C420C2F00139C33 /* Comparison.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC161C420C2F00139C33 /* Comparison.m */; };
+		0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC191C420C2F00139C33 /* FundamentalAPI.m */; };
+		0B42BC261C420C2F00139C33 /* Series.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC1D1C420C2F00139C33 /* Series.m */; };
+		0B42BC271C420C2F00139C33 /* BigNumberFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC1F1C420C2F00139C33 /* BigNumberFormatter.m */; };
+		0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC281C420C4700139C33 /* CIAppDelegate.m */; };
+		0B42BC331C420C8100139C33 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */; };
+		0B42BC351C420C8100139C33 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC2F1C420C8100139C33 /* main.m */; };
+		0B42BC361C420C8100139C33 /* charts.db in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC301C420C8100139C33 /* charts.db */; };
+		0B42BC371C420C8100139C33 /* metrics.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC321C420C8100139C33 /* metrics.plist */; };
+		0B42BC391C420CB600139C33 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC381C420CB600139C33 /* Images.xcassets */; };
+		0B56776C1CE90E70009F02D4 /* SettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B56776B1CE90E70009F02D4 /* SettingsViewController.m */; };
+		0B77A6511CEAC3A40087A594 /* SupportActivity.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B77A64F1CEAC3A40087A594 /* SupportActivity.m */; };
+		0BB7F521183C31B90040F1C6 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F520183C31B90040F1C6 /* Foundation.framework */; };
+		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
+		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0B1BD558183C351100EE97D1 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		0B1BD55A183C351A00EE97D1 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
+		0B42BBFE1C420B2700139C33 /* AddFundamentalController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AddFundamentalController.h; path = Controllers/AddFundamentalController.h; sourceTree = SOURCE_ROOT; };
+		0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AddFundamentalController.m; path = Controllers/AddFundamentalController.m; sourceTree = SOURCE_ROOT; };
+		0B42BC011C420BE400139C33 /* ChartOptionsController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ChartOptionsController.m; path = Controllers/ChartOptionsController.m; sourceTree = SOURCE_ROOT; };
+		0B42BC021C420BE400139C33 /* ScrollChartController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ScrollChartController.m; path = Controllers/ScrollChartController.m; sourceTree = SOURCE_ROOT; };
+		0B42BC031C420BE400139C33 /* ScrollChartController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ScrollChartController.h; path = Controllers/ScrollChartController.h; sourceTree = SOURCE_ROOT; };
+		0B42BC041C420BE500139C33 /* FindSeriesController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FindSeriesController.m; path = Controllers/FindSeriesController.m; sourceTree = SOURCE_ROOT; };
+		0B42BC051C420BE500139C33 /* ProgressIndicator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ProgressIndicator.m; path = Controllers/ProgressIndicator.m; sourceTree = SOURCE_ROOT; };
+		0B42BC061C420BE500139C33 /* ChartOptionsController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ChartOptionsController.h; path = Controllers/ChartOptionsController.h; sourceTree = SOURCE_ROOT; };
+		0B42BC071C420BE500139C33 /* ProgressIndicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ProgressIndicator.h; path = Controllers/ProgressIndicator.h; sourceTree = SOURCE_ROOT; };
+		0B42BC081C420BE500139C33 /* FindSeriesController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FindSeriesController.h; path = Controllers/FindSeriesController.h; sourceTree = SOURCE_ROOT; };
+		0B42BC101C420C1A00139C33 /* RootViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RootViewController.h; path = Controllers/RootViewController.h; sourceTree = SOURCE_ROOT; };
+		0B42BC111C420C1A00139C33 /* RootViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RootViewController.m; path = Controllers/RootViewController.m; sourceTree = SOURCE_ROOT; };
+		0B42BC131C420C2F00139C33 /* MoveDB.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = MoveDB.m; path = Models/MoveDB.m; sourceTree = SOURCE_ROOT; };
+		0B42BC141C420C2F00139C33 /* StockData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StockData.m; path = Models/StockData.m; sourceTree = SOURCE_ROOT; };
+		0B42BC151C420C2F00139C33 /* DataAPI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DataAPI.m; path = Models/DataAPI.m; sourceTree = SOURCE_ROOT; };
+		0B42BC161C420C2F00139C33 /* Comparison.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Comparison.m; path = Models/Comparison.m; sourceTree = SOURCE_ROOT; };
+		0B42BC171C420C2F00139C33 /* Comparison.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Comparison.h; path = Models/Comparison.h; sourceTree = SOURCE_ROOT; };
+		0B42BC181C420C2F00139C33 /* StockData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StockData.h; path = Models/StockData.h; sourceTree = SOURCE_ROOT; };
+		0B42BC191C420C2F00139C33 /* FundamentalAPI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FundamentalAPI.m; path = Models/FundamentalAPI.m; sourceTree = SOURCE_ROOT; };
+		0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FundamentalAPI.h; path = Models/FundamentalAPI.h; sourceTree = SOURCE_ROOT; };
+		0B42BC1B1C420C2F00139C33 /* DataAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DataAPI.h; path = Models/DataAPI.h; sourceTree = SOURCE_ROOT; };
+		0B42BC1C1C420C2F00139C33 /* Series.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Series.h; path = Models/Series.h; sourceTree = SOURCE_ROOT; };
+		0B42BC1D1C420C2F00139C33 /* Series.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Series.m; path = Models/Series.m; sourceTree = SOURCE_ROOT; };
+		0B42BC1E1C420C2F00139C33 /* BigNumberFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BigNumberFormatter.h; path = Models/BigNumberFormatter.h; sourceTree = SOURCE_ROOT; };
+		0B42BC1F1C420C2F00139C33 /* BigNumberFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BigNumberFormatter.m; path = Models/BigNumberFormatter.m; sourceTree = SOURCE_ROOT; };
+		0B42BC201C420C2F00139C33 /* MoveDB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveDB.h; path = Models/MoveDB.h; sourceTree = SOURCE_ROOT; };
+		0B42BC281C420C4700139C33 /* CIAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CIAppDelegate.m; sourceTree = SOURCE_ROOT; };
+		0B42BC291C420C4700139C33 /* CIAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CIAppDelegate.h; sourceTree = SOURCE_ROOT; };
+		0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
+		0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "ChartInsight-Info.plist"; sourceTree = SOURCE_ROOT; };
+		0B42BC2F1C420C8100139C33 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = SOURCE_ROOT; };
+		0B42BC301C420C8100139C33 /* charts.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = charts.db; sourceTree = SOURCE_ROOT; };
+		0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Prefix.pch"; sourceTree = SOURCE_ROOT; };
+		0B42BC321C420C8100139C33 /* metrics.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = metrics.plist; sourceTree = SOURCE_ROOT; };
+		0B42BC381C420CB600139C33 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
+		0B56776A1CE90E70009F02D4 /* SettingsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SettingsViewController.h; path = Controllers/SettingsViewController.h; sourceTree = SOURCE_ROOT; };
+		0B56776B1CE90E70009F02D4 /* SettingsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SettingsViewController.m; path = Controllers/SettingsViewController.m; sourceTree = SOURCE_ROOT; };
+		0B77A64F1CEAC3A40087A594 /* SupportActivity.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SupportActivity.m; path = Controllers/SupportActivity.m; sourceTree = SOURCE_ROOT; };
+		0B77A6501CEAC3A40087A594 /* SupportActivity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SupportActivity.h; path = Controllers/SupportActivity.h; sourceTree = SOURCE_ROOT; };
+		0BB7F51D183C31B90040F1C6 /* ChartInsight.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChartInsight.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0BB7F520183C31B90040F1C6 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0BB7F51A183C31B90040F1C6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B1BD55B183C351A00EE97D1 /* libsqlite3.dylib in Frameworks */,
+				0B1BD559183C351100EE97D1 /* QuartzCore.framework in Frameworks */,
+				0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */,
+				0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */,
+				0BB7F521183C31B90040F1C6 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0B1BD527183C33B800EE97D1 /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				0B42BBFE1C420B2700139C33 /* AddFundamentalController.h */,
+				0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */,
+				0B42BC101C420C1A00139C33 /* RootViewController.h */,
+				0B42BC111C420C1A00139C33 /* RootViewController.m */,
+				0B56776A1CE90E70009F02D4 /* SettingsViewController.h */,
+				0B56776B1CE90E70009F02D4 /* SettingsViewController.m */,
+				0B42BC061C420BE500139C33 /* ChartOptionsController.h */,
+				0B42BC011C420BE400139C33 /* ChartOptionsController.m */,
+				0B42BC031C420BE400139C33 /* ScrollChartController.h */,
+				0B42BC021C420BE400139C33 /* ScrollChartController.m */,
+				0B77A64F1CEAC3A40087A594 /* SupportActivity.m */,
+				0B77A6501CEAC3A40087A594 /* SupportActivity.h */,
+				0B42BC081C420BE500139C33 /* FindSeriesController.h */,
+				0B42BC041C420BE500139C33 /* FindSeriesController.m */,
+				0B42BC051C420BE500139C33 /* ProgressIndicator.m */,
+				0B42BC071C420BE500139C33 /* ProgressIndicator.h */,
+			);
+			name = Controllers;
+			path = ChartInsight/Controllers;
+			sourceTree = "<group>";
+		};
+		0B1BD540183C33C300EE97D1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				0B42BC131C420C2F00139C33 /* MoveDB.m */,
+				0B42BC141C420C2F00139C33 /* StockData.m */,
+				0B42BC151C420C2F00139C33 /* DataAPI.m */,
+				0B42BC161C420C2F00139C33 /* Comparison.m */,
+				0B42BC171C420C2F00139C33 /* Comparison.h */,
+				0B42BC181C420C2F00139C33 /* StockData.h */,
+				0B42BC191C420C2F00139C33 /* FundamentalAPI.m */,
+				0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */,
+				0B42BC1B1C420C2F00139C33 /* DataAPI.h */,
+				0B42BC1C1C420C2F00139C33 /* Series.h */,
+				0B42BC1D1C420C2F00139C33 /* Series.m */,
+				0B42BC1E1C420C2F00139C33 /* BigNumberFormatter.h */,
+				0B42BC1F1C420C2F00139C33 /* BigNumberFormatter.m */,
+				0B42BC201C420C2F00139C33 /* MoveDB.h */,
+			);
+			name = Models;
+			path = ChartInsight/Models;
+			sourceTree = "<group>";
+		};
+		0BB7F514183C31B90040F1C6 = {
+			isa = PBXGroup;
+			children = (
+				0B42BC381C420CB600139C33 /* Images.xcassets */,
+				0B42BC291C420C4700139C33 /* CIAppDelegate.h */,
+				0B42BC281C420C4700139C33 /* CIAppDelegate.m */,
+				0B1BD527183C33B800EE97D1 /* Controllers */,
+				0B1BD540183C33C300EE97D1 /* Models */,
+				0BB7F527183C31B90040F1C6 /* Supporting Files */,
+				0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */,
+				0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */,
+				0B42BC2F1C420C8100139C33 /* main.m */,
+				0B42BC301C420C8100139C33 /* charts.db */,
+				0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */,
+				0B42BC321C420C8100139C33 /* metrics.plist */,
+				0BB7F51F183C31B90040F1C6 /* Frameworks */,
+				0BB7F51E183C31B90040F1C6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0BB7F51E183C31B90040F1C6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0BB7F51D183C31B90040F1C6 /* ChartInsight.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0BB7F51F183C31B90040F1C6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0B1BD55A183C351A00EE97D1 /* libsqlite3.dylib */,
+				0B1BD558183C351100EE97D1 /* QuartzCore.framework */,
+				0BB7F520183C31B90040F1C6 /* Foundation.framework */,
+				0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */,
+				0BB7F524183C31B90040F1C6 /* UIKit.framework */,
+				0BB7F539183C31B90040F1C6 /* XCTest.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		0BB7F527183C31B90040F1C6 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = "Supporting Files";
+			path = ChartInsight;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0BB7F51C183C31B90040F1C6 /* ChartInsight */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0BB7F549183C31B90040F1C6 /* Build configuration list for PBXNativeTarget "ChartInsight" */;
+			buildPhases = (
+				0BB7F519183C31B90040F1C6 /* Sources */,
+				0BB7F51A183C31B90040F1C6 /* Frameworks */,
+				0BB7F51B183C31B90040F1C6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ChartInsight;
+			productName = ChartInsight;
+			productReference = 0BB7F51D183C31B90040F1C6 /* ChartInsight.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0BB7F515183C31B90040F1C6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				CLASSPREFIX = CI;
+				LastUpgradeCheck = 0730;
+				ORGANIZATIONNAME = "Chart Insight LLC";
+				TargetAttributes = {
+					0BB7F51C183C31B90040F1C6 = {
+						DevelopmentTeam = KGH5A5RXPH;
+					};
+				};
+			};
+			buildConfigurationList = 0BB7F518183C31B90040F1C6 /* Build configuration list for PBXProject "ChartInsight" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 0BB7F514183C31B90040F1C6;
+			productRefGroup = 0BB7F51E183C31B90040F1C6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0BB7F51C183C31B90040F1C6 /* ChartInsight */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0BB7F51B183C31B90040F1C6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B42BC391C420CB600139C33 /* Images.xcassets in Resources */,
+				0B42BC361C420C8100139C33 /* charts.db in Resources */,
+				0B42BC371C420C8100139C33 /* metrics.plist in Resources */,
+				0B42BC331C420C8100139C33 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0BB7F519183C31B90040F1C6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B42BC0A1C420BE500139C33 /* ScrollChartController.m in Sources */,
+				0B42BC001C420B2700139C33 /* AddFundamentalController.m in Sources */,
+				0B42BC261C420C2F00139C33 /* Series.m in Sources */,
+				0B42BC221C420C2F00139C33 /* StockData.m in Sources */,
+				0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */,
+				0B42BC0B1C420BE500139C33 /* FindSeriesController.m in Sources */,
+				0B42BC211C420C2F00139C33 /* MoveDB.m in Sources */,
+				0B42BC241C420C2F00139C33 /* Comparison.m in Sources */,
+				0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */,
+				0B56776C1CE90E70009F02D4 /* SettingsViewController.m in Sources */,
+				0B77A6511CEAC3A40087A594 /* SupportActivity.m in Sources */,
+				0B42BC271C420C2F00139C33 /* BigNumberFormatter.m in Sources */,
+				0B42BC351C420C8100139C33 /* main.m in Sources */,
+				0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */,
+				0B42BC0C1C420BE500139C33 /* ProgressIndicator.m in Sources */,
+				0B42BC231C420C2F00139C33 /* DataAPI.m in Sources */,
+				0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0BB7F547183C31B90040F1C6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0BB7F548183C31B90040F1C6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		0BB7F54A183C31B90040F1C6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer: Eric Kennedy (873B425HPH)";
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "ChartInsight-Prefix.pch";
+				INFOPLIST_FILE = "ChartInsight-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		0BB7F54B183C31B90040F1C6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer: Eric Kennedy (873B425HPH)";
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "ChartInsight-Prefix.pch";
+				INFOPLIST_FILE = "ChartInsight-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0BB7F518183C31B90040F1C6 /* Build configuration list for PBXProject "ChartInsight" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0BB7F547183C31B90040F1C6 /* Debug */,
+				0BB7F548183C31B90040F1C6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0BB7F549183C31B90040F1C6 /* Build configuration list for PBXNativeTarget "ChartInsight" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0BB7F54A183C31B90040F1C6 /* Debug */,
+				0BB7F54B183C31B90040F1C6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0BB7F515183C31B90040F1C6 /* Project object */;
+}
