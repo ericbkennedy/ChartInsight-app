@@ -21,7 +21,7 @@
 
 -(NSURL *) formatRequestWithKeys:(NSString *)keys {
     
-    return [NSURL URLWithString:[NSString stringWithFormat:@"http://chartinsight.com/fundamentals17.php?id=%d&metrics=%@", self.seriesId, keys]];
+    return [NSURL URLWithString:[NSString stringWithFormat:@"http://chartinsight.com/fundamentals15.php?id=%ld&metrics=%@", self.seriesId, keys]];
 }
 
 -(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
@@ -30,7 +30,7 @@
 
 -(void)connection:(NSURLConnection *)failedConnection didFailWithError:(NSError *)error {
     
-    DLog(@"%d err = %@ for connection %@", self.seriesId, [error localizedDescription], [failedConnection description]);
+    DLog(@"%ld err = %@ for connection %@", self.seriesId, [error localizedDescription], [failedConnection description]);
 
     [self.connection cancel];
     self.receivedData = nil;
@@ -59,7 +59,7 @@
 
 - (void) parseResponse {
     
-    // DLog(@"parseResponse on %@", self.responseString);
+     DLog(@"parseResponse on %@", self.responseString);
 
     if (self.responseString.length < 13 || [[self.responseString substringToIndex:12] isEqualToString:@"sym	y	m	d	q	"] == NO) {
         // DLog(@"mismatch so failed");
@@ -81,21 +81,21 @@
                 for (NSInteger p = 5; p < parts.count; p++) {
                     thisArray = [NSMutableArray arrayWithCapacity:lines.count];
                     [listOfColumns addObject:thisArray];
-                    // DLog(@"created array with key %@", [parts objectAtIndex:p]);
+                     DLog(@"created array with key %@", [parts objectAtIndex:p]);
                     [self.columns setObject:thisArray forKey:[parts objectAtIndex:p]];
                 }
 
             } else {
                 
-                [self.year addObject:[NSNumber numberWithInt:[[parts objectAtIndex:1] integerValue]]];
-                [self.month addObject:[NSNumber numberWithInt:[[parts objectAtIndex:2] integerValue]]];
-                [self.day addObject:[NSNumber numberWithInt:[[parts objectAtIndex:3] integerValue]]];
-                [self.quarter addObject:[NSNumber numberWithInt:[[parts objectAtIndex:4] integerValue]]];
+                [self.year addObject:[NSNumber numberWithInt:(int)[[parts objectAtIndex:1] integerValue]]];
+                [self.month addObject:[NSNumber numberWithInt:(int)[[parts objectAtIndex:2] integerValue]]];
+                [self.day addObject:[NSNumber numberWithInt:(int)[[parts objectAtIndex:3] integerValue]]];
+                [self.quarter addObject:[NSNumber numberWithInt:(int)[[parts objectAtIndex:4] integerValue]]];
                 [self.barAlignments addObject:@-1];     // initialize it so we just need to update the value later
                 
                 for (NSInteger p = 5; p < parts.count; p++) {
                     thisArray = [listOfColumns objectAtIndex:(p - 5)];
-                    // DLog(@"adding %@ to column %d at index %d", [parts objectAtIndex:p], (p-5), l);
+                     DLog(@"adding %@ to column %ld at index %ld", [parts objectAtIndex:p], (p-5), l);
                     if ([[parts objectAtIndex:p] length] > 0) {
                         [thisArray addObject:[[[NSDecimalNumber alloc] initWithString:[parts objectAtIndex:p]] autorelease]];
                     } else {
@@ -110,7 +110,7 @@
 
 - (void) setBarAlignment:(NSInteger)b forReport:(NSInteger)r {
     if (r < [self.barAlignments count]) {
-        [self.barAlignments replaceObjectAtIndex:r withObject:[NSNumber numberWithInt:b]];
+        [self.barAlignments replaceObjectAtIndex:r withObject:[NSNumber numberWithLong:b]];
     }
 }
 

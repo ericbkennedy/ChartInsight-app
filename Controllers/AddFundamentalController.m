@@ -25,13 +25,11 @@
     
     switch (section) {
         case 0:
-            return @"Ratios";
-        case 1:
-            return @"Balance Sheet";
-        case 2:
             return @"Income Statement";
-        case 3:
+        case 1:
             return @"Cash Flow";
+        case 2:
+            return @"Balance Sheet";
         default:
             return @"";
     }

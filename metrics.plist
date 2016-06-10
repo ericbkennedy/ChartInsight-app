@@ -4,65 +4,6 @@
 <array>
 	<array>
 		<array>
-			<string>ReturnOnInvestedCapital</string>
-			<string>Return on Invested Capital</string>
-			<string>Earnings divided by invested capital (long-term debt + preferred equity + common equity)</string>
-		</array>
-		<array>
-			<string>ClosePERatio</string>
-			<string>PE Ratio at End of Quarter</string>
-			<string>Fiscal quarter closing price divided by the fiscal quarter earnings from total operations</string>
-		</array>
-		<array>
-			<string>NetProfitMargin</string>
-			<string>Net Profit Margin</string>
-			<string>Net income divided by quarterly revenues</string>
-		</array>
-	</array>
-	<array>
-		<array>
-			<string>ciCashAndMarketableSecurities</string>
-			<string>Cash &amp; Short Term Investments</string>
-			<string>Cash and marketable securities</string>
-		</array>
-		<array>
-			<string>TotalAssets</string>
-			<string>Total Assets</string>
-			<string>Short term liquid assets + long term assets</string>
-		</array>
-		<array>
-			<string>TotalLiabilities</string>
-			<string>Total Liabilities</string>
-			<string>Total short term liabilities + total long term liabilities</string>
-		</array>
-		<array>
-			<string>RetainedEarnings</string>
-			<string>Retained Earnings</string>
-			<string>Portion of net income retained for reinvestment instead of being paid out as dividends</string>
-		</array>
-		<array>
-			<string>TotalEquity</string>
-			<string>Total Equity</string>
-			<string>Preferred stock equity plus common stock equity</string>
-		</array>
-		<array>
-			<string>BookValuePerShare</string>
-			<string>Book Value Per Share</string>
-			<string>Common equity divided by common shares outstanding. A margin of safety exists when book value &gt; stock price.</string>
-		</array>
-		<array>
-			<string>TangibleBookValuePerShare</string>
-			<string>Tangible Book Value Per Share</string>
-			<string>Book value minus intangible assets, divided by common shares outstanding</string>
-		</array>
-		<array>
-			<string>DilutedWeightedSharesOutstanding</string>
-			<string>Diluted Shares Outstanding</string>
-			<string>Total if all sources of conversion (convertible bonds and stock options) were exercised</string>
-		</array>
-	</array>
-	<array>
-		<array>
 			<string>TotalRevenue</string>
 			<string>Total Revenue or Sales</string>
 			<string> </string>
@@ -118,6 +59,48 @@
 			<string>NetCashFromFinancingActivities</string>
 			<string>Net Financing Cash Flow</string>
 			<string>Net stock issuance/repayment + net debt issuance minus cash dividends and financing charges</string>
+		</array>
+	</array>
+	<array>
+		<array>
+			<string>ciCashAndMarketableSecurities</string>
+			<string>Cash &amp; Short Term Investments</string>
+			<string>Cash and marketable securities</string>
+		</array>
+		<array>
+			<string>TotalAssets</string>
+			<string>Total Assets</string>
+			<string>Short term liquid assets + long term assets</string>
+		</array>
+		<array>
+			<string>TotalLiabilities</string>
+			<string>Total Liabilities</string>
+			<string>Total short term liabilities + total long term liabilities</string>
+		</array>
+		<array>
+			<string>RetainedEarnings</string>
+			<string>Retained Earnings</string>
+			<string>Portion of net income retained for reinvestment instead of being paid out as dividends</string>
+		</array>
+		<array>
+			<string>TotalEquity</string>
+			<string>Total Equity</string>
+			<string>Preferred stock equity plus common stock equity</string>
+		</array>
+		<array>
+			<string>BookValuePerShare</string>
+			<string>Book Value Per Share</string>
+			<string>Common equity divided by common shares outstanding. A margin of safety exists when book value &gt; stock price.</string>
+		</array>
+		<array>
+			<string>TangibleBookValuePerShare</string>
+			<string>Tangible Book Value Per Share</string>
+			<string>Book value minus intangible assets, divided by common shares outstanding</string>
+		</array>
+		<array>
+			<string>DilutedWeightedSharesOutstanding</string>
+			<string>Diluted Shares Outstanding</string>
+			<string>Total if all sources of conversion (convertible bonds and stock options) were exercised</string>
 		</array>
 	</array>
 </array>
