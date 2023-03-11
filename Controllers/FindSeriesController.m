@@ -8,13 +8,9 @@
     [super dealloc];
 }
 
-- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toOrientation duration:(NSTimeInterval)duration {
-        
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
     [self.searchBar setFrame:CGRectMake(0., 0., self.tableView.bounds.size.width, 44.)];
-}
-
-- (BOOL)prefersStatusBarHidden {
-    return (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? YES: NO;
 }
 
 - (id)initWithStyle:(UITableViewStyle)style {
@@ -25,9 +21,8 @@
     
     self.searchBar.autocorrectionType = UITextAutocorrectionTypeNo;
     self.searchBar.showsCancelButton   = NO;
-    self.searchBar.barStyle = UIBarStyleBlack;
     [self.tableView setTableHeaderView:self.searchBar];
-    [self setTitle:@"Company or Symbols"];
+    [self setTitle:@"Enter stock ticker or company name"];
 
     [self setList:[NSMutableArray arrayWithCapacity:50]];
     return self;
@@ -114,14 +109,17 @@
 		 NSMutableArray *seriesList = [self.list objectAtIndex:indexPath.row];
             
         [seriesList retain];     // only thing retaining it so far is the list returned by FCC which will be released
-                
-        [[self delegate] performSelector:@selector(insertSeries:) withObject:seriesList];
+
+        // A "No matches" placeholder with symbol="" will appear for ETFs or foriegn stocks. Ignore clicks on that
+        if ([seriesList.firstObject isKindOfClass:NSClassFromString(@"Series")]) {
+            Series *s = seriesList.firstObject;
+            if (s.symbol.length > 0) {
+                [[self delegate] performSelector:@selector(insertSeries:) withObject:seriesList];
+            } else {
+                DLog(@" no matches place holder has empty symbol");
+            }
+        }
     }
 }
-
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
-    return YES;    
-}
-
 
 @end

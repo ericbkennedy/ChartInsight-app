@@ -10,7 +10,7 @@
     @private
     BarStruct   *dailyData;     // for parallelism, dataAPI writes to a separate block of memory
     BarStruct   *barData;       // points to dailyData except for monthly or weekly
-    BOOL sma50, sma200, rsi14, bb20;
+    BOOL sma50, sma200, bb20;
     double pxHeight, sparklineHeight, pt2px, volumeBase, volumeHeight;
     dispatch_queue_t concurrentQueue;
     
@@ -21,9 +21,9 @@
     BOOL        busy;
     CGFloat     xFactor, yFloor, yFactor, barUnit;
     NSInteger pointCount, redPointCount, lastMonth, year, redBarCount, whiteBarCount, monthCount, blackCount, redCount;
-    CGPoint    *points, *redPoints, *movingAvg1, *movingAvg2, *rsi, *ubb, *mbb, *lbb, *monthLines, *grids;
+    CGPoint    *points, *redPoints, *movingAvg1, *movingAvg2, *ubb, *mbb, *lbb, *monthLines, *grids;
     CGFloat    *fundamentalAlignments;
-    NSInteger  movingAvg1Count, movingAvg2Count, rsiCount, bbCount, hollowRedCount, filledGreenCount;
+    NSInteger  movingAvg1Count, movingAvg2Count, bbCount, hollowRedCount, filledGreenCount;
     NSInteger oldestReport, newestReport;
     CGRect          *redBars, *hollowRedBars, *greenBars, *filledGreenBars, *redVolume, *blackVolume;
 }

@@ -69,28 +69,20 @@
 
 - (BOOL) matchesColor:(UIColor *)theirColor {
     
-    const CGFloat *myComponents = CGColorGetComponents(upColor);
-    const CGFloat *theirComponents = CGColorGetComponents(theirColor.CGColor);
+    NSString *currentColorHex = [self hexFromColor];
+    NSString *theirColorHex = [self hexFromColor:theirColor.CGColor];
     
-    if (myComponents[0] != theirComponents[0]) {
-   //     // DLog(@"red doesn't match %f vs %f", myComponents[0], theirComponents[0]);
-        return FALSE;
-    }
-    if (myComponents[1] != theirComponents[1]) {
-    //    // DLog(@"green doesn't match %f vs %f", myComponents[1], theirComponents[1]);
-        return FALSE;
-    }
-    if (myComponents[2] != theirComponents[2]) {
-    //    // DLog(@"blue doesn't match %f vs %f", myComponents[2], theirComponents[2]);
-        return FALSE;
-    }
-    return TRUE;
+    return [currentColorHex isEqualToString: theirColorHex];
 }
 
 - (NSString *) hexFromColor {
+    return [self hexFromColor:upColor];
+}
+
+- (NSString *) hexFromColor:(CGColorRef)color {
     
-    const CGFloat *components = CGColorGetComponents(upColor);
-    NSInteger r, g, b;
+    const CGFloat *components = CGColorGetComponents(color);
+    unsigned r, g, b;
     
     r = 255 * components[0];
     g = 255 * components[1];
@@ -165,8 +157,10 @@
     return self;
 }
 
-- (void) setStartDateWithString:(NSString *)dateString {
-    [self setStartDate:[[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] dateFromString:[dateString stringByAppendingString:@"T20:00:00Z"]]];
+- (void) convertDateStringToDate {
+   NSDate *dateFromString = [[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] dateFromString:[self.startDateString stringByAppendingString:@"T20:00:00Z"]];
+       
+   [self setStartDate:[dateFromString laterDate:[NSDate dateWithTimeIntervalSinceReferenceDate:23328000]]];
 }
 
 // returns an NSMutableArray of NSMutableArrays containing 1 stock each
@@ -183,7 +177,7 @@
         }
     }
     
-    NSString *technicalDefaults, *fundamentalDefaults = @"", *bankFundamentalDefaults = @"";
+    NSString *technicalDefaults, *fundamentalDefaults = @"";
     if ([[[NSUserDefaults standardUserDefaults] valueForKey:@"technicalDefaults"] length] > 1) {
         technicalDefaults = [[NSUserDefaults standardUserDefaults] valueForKey:@"technicalDefaults"];
     } else {
@@ -192,7 +186,6 @@
 
     if ([[[NSUserDefaults standardUserDefaults] valueForKey:@"fundamentalDefaults"] length] > 1) {
         fundamentalDefaults = [[NSUserDefaults standardUserDefaults] valueForKey:@"fundamentalDefaults"];
-        bankFundamentalDefaults = [[NSUserDefaults standardUserDefaults] valueForKey:@"bankFundamentalDefaults"];
     }
     
     sqlite3_stmt *statement;
@@ -215,14 +208,15 @@
             
             // DLog(@"%@ has matchinfo %@", newSeries.symbol,[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 5)] );
             
-            [newSeries setStartDateWithString:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 3)]];
+            // Faster search results UI if string to date conversion happens after user selects the stock
+            [newSeries setStartDateString:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 3)]];
             newSeries->chartType = chartTypeDefault;
             newSeries->hasFundamentals = sqlite3_column_int(statement, 4);
             
             if (newSeries->hasFundamentals == 2) {
                     [newSeries setFundamentalList:fundamentalDefaults];
             } else if (newSeries->hasFundamentals == 1) {
-                    [newSeries setFundamentalList:bankFundamentalDefaults];
+                    // Bank fundamentals (loans, etc.) are not supported by chartinsight.com
             }
             
             [newSeries setTechnicalList:technicalDefaults];

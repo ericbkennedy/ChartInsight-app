@@ -19,7 +19,6 @@
 
 - (void)dealloc {
     [_window release];
-//    [_navigationController release];
     [super dealloc];
 }
 
@@ -31,15 +30,16 @@
         [[[self navigationController] navigationBar] setTranslucent:NO];
         self.chartBackground = [UIColor blackColor];
         self.tableViewBackground = [UIColor colorWithWhite:0.1 alpha:1.0];
-//        [[UITableView appearance] setBackgroundColor:self.tableViewBackground];
     } else {
         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"nightBackground"];
         [[[self navigationController] navigationBar] setBarStyle:UIBarStyleDefault];
         [[[self navigationController] navigationBar] setTranslucent:NO];
         self.chartBackground = [UIColor colorWithWhite:0.964705882 alpha:1.0];
         self.tableViewBackground = [UIColor colorWithRed:0.870588235 green:0.901960784 blue:0.968627451 alpha:1.0];
-  //      [[UITabBar appearance] setBarStyle:UIBarStyleDefault];
-        [[UITableView appearance] setBackgroundColor:self.tableViewBackground];
+    }
+    
+    if (@available(iOS 13, *)) {    // Override system light or dark setting based on nightModeOn toggle
+        _window.overrideUserInterfaceStyle = on ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
     }
 }
 

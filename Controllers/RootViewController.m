@@ -5,9 +5,8 @@
 #import "FindSeriesController.h"
 #import "MoveDB.h"
 #import "SettingsViewController.h"
-#import "SupportActivity.h"
 
-@interface RootViewController () <MFMailComposeViewControllerDelegate>
+@interface RootViewController ()
 
 @property (assign, nonatomic) CGFloat width;
 @property (assign, nonatomic) CGFloat height;
@@ -23,26 +22,14 @@
 @property (assign, nonatomic) BOOL newComparison;
 
 @property (nonatomic, strong) UINavigationController    *popOverNav;    // required for navgiation controller within popover
-@property (nonatomic, strong) UIWebView                     *webView;
-@property (nonatomic, strong) UIActivityIndicatorView   *webViewDownloading;
 @property (nonatomic, strong) UITapGestureRecognizer   *doubleTapRecognizer;
 @property (nonatomic, strong) UILongPressGestureRecognizer *oneLongPressRecognizer;
 @property (nonatomic, strong) UILongPressGestureRecognizer *twoLongPressRecognizer;
 @property (nonatomic, strong) UIPanGestureRecognizer   *panRecognizer;
 @property (nonatomic, strong) UIPinchGestureRecognizer *pinchRecognizer;
 @property (nonatomic, strong) UIBarButtonItem *minimizeButton;
-@property (nonatomic, strong) UIBarButtonItem *shareChartButton;
-
-@property (nonatomic, strong) UIBarButtonItem *webBackButton;
-@property (nonatomic, strong) UIBarButtonItem *webForwardButton;
-@property (nonatomic, strong) UIBarButtonItem *webRefreshButton;
-@property (nonatomic, strong) UIBarButtonItem *webShareButton;
-
 @property (nonatomic, strong) UIToolbar *customNavigationToolbar;     //  better formatting than using self.navigationItem
 @property (strong, nonatomic) UIToolbar *settingsToolbar;
-@property (nonatomic, strong) UIToolbar *webToolbar;
-
-@property (strong, nonatomic) id popover;
 
 @property (strong, nonatomic) NSDateComponents *days;
 
@@ -78,14 +65,12 @@
 @implementation RootViewController
 
 - (void)dealloc {
-    // don't release thigns set to autorelease - set them to nil in viewDidUnload
     [_list removeAllObjects];
     [_list release];
     [_gregorian release];
     [super dealloc];
 }
 
-// iOS 6 Autorotation support.
 - (BOOL)shouldAutorotate {
     return YES;
 }
@@ -94,33 +79,13 @@
     return UIInterfaceOrientationMaskAll;
 }
 
-- (void) popoverPush:(UIViewController *)vc createRVC:(BOOL)createRVC  fromButton:(UIBarButtonItem *)button {
+- (void) popoverPush:(UIViewController *)vc fromButton:(UIBarButtonItem *)button {
     
-    if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
-        
-        Class classPopoverController = NSClassFromString(@"UIPopoverController");
-        
-        if (_popover != nil) {  // release it to avoid two popovers simultaneously
-            [_popover dismissPopoverAnimated:YES];
-            [_popover release];
-        }
-        
-        if (createRVC) {
-            [self setPopOverNav:[[UINavigationController alloc] initWithRootViewController:vc]];
-            
-            self.popover = [[classPopoverController alloc] initWithContentViewController:self.popOverNav];
-            
-        } else {
-            self.popover = [[classPopoverController alloc] initWithContentViewController:vc];
-        }
-        
-        [_popover setDelegate:vc];
-        [_popover presentPopoverFromBarButtonItem:button permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
-        
-    } else {
-        [self setTitle:@"Back"];		// Required for back button
-        [[self navigationController] pushViewController:vc animated:NO];
-    }    
+    self.popOverNav = [[UINavigationController alloc] initWithRootViewController:vc];
+    self.popOverNav.modalPresentationStyle = UIModalPresentationPopover;
+    self.popOverNav.popoverPresentationController.sourceView = self.view;
+    self.popOverNav.popoverPresentationController.barButtonItem = button;
+    [self presentViewController:self.popOverNav animated:YES completion:nil];
 }
 
 - (void) editSettings:(id)sender {
@@ -149,7 +114,7 @@
     FindSeriesController *fcc = [[FindSeriesController alloc] initWithStyle:UITableViewStylePlain];
     [fcc setDelegate:self];
     
-    [self popoverPush:fcc createRVC:NO fromButton:sender];
+    [self popoverPush:fcc fromButton:sender];
 }
 
 - (void) editSeries:(id)sender {
@@ -164,7 +129,7 @@
     [ctc setDelegate:self];
     [ctc setGregorian:self.gregorian];
   
-    [self popoverPush:ctc createRVC:YES fromButton:sender];
+    [self popoverPush:ctc fromButton:sender];
 }
 
 - (void) reloadWithSeries:(Series *)series {
@@ -180,9 +145,6 @@
 
 /* called by ChartOptionsController when chart color or type changes */ 
 - (void) redrawWithSeries:(Series *)series {
-    
-    // DLog(@"redrawWithSeries with series %@", series.symbol);
-    
     if (self.scc != nil) {
         [self.scc.comparison saveToDb];
         for (UIBarButtonItem *button in self.customNavigationToolbar.items) {
@@ -195,7 +157,7 @@
 }
 
 - (void) resetToolbarWithSearch:(BOOL)showSearch {
-    
+
     if (showSearch) {
         self.minimizeButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(addSeries:)];
     } else {
@@ -237,14 +199,12 @@
         }
         
         [buttons addObject:[[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease]];
-        [buttons addObject:self.shareChartButton];
 
         [self.customNavigationToolbar setItems:buttons];
     }
 }
 
 - (void) nightDayToggle {
-
     if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
         [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
         [self.settingsToolbar setBarStyle:UIBarStyleDefault];
@@ -263,13 +223,15 @@
     [self.tableView reloadData];
 }
 
-- (BOOL)prefersStatusBarHidden {
-    return (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? YES: NO;
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground] == NO) {
+        return UIStatusBarStyleLightContent;
+    } else {
+        return UIStatusBarStyleBlackOpaque; // old iPad doesn't support iOS 13 UIStatusBarStyleDarkContent
+    }
 }
 
 - (void)viewDidLoad {
-    [self setPopover:nil];
-        
     MoveDB *move = [[[MoveDB alloc] init] autorelease];
     [move moveDBforDelegate:self];                      // copy db to documents or check existing db
     
@@ -293,7 +255,7 @@
     
     self.settingsToolbar = [UIToolbar new];
     self.settingsToolbar.translucent = NO;
-    self.settingsToolbar.frame = CGRectMake(0, self.height, 205, 44);
+    self.settingsToolbar.frame = CGRectMake(0, self.height + 20, 205, self.toolbarHeight);
     
     UIBarButtonItem *settingsItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"settingsUnselected"] style:UIBarButtonItemStylePlain target:self action:@selector(editSettings:)];
     
@@ -301,10 +263,9 @@
     
     [self.settingsToolbar setItems:@[settingsItem, flexibleSpace]];
     [self.view addSubview:self.settingsToolbar];
-    
-    [self setShareChartButton:[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(shareChart)]];
    
     if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground] == NO) {
+        // Note if user selected dark mode in settings that will override the bar style here
         [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
         [self.settingsToolbar setBarStyle:UIBarStyleDefault];
     } else {
@@ -314,7 +275,9 @@
     
     [self setList:[Comparison listAll:[self bestDbPath]]];
     
-    self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, 44, 205, self.height - 88) style:UITableViewStylePlain] autorelease];
+    self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, self.toolbarHeight + self.statusBarHeight,
+                                                                    205, self.height - 2 * self.toolbarHeight)
+                                                   style:UITableViewStylePlain] autorelease];
     
     [self.tableView setBackgroundColor:[UIColor clearColor]];
     [self.tableView setClipsToBounds:NO];      // YES would create rounded corners, which doesn't matter when the background is all the same
@@ -333,7 +296,6 @@
 
     [self.scc setGregorian:self.gregorian];
     [self.view addSubview:self.scc];
-//    [self.scc setOpacity:0.];
     [self.scc.layer setZPosition:1];
     [self.scc setNeedsDisplay];
     [self.view.layer setNeedsDisplay];
@@ -343,44 +305,8 @@
     [self.magnifier.layer setZPosition:3];
     [self.magnifier setHidden:YES];
     [self.view addSubview:self.magnifier];
-    
-    [self setWebView:[[UIWebView alloc] init]];
-    [self.webView setHidden: YES];
-    [self.webView setScalesPageToFit:YES];
-    [self.webView setDelegate:self];
-    [self.view addSubview:self.webView];
-    [self.webView.layer setZPosition:3];
-    
-    self.webToolbar = [UIToolbar new];
-	[self.webToolbar setBarStyle:UIBarStyleBlack];
-	[self.webToolbar setTranslucent:NO];
-    [self.webToolbar setFrame:CGRectMake(0, self.height, self.width, self.toolbarHeight)];
-    [self.webToolbar.layer setZPosition:3];
-    [self.webToolbar setHidden:YES];
-    [self.view addSubview:self.webToolbar];
-    
-    [self setWebBackButton:[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"back"] style:UIBarButtonItemStylePlain target:self.webView action:@selector(goBack)]];
-    [self.webBackButton setEnabled:NO];
-    [self setWebForwardButton:[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"forward"] style:UIBarButtonItemStylePlain target:self.webView action:@selector(goForward)]];
-    [self.webForwardButton setEnabled:NO];
-    
-    [self setWebRefreshButton:[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self.webView action:@selector(reload)]];
-    [self setWebShareButton:[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(webShare)]];
-    
-    [self.webToolbar setItems:[NSArray arrayWithObjects:
-                               [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease],
-                               self.webBackButton,
-                               [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease],
-                               self.webForwardButton,
-                               [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease],
-                               self.webRefreshButton,
-                               [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease],
-                               self.webShareButton,
-                               [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease], nil]];
         
-    [self setWebViewDownloading:[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite]];
-    
-    [self setProgressIndicator:[[ProgressIndicator alloc] initWithFrame:CGRectMake(self.width/2 - 80, self.height/2 - 40, 160, 75)]];
+    [self setProgressIndicator:[[ProgressIndicator alloc] initWithFrame:CGRectMake(0, 32., self.width, 4)]];
     [self.view addSubview:self.progressIndicator];
     [self.progressIndicator.layer setZPosition:4];
     [self.progressIndicator setHidden:YES]; // until startAnimating is called
@@ -414,29 +340,23 @@
     self.dragWindow = NO;
 }
 
-- (void) resizeSubviews
-{
-    [self.customNavigationToolbar setFrame:CGRectMake(0, 0, self.width, self.toolbarHeight)];
-    [self.tableView setFrame:CGRectMake(0, self.toolbarHeight + 44, 205, self.height - 44)];
+- (void) resizeSubviewsForSize:(CGSize)newSize {
+    [self.customNavigationToolbar setFrame:CGRectMake(0, self.statusBarHeight, newSize.width, self.toolbarHeight)];
+    CGFloat combinedToolbarHeight = self.statusBarHeight + self.toolbarHeight;
+    
+    self.tableView.frame = CGRectMake(0, combinedToolbarHeight, 205, newSize.height - combinedToolbarHeight);
+    self.settingsToolbar.frame = CGRectMake(0, newSize.height - self.toolbarHeight, 205, self.toolbarHeight);    
+    self.progressIndicator.frame = CGRectMake(0, 32., self.width, 4);
+    self.scc.layer.position = CGPointMake(self.scc.layer.position.x, combinedToolbarHeight);
+    
     [self.tableView reloadData];
-    [self.progressIndicator setFrame:CGRectMake(self.width/2 - 80, self.height/2 - 40, 160, 75)];
     
-    [self.scc.layer setPosition:CGPointMake(self.scc.layer.position.x, self.toolbarHeight)];    // ipad menu bar
-    
-    CGFloat delta = self.scc.bounds.size.width - self.width;
+    CGFloat delta = self.scc.bounds.size.width - newSize.width;
     NSInteger shiftBars = floor(self.scc.layer.contentsScale* delta/(self.scc->xFactor * self.scc->barUnit));
     
-    [self.scc updateMaxPercentChangeWithBarsShifted:- shiftBars];  // shiftBars are positive when delta is negative
+    [self.scc updateMaxPercentChangeWithBarsShifted: -shiftBars];  // shiftBars are positive when delta is negative
 
-    if ((UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) && NO == self.webView.hidden) {
-        [self.scc setBounds:CGRectMake(0, 0, self.width, 288)];
-        [self.webView setFrame:CGRectMake(0, self.toolbarHeight + 288., self.width, self.height - 288. - self.toolbarHeight)];
-    } else {
-        [self.scc setBounds:CGRectMake(0, 0, self.width, self.height)];
-        [self.webView setFrame:CGRectMake(0, self.toolbarHeight, self.width, self.height - self.toolbarHeight)];
-    }
-    [self.webToolbar setFrame:CGRectMake(0, self.height, self.width, self.toolbarHeight)];
-    
+    self.scc.bounds = CGRectMake(0, 0, newSize.width, newSize.height - combinedToolbarHeight);
     [self.scc resize];
 }
 
@@ -444,14 +364,12 @@
     [super viewDidAppear:animated];
     
     if ([self resizeFrameToSize:[UIScreen mainScreen].bounds.size]) {
-        [self resizeSubviews];
+        [self resizeSubviewsForSize:CGSizeMake(self.width, self.height)];
     }
 }
 
 // called by FindSeriesController when a new stock is added
 - (void) insertSeries:(NSMutableArray *)newSeriesList {
-    
-  //  DLog(@"running insert series with newserieslist count %d", [newSeriesList count]);
 
     if (self.newComparison || self.scc.comparison == nil) {
         [self.scc setComparison:[[Comparison alloc] init]];
@@ -476,6 +394,8 @@
     
     for (NSInteger i = 0; i < newSeriesList.count; i++) {
         Series *s = [newSeriesList objectAtIndex:i];
+        [s convertDateStringToDate];
+        
         // don't alter chart type because it is set as a default
         [s setUpColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
 
@@ -535,8 +455,6 @@
 
 - (void) deleteSeries:(NSInteger)sender {
     
-  //  DLog(@"deleteSeries with sender %d", sender);
-    
     if (self.scc != nil && sender > 0) {
         Series *s = (Series *)sender;
 
@@ -564,15 +482,14 @@
 }
 
 
-- (BOOL) resizeFrameToSize:(CGSize)newSize
-{
+- (BOOL) resizeFrameToSize:(CGSize)newSize {
 	CGFloat newWidth, newHeight;
     self.toolbarHeight = 44;
     
     newWidth = newSize.width;
     newHeight = newSize.height;
     
-    self.statusBarHeight = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) ? 20. : 0;
+    self.statusBarHeight = 20.; // NOTE this could be larger if a navigation app is running
     
 	if (self.width != newWidth) {
 		self.width = newWidth;
@@ -602,21 +519,7 @@
 }
 
 - (void) minimizeChart {
-    
-    if (self.webView.hidden == NO) {    // WebView showing, so hide it
-        [self.progressIndicator stopAnimating];
-        [self.webView loadHTMLString:@"" baseURL:[NSURL URLWithString:@"about:blank"]];
-        
-        [self resetToolbarWithSearch:YES];
-        self.scc->showDotGrips = YES;
-        [self.scc.layer setPosition:CGPointMake(0, self.toolbarHeight)];  // ipad menu bar
-        [self.scc setBounds:CGRectMake(0, 0, self.width, self.height)];
-        [self.minimizeButton setImage:[UIImage imageNamed:@"minimize"]];
-        [self.scc resize];
-        [self.webView setHidden:YES];
-        [self.webToolbar setHidden:YES];
-    }
-    
+ 
     CGFloat delta = - self.scc.layer.position.x;
     if (self.scc.layer.position.x < 1.) {
         delta += self.leftGap;    // maximize chart
@@ -686,7 +589,6 @@
         animation.duration = 1.0;
         animation.values = @[ @0.2, @1.0];
         animation.keyTimes = @[ @0.0, @1.0];
-        animation.delegate = self;
         
         self.scc.layer.opacity = 1.0;
         [self.scc.layer addAnimation:animation forKey:@"opacity"];
@@ -708,10 +610,10 @@
     [super viewWillDisappear:animated];
 }
 
-- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator
-{
-   if ([self resizeFrameToSize:size]) {
-        [self resizeSubviews];
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    if ([self resizeFrameToSize:size]) {
+        [self resizeSubviewsForSize:size];
     }
 }
 
@@ -721,11 +623,8 @@
     CGPoint point = [recognizer locationInView:self.view];
     
     BOOL belowTopToolbar = (point.y > self.toolbarHeight) ? YES : NO;
-    
-    if (self.webView.hidden == NO && point.y > self.toolbarHeight && point.y - self.toolbarHeight < self.height) {
-     }
-    
-    if (point.x >= self.scc.layer.position.x && belowTopToolbar && (self.webView.hidden || point.y < self.webView.frame.origin.y)) {
+
+    if (point.x >= self.scc.layer.position.x && belowTopToolbar) {
         recognizer.cancelsTouchesInView = YES;   //
          DLog(@" * * * * single tap CANCELS");
     } else {
@@ -752,11 +651,10 @@
 - (void)trendline:(UILongPressGestureRecognizer *)recognizer {
     
     for (NSInteger i =0; i < recognizer.numberOfTouches; i++) {
-        CGPoint touch = [recognizer locationOfTouch:i inView:self.scc];
-  //      NSLog(@"trendline touch %ld %f, %f", i, touch.x, touch.y);
+  //      CGPoint touch = [recognizer locationOfTouch:i inView:self.scc];
+  //      DLog(@"trendline touch %ld %f, %f", i, touch.x, touch.y);
     }
     
-    NSLog(@"\n");
     recognizer.cancelsTouchesInView =YES;
 }
 
@@ -768,8 +666,6 @@
 
     CGFloat xPress = [recognizer locationInView:self.view].x - 5. - self.scc.layer.position.x; // 5pts of left buffer for grip
     CGFloat yPress = [recognizer locationInView:self.view].y - 5. - self.toolbarHeight;      // 5 pts of top buffer
-    
-    NSLog(@"press at x %f, y %f", xPress, yPress);
     
     [self.magnifier setFrame:CGRectMake( [recognizer locationInView:self.view].x - 40, yPress - 75., 100., 100.)];
     
@@ -788,165 +684,9 @@
     [self.magnifier setHidden:NO];
     
     if ([recognizer state] == UIGestureRecognizerStateEnded) {
-        
-        // Advantages of having SCC track the bar is that it can also tell whether the bar is a day or a month  based on the barUnit
-        // from a news filtering perspective, the date range that matters may be what happened BEFORE the newer bar
-                
-        // To determine whether to show the menu, we need to
-        // 1. call SCC to see if a bar was selected prior to lift-up, and if so what dates is corresponds to (consider weekly & monthly)
-        // 2. for the newest bar, an intraday option should also be available which will open up a new window
-        // 3. the arrow point may need to be set differently for a close chart than a candlestick, so let SCC handle that
-        
-        // Data that SCC will need to return:
-        // CGPoint for arrow (can it adjust for scc.position.x)
-        // period end date (which handles weekly and monthly) and allows intraday menu check
-        // stock symbol, which I'll need for the news and SEC searches
-        
-        [self setInfoForPressedBar:[self.scc infoForPressedBar]];
-       
-        if (self.infoForPressedBar != nil) {
-            
-            [self becomeFirstResponder];       // must enable before UIMenuController -- note, call this on self NOT self.view
-            NSMutableArray *menuItems = [NSMutableArray arrayWithCapacity:3];
-            UIMenuController *menuController = [UIMenuController sharedMenuController];
-
-            [menuItems addObject:[[[UIMenuItem alloc] initWithTitle: @"News" action:@selector( getNews: )] autorelease]];
-            
-            if ([[self.infoForPressedBar objectForKey:@"hasFundamentals"] isEqualToString:@"YES"]) {
-                [menuItems addObject:[[[UIMenuItem alloc] initWithTitle: @"SEC Filings" action:@selector( getSECFilings: )] autorelease]];
-            }
-            
-            NSDate *dateValue = [[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] dateFromString:[self.infoForPressedBar objectForKey:@"endDateString"]];
-            
-            if ([dateValue timeIntervalSinceNow] > -500000.) {
-                 [menuItems addObject:[[[UIMenuItem alloc] initWithTitle: @"Intraday" action:@selector( getIntraday: )] autorelease]];                
-            } 
-            
-            [menuController setMenuItems:menuItems];
-            
-            CGPoint location = [[self.infoForPressedBar objectForKey:@"arrowTip"] CGPointValue];
-
-            [menuController setTargetRect:CGRectMake(location.x + self.scc.layer.position.x, location.y + self.toolbarHeight, 1., 1.) inView:self.view];
-            [menuController setMenuVisible:YES animated:NO];
-        }        
         [self.magnifier setHidden:YES];
     }
 }
-
-// Allows customizing the menu by limiting which menus are supported
-- (BOOL)canPerformAction:(SEL)action withSender:(id)sender {
-    if ((action == @selector(getNews:)) || (action == @selector(getSECFilings:)) || (action == @selector(getIntraday:))) {
-        return YES;
-    }
-    return NO;
-}
-
-/* To support an inline webview on the iPad, RVC must manage a UIWebView directly. 
- To avoid bugs caused by two different ways of doing things, it makes the most sense to have the iPhone version
- also use the same version.  
- 
-For consistency, the down hideWebview button can hide the webview even on the iPhone
-For visual consistency, the webview can slide up and slide down on both the iPhone and iPad.  The only difference is whether there is room left for a chart.
-The advantage of this approach is that it allows potentially showing a tiny chart at the top of the iPhone 5 in portrait mode.
- */
-
-- (void) showWebview:(NSString *)url title:(NSString *)title {
-    
-    if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
-
-        // must animate the bounds http://developer.apple.com/library/mac/#qa/qa1620/_index.html
-        // Prepare the animation from the old size to the new size
-        CGRect oldBounds = self.scc.bounds;
-        CGRect newBounds = oldBounds;
-        newBounds.size = CGSizeMake(self.width, 288);   // iphone landscape chart size
-        CABasicAnimation *boundsAnimation = [CABasicAnimation animationWithKeyPath:@"bounds"];
-        
-        boundsAnimation.fromValue = [NSValue valueWithCGRect:oldBounds];
-        boundsAnimation.toValue = [NSValue valueWithCGRect:newBounds];
-            
-        CABasicAnimation *positionAnimation = [CABasicAnimation animationWithKeyPath:@"position"];
-        positionAnimation.fromValue = [self.scc valueForKey:@"position"];
-        
-        CGPoint newPosition = self.scc.layer.position;
-        newPosition = CGPointMake(0., newPosition.y);
-        positionAnimation.toValue = [NSValue valueWithCGPoint:newPosition];
-        
-        CAAnimationGroup *animationGroup = [CAAnimationGroup animation];
-        animationGroup.duration = 0.25;
-        animationGroup.animations = @[boundsAnimation, positionAnimation];
-        
-        [self.scc.layer addAnimation:animationGroup forKey:@"positionAndBounds"];
-        
-        self.scc.layer.position = newPosition;       // Update layer position so it doesn't snap back when animation completes
-        self.scc.bounds = newBounds;
-        [self.scc.layer setAffineTransform:CGAffineTransformIdentity];
-        self.scc->showDotGrips = NO;
-        
-        [self.scc resize];
-        
-        [self resetToolbarWithSearch:NO];
-
-        [self.webView setFrame:CGRectMake(0, self.toolbarHeight + 288., self.width, self.height - 288. - self.toolbarHeight)];
-        
-    } else {
-        
-        UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0., 11., 200., 21.)];
-        [titleLabel setFont:[UIFont fontWithName:@"Helvetica-Bold" size:18]];
-        [titleLabel setBackgroundColor:[UIColor clearColor]];
-        [titleLabel setTextColor:[UIColor lightGrayColor]];
-        [titleLabel setText:title];
-        [titleLabel setTextAlignment:NSTextAlignmentCenter];
-        
-        UIBarButtonItem *titleButton = [[UIBarButtonItem alloc] initWithCustomView:titleLabel];
-        UIBarButtonItem *activityButton = [[UIBarButtonItem alloc] initWithCustomView:self.webViewDownloading];
-        
-        UIBarButtonItem *hideWebview = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"hideWebview"] style:UIBarButtonItemStylePlain target:self action:@selector(minimizeChart)];
-
-        NSArray *buttons = [NSArray arrayWithObjects:hideWebview,
-                            [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease],
-                            titleButton,
-                            [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease],
-                            activityButton, nil];
-        [titleLabel release];
-        [activityButton release];
-        
-        [self.customNavigationToolbar setItems:buttons];
-        [self.webViewDownloading startAnimating];
-        [self.webView setFrame:CGRectMake(0, self.toolbarHeight, self.width, self.height - self.toolbarHeight)];
-    }
-    [self.webToolbar setFrame:CGRectMake(0, self.height, self.width, self.toolbarHeight)];
-    [self.webToolbar setHidden:NO];
-    
-    NSURLRequest *requestObj = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
-    [self.webView loadRequest:requestObj];
-    [self.webView setHidden:NO];
-    [self.progressIndicator startAnimating];
-}
-
-- (void) getNews:(UIMenuController *)controller {
-    	
-    NSArray *startDate = [self.infoForPressedBar objectForKey:@"startDate"];
-    NSArray *endDate = [self.infoForPressedBar objectForKey:@"endDate"];
-    
-    NSString *url = [NSString stringWithFormat:@"http://chartinsight.com/getNews.php?sym=%@&sy=%@&sm=%@&sd=%@&ey=%@&em=%@&ed=%@", [self.infoForPressedBar objectForKey:@"symbolEncoded"], [startDate objectAtIndex:0], [startDate objectAtIndex:1], [startDate objectAtIndex:2], [endDate objectAtIndex:0], [endDate objectAtIndex:1], [endDate objectAtIndex:2]];
-    [self showWebview:url title:[NSString stringWithFormat:@"%@ News", [self.infoForPressedBar objectForKey:@"symbol"]]];
-}
-
-- (void) getSECFilings:(UIMenuController *) controller {
-	
-    NSArray *endDate = [self.infoForPressedBar objectForKey:@"endDate"];
-    NSString *url = [NSString stringWithFormat:@"http://chartinsight.com/getSECFilings.php?sym=%@&ey=%@&em=%@&ed=%@", [self.infoForPressedBar objectForKey:@"symbolEncoded"], [endDate objectAtIndex:0], [endDate objectAtIndex:1], [endDate objectAtIndex:2]];
-    
-    // DLog(@"url is %@", url);
-    [self showWebview:url title:[NSString stringWithFormat:@"%@ SEC Filings", [self.infoForPressedBar objectForKey:@"symbol"]]];
-}
-
-- (void) getIntraday:(UIMenuController *)controller {
-    
-    NSString *url = [NSString stringWithFormat:@"http://chartinsight.com/getIntraday.php?sym=%@", [self.infoForPressedBar objectForKey:@"symbolEncoded"]];
-    [self showWebview:url title:[NSString stringWithFormat:@"%@ Intraday Chart", [self.infoForPressedBar objectForKey:@"symbol"]]];
-}
-
 
 - (void)doubleTap:(UITapGestureRecognizer *)recognizer {
     
@@ -954,7 +694,7 @@ The advantage of this approach is that it allows potentially showing a tiny char
     
     CGFloat pinchMidpoint = [recognizer locationInView:self.view].x - self.scc.layer.position.x - 5;
     
-    NSLog(@"pinchmidoint is %f vs scc position %f so pinchMidpoint is %f", [recognizer locationInView:self.view].x, self.scc.layer.position.x, pinchMidpoint);
+    DLog(@"pinchmidoint is %f vs scc position %f so pinchMidpoint is %f", [recognizer locationInView:self.view].x, self.scc.layer.position.x, pinchMidpoint);
     
     if (self.scc->xFactor > 10) {
         [self.scc resizeChartImage:0.5 withCenter:pinchMidpoint];
@@ -964,15 +704,6 @@ The advantage of this approach is that it allows potentially showing a tiny char
         [self.scc resizeChart:2.0];
     }
 }
-
-/*
-- (BOOL) gestureRecognizerShouldBegin:(UIGestureRecognizer *)recognizer {
-    if ([recognizer locationInView:self.view].x >= self.scc.layer.position.x ) {
-        return YES;
-    }
-    return NO;
-}
- */
 
 - (void) handlePan:(UIPanGestureRecognizer *)recognizer {
     
@@ -986,11 +717,6 @@ The advantage of this approach is that it allows potentially showing a tiny char
         
     } else if (recognizer.state == UIGestureRecognizerStateBegan) {
         self.lastShift = 0;
-        
-        if (self.webView.hidden) {
-            self.dragWindow = [recognizer locationInView:self.view].x - self.scc.layer.position.x < 45.0 ? YES : NO;
-            self.netDelta = 0;
-        }
     }
     
     currentShift = [recognizer translationInView:self.view].x;
@@ -1063,12 +789,8 @@ The advantage of this approach is that it allows potentially showing a tiny char
 }
 
 - (void) popContainer {
-    if (_popover != nil) {
-        [_popover dismissPopoverAnimated:YES];
-        [_popover release];
-        _popover = nil;
-    } else {
-        [[self navigationController] popViewControllerAnimated:YES];    // pop this controller off stack
+    if (self.popOverNav != nil) {
+        [self.popOverNav dismissViewControllerAnimated:YES completion:nil];
     }
 }
 
@@ -1095,122 +817,6 @@ The advantage of this approach is that it allows potentially showing a tiny char
     }
 }
 
-// UIWebViewDelegate methods
-- (BOOL)webView:(UIWebView *)wv shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)nt {
-
-    
-    if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) {
-        [self.webViewDownloading startAnimating];
-    }
-    
-   [self.webRefreshButton setEnabled:YES];
-    
-    // DLog(@"request is %@", [request URL]);
-    
-    return YES;
-}
-
-- (void) shareChart {
-    
-    NSString *textToShare =  @""; // Chart Insight";
-
-    for (int i = 0; i < [self.scc.comparison.seriesList count]; i++) {
-        
-        Series *s = [self.scc.comparison.seriesList objectAtIndex:i];
-        
-        textToShare = [textToShare stringByAppendingFormat:@"%@ ", s.symbol];
-    }
-
-    textToShare = [textToShare stringByAppendingString:@"Chart Insight"];
-    
-    UIImage *imageToShare = [self.scc screenshot];
-    
-    if (imageToShare != nil) {
-        
-            MFMailComposeViewController *mailForm = [[[MFMailComposeViewController alloc] init] autorelease];
-            mailForm.mailComposeDelegate = self;
-            
-            [mailForm setSubject:textToShare];
-            
-            NSData *imageData = [NSData dataWithData:UIImagePNGRepresentation(imageToShare)];
-            [mailForm addAttachmentData:imageData mimeType:@"image/png" fileName:@"screenshot.png"];
-            
-            [self presentViewController:mailForm animated:YES completion:nil];     // don't use popoverPush; it prevents the magnify menu from appearing afterwards
-            
-        } else {
-        
-//            SupportActivityProvider *customProvider = [[SupportActivityProvider alloc] init];
-//            NSArray *items = [NSArray arrayWithObjects:customProvider,textToShare,imageToShare,nil];
-//            
-//            SupportActivity *ca = [[SupportActivity alloc]init];
-//            
-//            UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:[NSArray arrayWithObject:ca]];
-//            
-//            activityVC.excludedActivityTypes = @[UIActivityTypePostToWeibo, UIActivityTypeAssignToContact, UIActivityTypeCopyToPasteboard, UIActivityTypeSaveToCameraRoll];
-//            
-//            [self popoverPush:activityVC createRVC:NO fromButton:self.shareChartButton];
-//            
-//            [self presentViewController:activityVC animated:YES completion:nil];     // don't use popoverPush; it prevents the magnify menu from appearing afterwards
-//        }
-    }
-}
-
-// Dismisses the message composition interface when users tap Cancel or Send
-- (void)mailComposeController:(MFMailComposeViewController*)controller
-          didFinishWithResult:(MFMailComposeResult)result error:(NSError*)error {
-	
-	switch (result) {
-		case MFMailComposeResultCancelled:
-			// DLog(@"Result: Mail sending canceled");
-			break;
-		case MFMailComposeResultSaved:
-			// DLog(@"Result: Mail saved");
-			break;
-		case MFMailComposeResultSent:
-			// DLog(@"Result: Mail sent");
-			break;
-		case MFMailComposeResultFailed:
-			// DLog(@"Result: Mail sending failed");
-			break;
-		default:
-			// DLog(@"Result: Mail not sent");
-			break;
-	}
-	[self dismissViewControllerAnimated:YES completion:nil];
-}
-
-- (void)webViewDidFinishLoad:(UIWebView *)wv {
-    
- //   NSString *html = [wv stringByEvaluatingJavaScriptFromString:@"document.body.innerHTML"];
-    
-   // DLog(@"webview finished loading %@", html );
-    
-    if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) {
-        [self.webViewDownloading stopAnimating];
-    }
-    
-    [self.progressIndicator stopAnimating];
-    
-    
-    if ([self.webView canGoBack]) {
-        [self.webBackButton setEnabled:YES];
-    } else {
-        [self.webBackButton setEnabled:NO];
-    }
-    
-    if ([self.webView canGoForward]) {                  // this doesn't always work
-        [self.webForwardButton setEnabled:YES];
-    } else {
-        [self.webForwardButton setEnabled:NO];
-    }
-}
-- (void)webView:(UIWebView *)wv didFailLoadWithError:(NSError *)error {
-    // DLog(@"webivew failed with error %@", error);
-    [self.progressIndicator stopAnimating];
-    if ([error code] != NSURLErrorCancelled) {     // user clicked a link before page finished loading
-
-    }
-}
 - (BOOL)isOpaque {
     return YES;
 } 

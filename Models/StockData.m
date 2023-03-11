@@ -126,7 +126,6 @@
 }
 
 - (void)dealloc {
-    // DLog(@"stockdata dealloc for %@", self.series.symbol);
     [self.fundamentalAPI setDelegate:nil];
     [_fundamentalAPI release];
     [self.api setDelegate:nil];
@@ -155,7 +154,6 @@
     free(redBars);
     free(redPoints);
     free(redVolume);
-    free(rsi);
     free(ubb);
 
     dispatch_release(concurrentQueue);
@@ -198,13 +196,10 @@
     redBars = (CGRect *)malloc(sizeof(CGRect) * maxBars);
     redPoints = (CGPoint*)malloc(sizeof(CGPoint) * maxBars * 2);
     redVolume = (CGRect *)malloc(sizeof(CGRect) * maxBars);
-    rsi = (CGPoint *)malloc(sizeof(CGRect) * maxBars);
     ubb = (CGPoint *)malloc(sizeof(CGRect) * maxBars);
-    memset(fundamentalAlignments, 99, 0);
     
     self.days = [[NSDateComponents alloc] init];
-    [self setLastPrice:[NSDecimalNumber zero]];    
-    [self setLastSplitRatio:[NSDecimalNumber one]];
+    [self setLastPrice:[NSDecimalNumber zero]];
     
     NSDate *desiredDate = [NSDate date];
     if (daysAgo > 0) {
@@ -260,7 +255,7 @@
 //        Start with bar 0 and continue until the end
 // 
 // 2. adding bars to the front
-//        Start with bar 0 and continue until the first old bar (make certain the split ratio doesn't change there)
+//        Start with bar 0 and continue until the first old bar
 // 
 // 3. adding bars to the end
 //        Start with the oldest bar and walk towards the start of the array to find the first empty moving average
@@ -278,7 +273,6 @@
         double movingSum150 = 0.0f;
         
         // add last n bars, then start subtracting i + n - 1 bar to compute average
-        // use actual close instead of adjusted close. Only RSI should use adjustedClose
     
         for (NSInteger i = bars - 1; i >= 0; i--) {
             movingSum50 += barData[i].close;
@@ -338,63 +332,6 @@
         }
     }
 }
- 
-- (void) calculateRSI {
- 
-    NSInteger minimumBars =  bars - 15;
-    
-    if (minimumBars < 0) {
-        return;
-    }
-    
-    double totalUpClose, totalDownClose, change, RS, RSI;
-    totalDownClose = totalUpClose = RS = RSI = 0;
-    
-    // First Average Gain = Sum of Gains over the past 14 periods / 14.
-   //  First Average Loss = Sum of Losses over the past 14 periods / 14
-
-    // It's better to use the adjusted close for RSI calculation so it can separate out down closes due to dividends from real down closes
-    
-    for (NSInteger i = bars - 2; i >= minimumBars; i--) {
-        change = barData[i].adjClose - barData[i+1].adjClose;
-        if (change < 0) {
-            totalDownClose += fabs(change);
-        } else {
-            totalUpClose += change;
-        }
-    }
-    totalDownClose /= 14;
-    totalUpClose /= 14;
-    
-    if (totalDownClose == 0) {
-        RSI = 100.;
-    } else {
-        RS = totalUpClose/totalDownClose;
-        RSI = 100. - 100./(1+RS);
-    }
-
-    barData[minimumBars].rsi = RSI;
-    
-    for (NSInteger i = minimumBars - 1; i >= 0; i--) {
-        change = barData[i].adjClose - barData[i+1].adjClose;
-
-        if (change < 0) {
-            totalDownClose = ((totalDownClose * 13) + fabs(change))/14;
-            totalUpClose = ((totalUpClose * 13))/14;
-        } else {
-            totalDownClose = ((totalDownClose * 13))/14;
-            totalUpClose = ((totalUpClose * 13) + change)/14;
-        }
-        
-        if (totalDownClose < 0.001) {    // avoid CGFloating point issues
-            RSI = 100.;
-        } else {
-            RS = totalUpClose/totalDownClose;
-            RSI = 100. - 100./(1+RS);
-        }
-        barData[i].rsi = RSI;
-    }
-}
 
 // Align the array of fundamental data points to an offset into the barData struct
 - (void) updateFundamentalAlignment {
@@ -415,94 +352,6 @@
             }
         }
     }   
-}
-
-
-// Because we need to check for stock splits, we should always start at the front and walk backward, checking to see for
-// changes in adjClose
-- (void) updateSplits:(NSInteger)startIndex {
-            
-    // Start from front or if we add new bars to the end (less common), walk the array until we
-    // reach a cell with movingAvg = 0
-    
-    // If new bars were added at the front, start from the first new bar and add it to the movingAverage of the bar before and the
-    
-    double cumulativeDividends = 0;
-    double difference = 0;
-
-    NSDecimalNumber *splitAdjustedClose = [NSDecimalNumber zero];
-    NSDecimalNumber *close, *divisor;
-    
-    NSDecimalNumberHandler *handler = [NSDecimalNumberHandler decimalNumberHandlerWithRoundingMode:NSRoundBankers
-                                                                                             scale:2
-                                                                                  raiseOnExactness:NO
-                                                                                   raiseOnOverflow:NO
-                                                                                  raiseOnUnderflow:NO
-                                                                               raiseOnDivideByZero:NO];
-        
-    [self setLastSplitRatio:[[[NSDecimalNumber alloc] initWithDouble:dailyData[startIndex].splitRatio] autorelease]];
-    
-   // DLog(@"%@ last split ratio is %@ at %d (%d-%d-%d)", series.symbol, lastSplitRatio, startIndex, dailyData[startIndex].month, dailyData[startIndex].day, dailyData[startIndex].year);
-    
-    if (startIndex > 0) {       // don't split adjust already adjusted close values (e.g. IWM in 2004)
-       // DLog(@"to avoid readjusting index %d, incrementing by 1", startIndex);
-        startIndex++;
-    }
-    
-    for (NSInteger i = startIndex; i < dailyBars; i++) {
-                
-        close = [[[NSDecimalNumber alloc] initWithDouble:dailyData[i].close] autorelease];
-        
-        splitAdjustedClose = [close decimalNumberByDividingBy:self.lastSplitRatio withBehavior:handler];
-        
-        difference = [splitAdjustedClose doubleValue] - cumulativeDividends - dailyData[i].adjClose ;
-    
-        if (fabs(difference) < 0.02) {
-            // too small of a difference (could be CGFloat inaccuracies)
-        } else {
-            
-            // dividnd or regular stock split
-           // DLog(@"%@ on %d/%d/%d close %@ - %f - %f = diff %f", series.symbol, dailyData[i].month, dailyData[i].day, dailyData[i].year, splitAdjustedClose, cumulativeDividends, dailyData[i].adjClose, difference);
-
-            if (dailyData[i].adjClose > dailyData[i].close) {  // only happens with reverse splits
-                
-                divisor = [[[NSDecimalNumber alloc] initWithDouble:dailyData[i].adjClose] autorelease];
-                
-                [self setLastSplitRatio:[close decimalNumberByDividingBy:divisor withBehavior:handler]];
-                
-               // DLog(@"%@ split ratio is now %@ because %f > %f", series.symbol, lastSplitRatio, dailyData[i].adjClose, dailyData[i].close);
-                
-               // DLog(@"%@ on %d/%d/%d close %@ - %f - %f = diff %f", series.symbol, dailyData[i].month, dailyData[i].day, dailyData[i].year, splitAdjustedClose, cumulativeDividends, dailyData[i].adjClose, difference);
-                
-            } else if (difference - dailyData[i].adjClose > -0.04) {  // must be a forward split (see RIMM june 2004 scenario)
-                
-                divisor = [[[NSDecimalNumber alloc] initWithDouble:(dailyData[i].adjClose + cumulativeDividends)] autorelease];
-                
-                [self setLastSplitRatio:[close decimalNumberByDividingBy:divisor withBehavior:handler]];
-                
-                // DLog(@"%@ at %i (%d-%d-%d) updating split ratio to %@ and cum dividend to %f", series.symbol, i, dailyData[i].month, dailyData[i].day, dailyData[i].year, lastSplitRatio, cumulativeDividends);
-                
-            } else if ([splitAdjustedClose doubleValue] - dailyData[i].adjClose > 0) {    // dividends can't be negative
-                
-                cumulativeDividends = [splitAdjustedClose doubleValue] - dailyData[i].adjClose;
-                // DLog(@"%@ diff %f is larger than adjClose %f so updating dividend to %f", series.symbol, difference, dailyData[i].adjClose, cumulativeDividends);
-            }
-        }
-        
-        if (fabs(dailyData[i].splitRatio - [self.lastSplitRatio doubleValue]) > 0.02) {    // avoids readjusting after removeNewerBars was called
-            
-            dailyData[i].splitRatio = [self.lastSplitRatio doubleValue];
-    
-            dailyData[i].open /= dailyData[i].splitRatio;
-            dailyData[i].high /= dailyData[i].splitRatio;
-            dailyData[i].low /= dailyData[i].splitRatio;
-            dailyData[i].close /= dailyData[i].splitRatio;
-            
-            dailyData[i].volume *= dailyData[i].splitRatio;     // multiply the volume since the stock is split in 2 or more parts
-            
-            // DLog(@"close is now %f vs adj Close %f", dailyData[i].close, dailyData[i].adjClose);
-        }
-    }
 }
 
 // Called after shiftRedraw shifts the oldestBarShown and newestBarShown during scrolling
@@ -597,22 +446,23 @@
         return self.percentChange;
     }
             
-    BOOL oldestNotYetLoaded = fabs([[self.series startDate] timeIntervalSinceDate:self.oldest]) > 90000 ? YES : NO;
+    BOOL oldestNotYetLoaded = fabs([self.series.startDate timeIntervalSinceDate:self.oldest]) > 90000 ? YES : NO;
     
     if (oldestNotYetLoaded && oldestBarShown > bars - 201) {      // load older dates or moving average will break
 
         busy = YES;
         [self.delegate performSelectorOnMainThread:@selector(showProgressIndicator) withObject:nil waitUntilDone:NO];
             
-        NSDate *requestStart = [[self.series startDate] laterDate:[self.oldest dateByAddingTimeInterval:MAX(365,screenBarWidth)* barUnit *-86400]];
+   //     NSDate *requestStart = [[self.series startDate] laterDate:[self.oldest dateByAddingTimeInterval:MAX(365,screenBarWidth)* barUnit *-86400]];
                                     
-        [self.api getOlderDataFrom:requestStart untilDate:self.oldest];
+        [self.api getOlderDataFrom:self.series.startDate untilDate:self.oldest];
 
     } else if (0 == newestBarShown) {
         
         if ([self.api.nextClose isTodayIntraday]) {
-            busy = YES;
-            [self.api getIntradayQuote];
+//            Intraday quote no longer works
+//            busy = YES;
+//            [self.api getIntradayQuote];
 
         } else if ([self.api.nextClose compare:[NSDate date]] == NSOrderedAscending) { // next close is in the past
             busy = YES;            
@@ -645,15 +495,7 @@
     } else {
         bb20 = NO;
     }
-    
-    if ([[self.series technicalList] rangeOfString:@"rsi"].length > 0) {
-        if (!rsi14) {
-            [self calculateRSI];
-        }
-        rsi14 = YES;
-    } else {
-        rsi14 = NO;
-    }
+
 }
 
 // Determines if the percent change has increased and we need to redraw
@@ -665,7 +507,7 @@
     
     if (force || pctDifference > 0.02 ) {
         
-        DLog(@"%@ pctDifference %f so pct changing from %@ to %@", [self.series symbol], pctDifference, self.chartPercentChange, maxPercentChange);
+        // DLog(@"%@ pctDifference %f so pct changing from %@ to %@", [self.series symbol], pctDifference, self.chartPercentChange, maxPercentChange);
         [self setChartPercentChange:maxPercentChange];
         
         [self setScaledLow:[self.maxHigh decimalNumberByDividingBy:self.chartPercentChange]];
@@ -714,7 +556,7 @@
 
     dispatch_barrier_sync(concurrentQueue, ^{
             
-        double oldMovingAvg1, oldMovingAvg2, oldSplitRatio;
+        double oldMovingAvg1, oldMovingAvg2;
         
         NSDate *apiNewest = [self.api dateFromBar:dp->intradayBar];
         
@@ -726,12 +568,11 @@
             [self createNewBarDataWithShift:1 fromIndex:0];
             dailyBars++;
             // bars may or may not increase; let summarizeByDate figure that out
-            oldMovingAvg1 = oldMovingAvg2 = oldSplitRatio = .0f;
+            oldMovingAvg1 = oldMovingAvg2 = .0f;
 
         } else { // save before overwriting with memcpy
             oldMovingAvg1 = dailyData[0].movingAvg1;
             oldMovingAvg2 = dailyData[0].movingAvg2;
-            oldSplitRatio = dailyData[0].splitRatio;
         }
         
         // copy intraday data to barData
@@ -740,18 +581,6 @@
         [self setLastPrice:[[[NSDecimalNumber alloc] initWithDouble:dailyData[0].close] autorelease]];
         
         [self setNewest:apiNewest];
-        
-        if (oldSplitRatio > .0f) {
-            dailyData[0].movingAvg1 = oldMovingAvg1;
-            dailyData[0].movingAvg2 = oldMovingAvg2;
-            dailyData[0].splitRatio = oldSplitRatio;  
-        } else {
-            // TO DO: figure out if I need to increase oldestBarShown if there is room onscreen since we just added a day
-            // it seems to work now, but I don't understand why subtracting is correct unless oldestBarShown is recalculated later
-            
-            oldestBarShown--;
-            [self updateSplits:0];
-        }
 
         // For intraday update to weekly or monthly chart, decrement oldestBarShown only if
         //    the intraday bar is for a different period (week or month) than the existing newest bar
@@ -773,7 +602,7 @@
     barData[wi].high = dailyData[iNewest].high;
     barData[wi].low  = dailyData[iNewest].low;
     barData[wi].volume = dailyData[iNewest].volume;
-    barData[wi].movingAvg1 = barData[wi].movingAvg2 = barData[wi].rsi = barData[wi].mbb = barData[wi].stdev = 0.;
+    barData[wi].movingAvg1 = barData[wi].movingAvg2 = barData[wi].mbb = barData[wi].stdev = 0.;
     
     NSInteger i = iNewest + 1;    // iNewest values already saved to barData
 
@@ -825,7 +654,7 @@
     barData[mi].volume = dailyData[iNewest].volume;
     barData[mi].year = dailyData[iNewest].year;
     barData[mi].month = dailyData[iNewest].month;
-    barData[mi].movingAvg1 = barData[mi].movingAvg2 = barData[mi].rsi = barData[mi].mbb = barData[mi].stdev = 0.;
+    barData[mi].movingAvg1 = barData[mi].movingAvg2 = barData[mi].mbb = barData[mi].stdev = 0.;
     
     NSInteger i = iNewest + 1;    // iNewest values already saved to barData
         
@@ -891,10 +720,7 @@
     if (bb20) {
         [self calculateBollingerBands];
     }
-    
-    if (rsi14) {
-        [self calculateRSI];
-    }
+
     // don't call updateHighLow here because summarizeByDate doesn't consider daysAgo but updateHighLow must be called AFTER shifting newestBarShown
 }
 
@@ -908,12 +734,11 @@
     
     dispatch_barrier_sync(concurrentQueue, ^{
         NSInteger startCopy = 0;             // copy to start of dailyData.  If dailyBars > 0, move existing data first
-        NSInteger startCalculation = 0;   // recalculate splits
         BOOL checkPrefetch = NO, shiftBarsShown = NO;
         NSDate *desiredDate;
         NSDate *apiNewest = [self.api dateFromBar:dp->cArray[0]];
     
-        // DLog(@"APILoaded Historical Data with self.newest %@ and api.newest %@", self.newest, apiNewest);
+        //DLog(@"%@ dailyBars %ld self.newest %@ and api.newest %@ and api.oldest %@", dp.symbol, dailyBars, self.newest, apiNewest, self.api.oldestDate);
   
         if (dailyBars == 0) { // case 1. First request
             if (self.series->daysAgo > 0) {
@@ -927,7 +752,7 @@
             [self setOldest:[self.api oldestDate]];
             
         } else if ([self.newest compare:apiNewest] == NSOrderedAscending) {         // case 2. Newer dates
-            // DLog(@"api is newer, so moving by %d bars", dp->countBars);
+            DLog(@"api is newer, so moving by %ld bars", dp->countBars);
             checkPrefetch = YES;
             shiftBarsShown = YES;   // because of the following createNewBarDataWithShift call
             [self createNewBarDataWithShift:dp->countBars fromIndex:0];     // move current bars by dp->countBars
@@ -943,39 +768,38 @@
             startCopy = dailyBars;      // copy to end of dailyDaily
             
             [self setOldest:[self.api oldestDate]];
-            startCalculation = bars - 2;    // start from 2nd to last bar, which fixes issues with incomplete weeks or months
         }
         
-        memcpy(&dailyData[startCopy], dp->cArray, dp->countBars * sizeof(BarStruct));        // copy to start of barData the dp->cArray NEWER data
-   
-        // DLog(@"%@ added %d new bars to %d exiting dailyBars", self.series.symbol, dp->countBars, dailyBars);
-        
-        NSInteger oldBars = bars;
-        NSInteger oldDailyBars = dailyBars;
-        dailyBars += dp->countBars;
-        
-        [self updateSplits:startCalculation];
-        [self summarizeByDateFrom:oldDailyBars oldBars:oldBars];
-        
-        if (shiftBarsShown) {
-            newestBarShown += (bars - oldBars);
-            oldestBarShown += (bars - oldBars);
-        }
-        
-        if (checkPrefetch) {
-             
-            while ([desiredDate timeIntervalSinceDate:[self.api dateFromBar:barData[newestBarShown]]] < 0) {        // prefetched dates newer than those requested, so shift newestBarShown
-                
-                 ++newestBarShown;
-                 ++oldestBarShown;
+        if (dp->countBars > 0) {
+            memcpy(&dailyData[startCopy], dp->cArray, dp->countBars * sizeof(BarStruct));        // copy to start of barData the dp->cArray NEWER data
+       
+            DLog(@"%@ added %ld new bars to %ld exiting dailyBars", self.series.symbol, dp->countBars, dailyBars);
+            
+            NSInteger oldBars = bars;
+            NSInteger oldDailyBars = dailyBars;
+            dailyBars += dp->countBars;
+            
+            [self summarizeByDateFrom:oldDailyBars oldBars:oldBars];
+            
+            if (shiftBarsShown) {
+                newestBarShown += (bars - oldBars);
+                oldestBarShown += (bars - oldBars);
             }
+            
+            if (checkPrefetch) {
+                 
+                while ([desiredDate timeIntervalSinceDate:[self.api dateFromBar:barData[newestBarShown]]] < 0) {        // prefetched dates newer than those requested, so shift newestBarShown
+                    
+                     ++newestBarShown;
+                     ++oldestBarShown;
+                }
+            }
+             [self updateHighLow];
         }
-         [self updateHighLow];
-        
         busy = NO;
       });
     
-    // DLog(@"after %d bars (%d new), newest %@ and oldest %@", bars, dp->countBars, self.newest, self.oldest);
+    DLog(@"after %ld bars (%ld new), newest %@ and oldest %@", bars, dp->countBars, self.newest, self.oldest);
 
     [self.delegate performSelectorOnMainThread:@selector(requestFinished:) withObject:self.percentChange waitUntilDone:NO];
 }
@@ -993,9 +817,8 @@
 }
 
 - (void) clearChart {
-    pointCount = redBarCount = whiteBarCount = monthCount = blackCount = redCount = redPointCount = movingAvg1Count = movingAvg2Count = rsiCount = bbCount = 0;
+    pointCount = redBarCount = whiteBarCount = monthCount = blackCount = redCount = redPointCount = movingAvg1Count = movingAvg2Count = bbCount = 0;
     hollowRedCount = filledGreenCount = 0;
-    memset(fundamentalAlignments, 99, 0);
     [self setBookValue:[NSDecimalNumber notANumber]];
 }
 
@@ -1034,13 +857,10 @@
  
     ready = NO;
     
-    CGFloat xRaw, barCenter, barHeight, rsiFactor, rsiFloor;
+    CGFloat xRaw, barCenter, barHeight;
     double oldestClose, volumeFactor;
     NSInteger oldestValidBar; 
     xRaw = xFactor/2;
-        
-    rsiFactor = [[self.chartBase decimalNumberByDividingBy:[[[NSDecimalNumber alloc] initWithInt:100] autorelease]] doubleValue];
-    rsiFloor = rsiFactor * 100 + sparklineHeight;
     
     [self clearChart];
     
@@ -1105,7 +925,7 @@
             NSInteger r = newestReport;
             
             do {
-                reportValue = [self.fundamentalAPI valueForReport:r withKey:@"BookValuePerShare"];      
+                reportValue = [self.fundamentalAPI valueForReport:r withKey:@"BookValuePerShare"];
                 
             } while ([reportValue isEqualToNumber:[NSDecimalNumber notANumber]] && ++r <= oldestReport);
             
@@ -1299,11 +1119,6 @@
             movingAvg2[offset] = CGPointMake(barCenter, yFloor - yFactor * barData[a].movingAvg2);
         }
         
-        if (rsi14 && barData[a].rsi > 0.) {
-            rsiCount++;
-            rsi[offset] = CGPointMake(barCenter, rsiFloor - rsiFactor * barData[a].rsi);
-        }
-        
         if (bb20 && barData[a].mbb > 0.) {
             bbCount++;
             ubb[offset] = CGPointMake(barCenter, yFloor - yFactor * (barData[a].mbb + 2*barData[a].stdev));
@@ -1311,12 +1126,15 @@
             lbb[offset] = CGPointMake(barCenter, yFloor - yFactor * (barData[a].mbb - 2*barData[a].stdev));
         }
         
-        
-        if (oldestClose > barData[a].close) {
-                redVolume[redCount++] = CGRectMake(barCenter - xFactor/2, volumeBase, xFactor, -barData[a].volume/volumeFactor);
-                
-        } else { 
-                blackVolume[blackCount++] = CGRectMake(barCenter - xFactor/2, volumeBase, xFactor, -barData[a].volume/volumeFactor);
+        if (barData[a].volume <= 0) {
+     //       DLog(@"volume shouldn't be zero but is for a=%ld", a);
+        } else {
+            if (oldestClose > barData[a].close) {
+                    redVolume[redCount++] = CGRectMake(barCenter - xFactor/2, volumeBase, xFactor, -barData[a].volume/volumeFactor);
+                    
+            } else { 
+                    blackVolume[blackCount++] = CGRectMake(barCenter - xFactor/2, volumeBase, xFactor, -barData[a].volume/volumeFactor);
+            }
         }
     
         oldestClose = barData[a].close;

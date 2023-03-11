@@ -11,16 +11,15 @@ const CGFloat dashPattern[2] = {1.0, 1.5};
 const CGFloat dotGripColor[4] = {0.5, 0.5, 0.8, 1.0};
 const CGFloat lightBlueColor[4] = {0.16, 0.34, 1.0, 1.0};
 const CGFloat monthLineColor[4] = {.4, .4, .4, .5};
-const CGFloat rsiColor[4] = {.5, .5, .5, .7};
 const CGFloat redMetric[4] = {1., .0, .0, .8};  // needs to be brighter than green
 
 const CGFloat dashPatern[2] =  {1.0,  3.0};
 
-@interface ScrollChartController () {
-    CGLayerRef      layerRef;
+@interface ScrollChartController () <CAAnimationDelegate> {
+    CGLayerRef    layerRef;
     CGContextRef  layerContext;
-    NSInteger                     pressedBarIndex;        // need to track the index so we can compare against the total number of bars
-    StockData         *pressedBarStock;         // track the full stock object not just the symbol so we can check if monthly or weekly
+    NSInteger     pressedBarIndex;   // need to track the index so we can compare against the total number of bars
+    StockData     *pressedBarStock;  // track full stock object not just symbol so we can check if monthly or weekly
 }
 @property (strong, nonatomic) NSMutableArray    *stocks;
 @property (strong, nonatomic) NSDecimalNumber   *chartPercentChange;
@@ -53,15 +52,12 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 }
 
 - (void) resetDimensions {
-    
     svHeight = self.bounds.size.height;
     maxWidth = self.bounds.size.width;
     scaledWidth = maxWidth;
     svWidth = maxWidth - 5. - self.layer.position.x - (30 * [[self.comparison seriesList] count]);
     pxWidth = self.layer.contentsScale * svWidth;
     pxHeight = self.layer.contentsScale * svHeight;
-    
-    // DLog(@"newHeight is %f", svHeight);
 }
 
 - (NSInteger) maxBarOffset {
@@ -69,20 +65,13 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 }
 
 - (void) createLayerContext {
-    DLog(@"createLayerContext with maxWidth %f and svHeight %f", maxWidth, svHeight);
-    
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(maxWidth, svHeight), YES, self.layer.contentsScale);
     layerRef = CGLayerCreateWithContext(UIGraphicsGetCurrentContext(), CGSizeMake(self.layer.contentsScale * maxWidth, pxHeight), NULL);
     UIGraphicsEndImageContext();
     layerContext = CGLayerGetContext(layerRef);
     
     CGContextSetTextMatrix(layerContext, CGAffineTransformMake(1.0,0.0, 0.0, -1.0, 0.0, 0.0));  // iOS flipped coordinates
-
-//    CGContextSetFont(layerContext, [UIFont systemFont]
-    
-     CGContextSetFontSize(layerContext, 5 * self.layer.contentsScale);
-    
-//    CGContextSelectFont (layerContext, "HelveticaNeue", 5 * self.layer.contentsScale, kCGEncodingMacRoman);
+    CGContextSetFontSize(layerContext, 5 * self.layer.contentsScale);
     CGContextSetTextDrawingMode (layerContext, kCGTextFill);
 }
 
@@ -104,8 +93,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         BigNumberFormatter *newNumberFormatter = [[BigNumberFormatter alloc] init];
         [self setNumberFormatter:newNumberFormatter];
         [newNumberFormatter release];
-        
-    //    [self setDelegate:self];    // lets me disable default animation
+
         [self setChartPercentChange:[NSDecimalNumber zero]];
         
         [self setLastNetworkErrorShown:[NSDate dateWithTimeIntervalSinceNow:-120.]];    // ensure the first error shows
@@ -141,13 +129,11 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
 /* Called by StockData when saved rows are insuffient */
 - (void) showProgressIndicator {
-   // DLog(@"showProgressIndicator called");
     [self.progressIndicator startAnimating];
 }
 
 /* Called by StockData when fundamental API returns before historical API */
 - (void) stopProgressIndicator {
-    // DLog(@"showProgressIndicator called");
     [self.progressIndicator stopAnimating];
 }
 
@@ -222,7 +208,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             
             if (monthLabelIndex < [[stock monthLabels] count]) {
                 label = [[stock monthLabels] objectAtIndex:monthLabelIndex];
-                
                 CGContextShowTextAtPoint(layerContext, p.x, p.y + offset, label.UTF8String, label.length);
             }
         }
@@ -338,30 +323,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             CGContextAddLines(layerContext, stock->movingAvg2, stock->movingAvg2Count);
             CGContextStrokePath(layerContext);
         }
-        
-        
-        if (stock->rsiCount > 2) {
 
-            CGContextSetStrokeColor(layerContext, rsiColor);
-            CGContextBeginPath(layerContext);
-            CGContextAddLines(layerContext, stock->rsi, stock->rsiCount);
-            CGContextStrokePath(layerContext);
-            
-            CGContextSaveGState(layerContext);
-            CGContextBeginPath(layerContext);
-            CGContextMoveToPoint(layerContext, stock->rsi[0].x, pxHeight);
-            CGContextAddLines(layerContext, stock->rsi, stock->rsiCount);
-            CGContextAddLineToPoint(layerContext, stock->rsi[stock->rsiCount - 1].x, pxHeight);
-            CGContextAddLineToPoint(layerContext, stock->rsi[0].x, pxHeight);
-            CGContextClosePath(layerContext);
-            CGContextClip(layerContext);
-            CGContextSetFillColorWithColor(layerContext, stock.series->upColorHalfAlpha);
-            CGContextFillRect(layerContext, CGRectMake(0, sparklineHeight, pxWidth, 0.3 * (stock->monthLines[1].y - sparklineHeight)));
-            CGContextStrokePath(layerContext);
-        
-            CGContextRestoreGState(layerContext);
-        }
-        
         if (stock->bbCount > 2) {
             CGContextSetLineDash(layerContext, 0., dashPattern, 2);
             CGContextSetStrokeColorWithColor(layerContext, stock.series->upColor);

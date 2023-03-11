@@ -12,7 +12,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 - (NSInteger) formatDate:(NSCalendar *)calendar {
     assert(self != nil);
     
-    NSUInteger unitFlags = NSMonthCalendarUnit | NSDayCalendarUnit | NSYearCalendarUnit;
+    NSUInteger unitFlags = NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitYear;
     NSDateComponents *dateParts = [calendar components:unitFlags fromDate:self];
     
     return ([dateParts year] * 10000 + ([dateParts month]*100) + [dateParts day]);
@@ -23,23 +23,33 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     NSInteger dateInt = [self formatDate:calendar];
     
     switch (dateInt) {  // https://www.nyse.com/markets/hours-calendars
-        case 20160215:
-        case 20160325:
-        case 20160530:
-        case 20160704:
-        case 20160905:
-        case 20161124:
-        case 20161226:
-        case 20170102:
-        case 20170116:
-        case 20170220:
-        case 20170414:
-        case 20170529:
-        case 20170704:
-        case 20170904:
-        case 20171123:
-        case 20171225:
-           // DLog(@" cur date %d is a holiday", dateInt);
+        case 20230407:
+        case 20230529:
+        case 20230619:
+        case 20230704:
+        case 20230904:
+        case 20231123:
+        case 20231225:
+        case 20240101:
+        case 20240115:
+        case 20240219:
+        case 20240329:
+        case 20240527:
+        case 20240619:
+        case 20240704:
+        case 20240902:
+        case 20241128:
+        case 20241225:
+        case 20250101:
+        case 20250120:
+        case 20250217:
+        case 20250418:
+        case 20250526:
+        case 20250619:
+        case 20250704:
+        case 20250901:
+        case 20251127:
+        case 20251225:
             return YES;
     }
     return NO;
@@ -57,8 +67,8 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         //     // DLog(@"new date is %@", nextTradingDate);
         
     } while ([nextTradingDate isHoliday:calendar]
-             || 1 == [[calendar components:NSWeekdayCalendarUnit fromDate:nextTradingDate] weekday]           // Sunday
-             || 7 == [[calendar components:NSWeekdayCalendarUnit fromDate:nextTradingDate] weekday]);    // Saturday
+             || 1 == [[calendar components:NSCalendarUnitWeekday fromDate:nextTradingDate] weekday]   // Sunday
+             || 7 == [[calendar components:NSCalendarUnitWeekday fromDate:nextTradingDate] weekday]); // Saturday
              
    // DLog(@"next trading date is %@ from %@", nextTradingDate, self);
     [days release];
@@ -146,7 +156,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 
 - (NSDate *) dateFromBar:(BarStruct)bar {
 
-    NSString *dateString = [NSString stringWithFormat:@"%d%02d%02dT20:00:00Z", bar.year, bar.month, bar.day];// 10am NYC first quote
+    NSString *dateString = [NSString stringWithFormat:@"%ld%02ld%02ldT20:00:00Z", bar.year, bar.month, bar.day];// 10am NYC first quote
         
     return [[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] dateFromString:dateString];  
 }
@@ -194,8 +204,6 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     // prefetch by a year for older requests
     [self setRequestNewestDate:[[NSDate date] earlierDate:[self.requestNewestDate dateByAddingTimeInterval:365*86400]]];
 
-   // DLog(@"getDAta from %@ to %@", self.requestOldestDate, self.requestNewestDate);
-
     // avoid comparing NULL dates
     [self setOldestDate:[NSDate distantPast]];
     [self setNewestDate:[NSDate distantPast]];
@@ -211,81 +219,45 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 }
 
 // URL encode a string -- see http://forums.macrumors.com/showthread.php?t=689884 and http://simonwoodside.com/weblog/2009/4/22/how_to_really_url_encode/
-- (NSString *)URLEncode:(NSString *)string {
-    NSString *result = (NSString *)CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault, (CFStringRef)string, NULL, CFSTR("% '\"?=&+<>;:-"), kCFStringEncodingUTF8);
-    
+- (NSString *)URLEncode:(NSString *)input {
+    NSString *result = [input stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     return [result autorelease];
 }
 
-- (void)getIntradayQuote {
-  
-    if (self.loadingData) {
-        return;
-    }
-    self.loadingData = YES;
-    intraday = YES;
-    
-    // http://www.gummy-stuff.org/Yahoo-data.htm
-    
-    NSString *urlString = [NSString stringWithFormat:@"http://download.finance.yahoo.com/d/quotes.csv?s=%@&f=spd1t1ohgl1v", [self URLEncode:self.symbol]];
-    
-    NSURL *url = [NSURL URLWithString:urlString];
-    // DLog(@"intraday url encoded is %@", url);
-    NSURLRequest *theRequest=[NSURLRequest requestWithURL:url
-                                              cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                          timeoutInterval:60.0];
-    
-    // create the connection with the request
-    // and start loading the data
-    self.connection = [NSURLConnection connectionWithRequest:theRequest delegate:self];
-    if (self.connection) {
-        self.receivedData = [[NSMutableData alloc] init];       // initialize it
-    } 
-    else {
-        // DLog(@"connection couldn't be started");
-        //TODO: Inform the user that the download could not be started
-        self.loadingData = NO;
-    }
-}
-
-
 -(NSURL *) formatRequestURL {
     
-    NSUInteger unitFlags = NSMonthCalendarUnit | NSDayCalendarUnit | NSYearCalendarUnit;
+    NSUInteger unitFlags = NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitYear;
     
  //   DLog(@"data api oldestDate %@ and requestNewestDate %@", requestOldestDate, requestNewestDate);
     
     if ([self.requestNewestDate timeIntervalSinceDate:self.requestOldestDate] < 0) {
-     //   DLog(@"Invalid newest date %@ vs %@", requestNewestDate, requestOldestDate);
+        DLog(@"Invalid newest date %@ vs %@", self.requestNewestDate, self.requestOldestDate);
     }
     
     NSDateComponents *compsStart = [self.gregorian components:unitFlags fromDate:self.requestOldestDate];
     NSDateComponents *compsEnd = [self.gregorian components:unitFlags fromDate:self.requestNewestDate];
+
+    NSString *url = [NSString stringWithFormat:@"https://chartinsight.com/api/ohlcv/%@", [self symbol]];
     
-   // DLog(@"comps year is %d and %d", [compsStart year], [compsEnd year]);
+    url = [url stringByAppendingFormat:@"?startDate=%ld", [compsStart year]];
+    url = [url stringByAppendingFormat:@"-%ld", [compsStart month]];
+    url = [url stringByAppendingFormat:@"-%ld", [compsStart day]];
+
+    url = [url stringByAppendingFormat:@"&endDate=%ld", [compsEnd year]];
+    url = [url stringByAppendingFormat:@"-%ld", [compsEnd month]];
+    url = [url stringByAppendingFormat:@"-%ld", [compsEnd day]];
     
-    NSString *url = [NSString stringWithFormat:@"http://ichart.finance.yahoo.com/table.csv?s=%@&", [self symbol]];
-    url = [url stringByAppendingFormat:@"a=%ld&", [compsStart month]-1];
-    url = [url stringByAppendingFormat:@"b=%ld&", [compsStart day]];
-    url = [url stringByAppendingFormat:@"c=%ld&", [compsStart year]];
-    
-    url = [url stringByAppendingFormat:@"d=%ld&", [compsEnd month]-1];
-    url = [url stringByAppendingFormat:@"e=%ld&", [compsEnd day]];
-    url = [url stringByAppendingFormat:@"f=%ld&", [compsEnd year]];
-    url = [url stringByAppendingString:@"g=d&"];
-    
-    url = [url stringByAppendingString:@"ignore=.csv"];
-    
+    DLog(@"%@", url);
     return [NSURL URLWithString:url];
 }
 
 -(void) historicalDataLoadedWithIntraday:(BOOL)includesIntraday {
-    
+    if (countBars == 0) { // Server doesn't have newer data due to delayed fetch from source API
+        [self.delegate performSelector:@selector(APILoadedHistoricalData:) withObject:self];
+    }
     [self setOldestDate:[self dateFromBar:cArray[MAX(0,countBars-1)]]];
     
     [self setNewestDate:[self dateFromBar:cArray[0]]];
-    
-   // DLog(@"notify pulled data has oldestDate = %@ at %d", oldestDate, countBars - 1);
 
     if (self.oldestDate == NULL) {
         DLog(@"oldestdate is null after %ld bars added to %ld existing", barsFromDB, countBars);
@@ -306,7 +278,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
             [self setNextClose:[self.newestDate nextTradingDate:self.gregorian]];
             if ([self.nextClose isTodayIntraday]) {
                // DLog(@"still need intraday data");
-                [self getIntradayQuote];
+              //  Intraday fetch has been disabled: [self getIntradayQuote];
             }
         }
     }
@@ -342,9 +314,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     iOldestRequested = [self.requestOldestDate formatDate:self.gregorian];
     
     NSString *sqlOldest = [NSString stringWithFormat:@"SELECT MAX(CASE WHEN oldest = 1 THEN date ELSE 0 END), MAX(date), count(*) from history WHERE series = %ld AND date >= %ld AND date <= %ld", self.seriesId, iOldestRequested, iNewestRequested];
- 
-   // DLog(@"sql is %@", sqlOldest);
-    
+
     sqlite3 *db;
     if (sqlite3_open_v2([[NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()] UTF8String], &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
         return 0;
@@ -398,12 +368,10 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
             cArray[i].close = sqlite3_column_double(statement, 6);
             cArray[i].adjClose = sqlite3_column_double(statement, 7);            
             cArray[i].volume = sqlite3_column_int64(statement, 8);
-            cArray[i].splitRatio = 1.;
             cArray[i].movingAvg1 = -1.;
             cArray[i].movingAvg2 = -1.;
-            cArray[i].rsi        = -1.;
             cArray[i].mbb        = -1.;
-            cArray[i].stdev        = -1.;
+            cArray[i].stdev      = -1.;
             
       //     // DLog(@"got row at %d %d-%d-%d %f %f %f %f %f",i, cArray[i].year, cArray[i].month,cArray[i].day, cArray[i].open, cArray[i].high, cArray[i].low, cArray[i].close, cArray[i].volume);
             
@@ -431,12 +399,12 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     self->countBars = 0;
     
     __block NSInteger barsFound = 0;
-       
+  
     dispatch_sync(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH,0), ^{
         barsFound = [self loadSavedRows];
     });
     
- //   DLog(@"bars in db %d", barsFound);
+    DLog(@"%@ bars in db %ld", self.symbol, barsFound);
     
     self->barsFromDB = barsFound;
     
@@ -447,7 +415,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         NSDate *newestDateSaved = [self dateFromBar:cArray[0]];
         NSDate *nextTradingDate = [newestDateSaved nextTradingDate:self.gregorian];
         
-        DLog(@"next trading date after newest date saved is %@ vs newest date requested %@", nextTradingDate,           self.requestNewestDate);
+        // DLog(@"next trading date after newest date saved is %@ vs newest date requested %@", nextTradingDate,           self.requestNewestDate);
             
         // only contact Yahoo if the nextTradingDate is in the past (so historical bars are available) AND is newer than the newestDateLoaded
         // nextTrading date must be earlier than newestRequested loaded and also now
@@ -457,16 +425,15 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
             && [self.lastNoNewDataError timeIntervalSinceNow] < -60.
             && [nextTradingDate timeIntervalSinceDate:self.newestDateLoaded] > 0.) {     // after newest date loaded
 
-             DLog(@"Missing bar %@ %f seconds after %@", nextTradingDate, [self.requestNewestDate timeIntervalSinceDate:newestDateSaved], newestDateSaved);
+            DLog(@"Missing bar %@ %f seconds after %@", nextTradingDate, [self.requestNewestDate timeIntervalSinceDate:newestDateSaved], newestDateSaved);
                         
             [self setRequestOldestDate:nextTradingDate];    // skip dates loaded from DB
         
         } else if ([self.lastOfflineError timeIntervalSinceNow] < -60.) {
             
-            DLog(@"%@ is close enough to %@", newestDateSaved, self.requestNewestDate);
+            // DLog(@"%@ is close enough to %@", newestDateSaved, self.requestNewestDate);
             
             [self setOldestDate:[self dateFromBar:cArray[ barsFromDB - 1] ]];
-            DLog(@"oldestDate is %@ ", self.oldestDate);
             
             [self historicalDataLoadedWithIntraday:NO];
             return;
@@ -495,7 +462,6 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 
 -(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
     // append the new data to the receivedData
-  // // DLog(@"%@ did receive data", symbol);
     [self.receivedData appendData:data];
 }
 
@@ -516,7 +482,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     
     if (!intraday && barsFromDB > 0) {   // use what we have
         
-        // DLog(@"%@ didFailWithError for request from %@ to %@", self.symbol, self.requestOldestDate, self.requestNewestDate);
+        DLog(@"%@ didFailWithError for request from %@ to %@", self.symbol, self.requestOldestDate, self.requestNewestDate);
          
         countBars = barsFromDB;
 
@@ -527,7 +493,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         if (!intraday && oldestDateInSeq > 0) {  // DB has some dates, so resubmit shorter request and use those
         
             NSDate *oldestDateInDB = [[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] 
-                                        dateFromString:[NSString stringWithFormat:@"%dT20:00:00Z", oldestDateInSeq]];
+                                        dateFromString:[NSString stringWithFormat:@"%ldT20:00:00Z", oldestDateInSeq]];
             
            // DLog(@"%@ after internet failure, oldest is %@ from NSInteger %d", symbol, oldestDateInDB, oldestDateInSeq);
             
@@ -555,13 +521,12 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     // has enough information to create the NSURLResponse
     // it can be called multiple times, for example in the case of a
     // redirect, so each time we reset the data.
-      DLog(@"%@ did receive response", self.symbol);
-    
+
     if ([response respondsToSelector:@selector(statusCode)])  {
         NSInteger statusCode = [((NSHTTPURLResponse *)response) statusCode];
         if (statusCode == 404) {
             
-             DLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, c.originalRequest.URL);
+            DLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, c.originalRequest.URL);
             [c cancel];  // stop connecting; no more delegate messages
             [self connection:c didFailWithError:[NSError errorWithDomain:@"No new data" code:statusCode userInfo:nil]];
         }
@@ -569,149 +534,42 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     [self.receivedData setLength:0];
 }
 
-
--(void)parseIntradayCSV {
-    
-// s = symbol, d1 = trade date, t1 = trade time, o = open, h = high, g = low, l1 = last price, v = volume, p = prev close
-//    wget -qO- http://download.finance.yahoo.com/d/quotes.csv?s=AAPL&f=spd1t1ohgl1v
-    // "AAPL",556.97,"5/23/2012","4:00pm",557.33,572.80,553.23,570.56,20884292
-
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^\"([^\"]+)\",([^,]+),\"(\\d+)/(\\d+)/(\\d+)\",\"(\\d+):(\\d+)(\\w+)\",([^,]+),([^,]+),([^,]+),([^,]+),(\\d+)" options:NSRegularExpressionAnchorsMatchLines error:nil];	
-    NSInteger lastTradeHour, lastTradeMinutes;
-    BOOL closeSavedToDB = NO;
-    
-    NSString *pm = @"pm";
-    
-   // DLog(@"%@ = intraday value", csvString);
-    
-    NSTextCheckingResult *match = [regex firstMatchInString:self.csvString options:0 range:NSMakeRange(0, [self.csvString length])];
-    
-     double previousClose = 0.0;
-    
-    if (match && [[self.csvString substringWithRange:[match rangeAtIndex:9]] doubleValue] > 0) {
-        // skip rows with "N/A" in the open value
-                           
-        // verify the response is for this symbol and not a previous, delayed request
-        if ([self.symbol isEqualToString:[self.csvString substringWithRange:[match rangeAtIndex:1]]]) {
-        
-            previousClose = [[self.csvString substringWithRange:[match rangeAtIndex:2]] doubleValue];
-            
-            intradayBar.month = [[self.csvString substringWithRange:[match rangeAtIndex:3]] integerValue];
-            intradayBar.day = [[self.csvString substringWithRange:[match rangeAtIndex:4]] integerValue];
-            intradayBar.year = [[self.csvString substringWithRange:[match rangeAtIndex:5]] integerValue];
-            
-            lastTradeHour = [[self.csvString substringWithRange:[match rangeAtIndex:6]] integerValue];
-            lastTradeMinutes = [[self.csvString substringWithRange:[match rangeAtIndex:7]] integerValue];
-            
-            intradayBar.open = [[self.csvString substringWithRange:[match rangeAtIndex:9]] doubleValue];
-            intradayBar.high = [[self.csvString substringWithRange:[match rangeAtIndex:10]] doubleValue];
-            intradayBar.low = [[self.csvString substringWithRange:[match rangeAtIndex:11]] doubleValue];
-            intradayBar.close = [[self.csvString substringWithRange:[match rangeAtIndex:12]] doubleValue];
-            intradayBar.volume = [[self.csvString substringWithRange:[match rangeAtIndex:13]] doubleValue];
-            intradayBar.adjClose = intradayBar.close;   // not available intraday
-            intradayBar.splitRatio = 1.;
-            intradayBar.movingAvg1  = -1.;
-            intradayBar.movingAvg2  = -1.;
-            intradayBar.rsi         = -1.;
-            intradayBar.mbb         = -1.;
-            intradayBar.stdev       = -1.;
-            
-           // DLog(@" %d %d %d %f %f %f %f", intradayBar.year, intradayBar.month, intradayBar.day, intradayBar.open, intradayBar.high, intradayBar.low, intradayBar.close);
-            
-            if (fabs(cArray[0].close - previousClose) > 0.02) {
-               // DLog(@"%@ previous close %f doesn't match %f", symbol, previousClose, cArray[0].close);
-
-            } else if (lastTradeHour == 4 && [pm isEqualToString:[self.csvString substringWithRange:[match rangeAtIndex:8]]]) {
-               // DLog(@"%@ %d/%d 4:%d pm", symbol, intradayBar.month, intradayBar.day, lastTradeMinutes);
-                
-                sqlite3 *db;
-                sqlite3_open_v2([[NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()] UTF8String], &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, NULL);
-                sqlite3_stmt *statement;
-                sqlite3_prepare_v2(db, saveHistory, -1, &statement, NULL);
-
-                // (series, date, open, high, low, close, adjClose, volume, oldest)
-                
-                sqlite3_bind_int64(statement, 1, self.seriesId);
-                sqlite3_bind_int64(statement, 2, [self dateIntFromBar:intradayBar]);        
-                sqlite3_bind_text(statement, 3, [[self.csvString substringWithRange:[match rangeAtIndex:9]] UTF8String], -1, SQLITE_TRANSIENT);
-                sqlite3_bind_text(statement, 4, [[self.csvString substringWithRange:[match rangeAtIndex:10]] UTF8String], -1, SQLITE_TRANSIENT);            
-                sqlite3_bind_text(statement, 5, [[self.csvString substringWithRange:[match rangeAtIndex:11]] UTF8String], -1, SQLITE_TRANSIENT);
-                sqlite3_bind_text(statement, 6, [[self.csvString substringWithRange:[match rangeAtIndex:12]] UTF8String], -1, SQLITE_TRANSIENT);
-                // set adjClose = close
-                sqlite3_bind_text(statement, 7, [[self.csvString substringWithRange:[match rangeAtIndex:12]] UTF8String], -1, SQLITE_TRANSIENT);
-                sqlite3_bind_int64(statement, 8, [[self.csvString substringWithRange:[match rangeAtIndex:13]] longLongValue]);
-                sqlite3_bind_int64(statement, 9, 0);   // intraday isn't the last bar
-                
-                if(sqlite3_step(statement)==SQLITE_DONE){;
-                   // DLog(@"%@ intraday bar saved to db %d-%d-%d", symbol, intradayBar.year, intradayBar.month, intradayBar.day);
-                    [self setNextClose:[[self dateFromBar:intradayBar] nextTradingDate:self.gregorian]];
-
-                    cArray[0].close = intradayBar.close;    // quick hack so two post-close intraday requests will be saved to DB
-                    closeSavedToDB = YES;
-                } else {
-                   // DLog(@"%@ intraday Save to DB ERROR '%s'.", symbol, sqlite3_errmsg(db));
-                }
-                sqlite3_finalize(statement);                
-                sqlite3_close(db);
-
-            }
-            
-            if (NO == closeSavedToDB) {                
-               // DLog(@"%@ last trade time is %d so don't save volume %f", symbol, lastTradeMinutes, intradayBar.volume);
-                // don't change next close date
-            }
-
-            [self.delegate performSelector:@selector(APILoadedIntraday:) withObject:self];
-
-        } else {
-           // DLog(@"%@ reponse does not match symbol %@", symbol, csvString);  
-        }
-        
-    } else if ([self.csvString hasPrefix:@"Missing Symbols List"]) {
-        // symbol doesn't have intraday data (e.g. ^DJI)
-        // canceling the download causes problems, so just let this historicalDataLoaded with countBars = 0
-
-        [self.delegate performSelector:@selector(APICanceled:) withObject:self];
-    }
-    intraday = NO; 
-}
-
 -(void)connectionDidFinishLoading:(NSURLConnection *)connection {
     self.loadingData = NO;
 	self.connection = nil;
     
 	NSString *csv = [[NSString alloc] initWithData:self.receivedData encoding:NSUTF8StringEncoding];
+    
     [self setCsvString:csv];
     [csv release];
     [_receivedData release];
 	
     self.receivedData = nil;
     if (intraday) {
-        [self parseIntradayCSV];
+        // removed intraday fetch
     } else {
         [self parseHistoricalCSV];
     }
 }
 
-// Date,Open,High,Low,Close,Volume,Adj Close
-// 2009-06-08,143.82,144.23,139.43,143.85,33255400,143.85
-//
-// note, countBars already includes any bars cached in the DB
+// Parse stock data API and save it to the DB for faster access
 -(void)parseHistoricalCSV {
-        
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^(\\d+)-(\\d+)-(\\d+),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+),([^\n]+)" options:NSRegularExpressionAnchorsMatchLines error:nil];	
     
+    // https://chartinsight.com/api/ohlcv/AAPL
+    // date,open,high,low,close,volume
+    // 2009-01-02,2.6069,2.7635,2.5850,2.7547,746015946
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^(\\d+)-(\\d+)-(\\d+),([^,]+),([^,]+),([^,]+),([^,]+),(\\d+)"
+                                                                           options:NSRegularExpressionAnchorsMatchLines error:nil];
     __block BOOL zeroIndexIsIntraday = NO;
     __block NSUInteger i = 0;
     __block NSUInteger barsFromWeb = [regex numberOfMatchesInString:self.csvString options:0 range:NSMakeRange(0, [self.csvString length])];
     
-   // DLog(@"result is %@", csvString);
-   // DLog(@"barsFromWeb is %d vs %d barsFromDB", barsFromWeb, barsFromDB);
+    //DLog(@"EOD response is %@", self.csvString);
+    //DLog(@"barsFromWeb is %d vs %d barsFromDB", barsFromWeb, barsFromDB);
     
     if (barsFromWeb == 0) {         
-       // DLog(@"%@ empty response from API: %@", symbol, csvString);
-                
-        countBars = 0;
+        DLog(@"%@ empty response from API: %@", self.symbol, self.csvString);
+        self.loadingData = NO;
         return [self historicalDataLoadedWithIntraday:NO];        // canceling download causes problems, so call historicalDataLoaded with countBars = 0
     }
     
@@ -723,6 +581,8 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         webBars = (BarStruct *)malloc(sizeof(BarStruct)*[self maxBars]);
     }
     
+    // DLog(@"DB is now in %@", [NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()]);
+    
     sqlite3 *db;
     if (sqlite3_open_v2([[NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()] UTF8String], &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, NULL)) {
         return;
@@ -733,49 +593,32 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     sqlite3_stmt *statement;
     
     sqlite3_prepare_v2(db, saveHistory, -1, &statement, NULL);
-    
-    [regex enumerateMatchesInString:self.csvString options:0 range:NSMakeRange(0, [self.csvString length]) usingBlock:^(NSTextCheckingResult *match, NSMatchingFlags flags, BOOL *stop){
    
-        webBars[i].year = [[self.csvString substringWithRange:[match rangeAtIndex:1]] integerValue];
-        webBars[i].month = [[self.csvString substringWithRange:[match rangeAtIndex:2]] integerValue];
-        webBars[i].day = [[self.csvString substringWithRange:[match rangeAtIndex:3]] integerValue];
-        webBars[i].open = [[self.csvString substringWithRange:[match rangeAtIndex:4]] doubleValue];
-        webBars[i].high = [[self.csvString substringWithRange:[match rangeAtIndex:5]] doubleValue];              
-        webBars[i].low = [[self.csvString substringWithRange:[match rangeAtIndex:6]] doubleValue];
-        webBars[i].close = [[self.csvString substringWithRange:[match rangeAtIndex:7]] doubleValue];
-        webBars[i].adjClose = [[self.csvString substringWithRange:[match rangeAtIndex:9]] doubleValue];
-        
-        if (i == 1 && webBars[1].day == webBars[0].day && webBars[1].month == webBars[0].month && webBars[1].year == webBars[0].year) {
-            /* Sometimes Yahoo will duplicate a bar, as happened for this request on July 2nd at 22:40:42 
-             url is http://ichart.finance.yahoo.com/table.csv?s=AAPL&a=5&b=29&c=2012&d=6&e=2&f=2012&g=d&ignore=.csv
-             
-             Date,Open,High,Low,Close,Volume,Adj Close
-             2012-07-02,584.73,593.47,583.64,592.53,13769700,592.52
-             2012-07-02,584.73,593.47,583.60,592.52,14269800,592.52
-             2012-06-29,578.00,584.00,574.25,584.00,15033500,584.00     
-             */
-           // DLog(@" %@ YAHOO DUPLICATE BAR IN %@, resetting __i to 0", symbol, csvString);
-            i = 0;
-            barsFromWeb--;
-        } else if (i == 0) {
-            if ([[self dateFromBar:webBars[0]] isTodayIntraday]) {
-                zeroIndexIsIntraday = YES;
-                webBars[0].adjClose = webBars[0].close;   // avoid incorrect split calculation
-            }
-        }
+    // Split CSV using regex (which won't match header "date,open,high,low,close,volume"
+    NSArray *matches = [regex matchesInString:self.csvString  options:0 range:NSMakeRange(0, self.csvString.length)];
 
-        webBars[i].splitRatio = 1.;
-        
-        if ([[self.csvString substringWithRange:[match rangeAtIndex:8]] isEqualToString:@"4294967200"]) {
-            webBars[i].volume = 0;     // no data
+    for (NSTextCheckingResult *match in matches) {
+
+        if (match && match.range.length < 7) {
+            break;
         } else {
+            webBars[i].year = [[self.csvString substringWithRange:[match rangeAtIndex:1]] integerValue];
+            webBars[i].month = [[self.csvString substringWithRange:[match rangeAtIndex:2]] integerValue];
+            webBars[i].day = [[self.csvString substringWithRange:[match rangeAtIndex:3]] integerValue];
+            webBars[i].open = [[self.csvString substringWithRange:[match rangeAtIndex:4]] doubleValue];
+            webBars[i].high = [[self.csvString substringWithRange:[match rangeAtIndex:5]] doubleValue];
+            webBars[i].low = [[self.csvString substringWithRange:[match rangeAtIndex:6]] doubleValue];
+            webBars[i].adjClose = [[self.csvString substringWithRange:[match rangeAtIndex:7]] doubleValue];
+            webBars[i].close = [[self.csvString substringWithRange:[match rangeAtIndex:7]] doubleValue];
             webBars[i].volume = [[self.csvString substringWithRange:[match rangeAtIndex:8]] doubleValue];
+            webBars[i].splitRatio = 1.;
+            webBars[i].movingAvg1 = .0f;
+            webBars[i].movingAvg2 = .0f;
         }
-        webBars[i].movingAvg1 = .0f;
-        webBars[i].movingAvg2 = .0f;
         
-       // DLog(@"%@ %d %d %d %d %f %f %f %f %f %f", symbol, __i, webBars[__i].year, webBars[__i].month, webBars[__i].day, webBars[__i].open, webBars[__i].high, webBars[__i].low, webBars[__i].close, webBars[__i].adjClose, webBars[__i].volume);
+        //DLog(@"%@ %ld %ld %ld %ld %f %f %f %f %f %f", self.symbol, i, webBars[i].year, webBars[i].month, webBars[i].day, webBars[i].open, webBars[i].high, webBars[i].low, webBars[i].close, webBars[i].adjClose, webBars[i].volume);
         
+        // Save data to DB for offline access
         if (i > 0 || zeroIndexIsIntraday == NO) {
             sqlite3_bind_int64(statement, 1, self.seriesId);
             sqlite3_bind_int64(statement, 2, [self dateIntFromBar:webBars[i]]);        
@@ -783,7 +626,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
             sqlite3_bind_text(statement, 4, [[self.csvString substringWithRange:[match rangeAtIndex:5]] UTF8String], -1, SQLITE_TRANSIENT);            
             sqlite3_bind_text(statement, 5, [[self.csvString substringWithRange:[match rangeAtIndex:6]] UTF8String], -1, SQLITE_TRANSIENT);
             sqlite3_bind_text(statement, 6, [[self.csvString substringWithRange:[match rangeAtIndex:7]] UTF8String], -1, SQLITE_TRANSIENT);
-            sqlite3_bind_text(statement, 7, [[self.csvString substringWithRange:[match rangeAtIndex:9]] UTF8String], -1, SQLITE_TRANSIENT);
+            sqlite3_bind_text(statement, 7, [[self.csvString substringWithRange:[match rangeAtIndex:7]] UTF8String], -1, SQLITE_TRANSIENT);
             sqlite3_bind_int64(statement, 8, [[self.csvString substringWithRange:[match rangeAtIndex:8]] longLongValue]);
             
             if (i < lastBar) {
@@ -800,7 +643,8 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         }
 
         i++;  
-    }];
+    }
+    
     sqlite3_finalize(statement);
     sqlite3_exec(db, "COMMIT", 0, 0, 0);
     

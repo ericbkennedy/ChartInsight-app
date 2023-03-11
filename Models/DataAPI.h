@@ -1,7 +1,7 @@
 
 typedef struct CBarData {
     NSInteger year, month, day;
-    double open, high, low, close, adjClose, volume, movingAvg1, movingAvg2, rsi, mbb, stdev, splitRatio;
+    double open, high, low, close, adjClose, volume, movingAvg1, movingAvg2, mbb, stdev, splitRatio;
 } BarStruct;
 
 // NSDate category

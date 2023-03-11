@@ -1,7 +1,7 @@
 #import "Comparison.h"
 #import "ProgressIndicator.h"
 
-@interface RootViewController : UIViewController <UITableViewDelegate, UITableViewDataSource, UIWebViewDelegate>
+@interface RootViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
 
 @property (strong, nonatomic) NSCalendar *gregorian;
 @property (nonatomic, strong) ProgressIndicator	*progressIndicator;
@@ -18,10 +18,6 @@
 - (void) popContainer;
 
 - (void) deleteSeries:(NSInteger)sender;
-
-- (void) getNews:(UIMenuController *)controller;
-
-- (void) getSECFilings:(UIMenuController *) controller;
 
 // callback after the db is moved from the bundle or upgraded
 - (void) dbMoved:(NSString *)newPath;

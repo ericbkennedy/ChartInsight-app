@@ -2,7 +2,7 @@
 #import "sqlite3.h"
 #import "Comparison.h"
 
-#define CURRENT_DB_VERSION 5
+#define CURRENT_DB_VERSION 6
 
 @interface MoveDB ()
 @property (strong, nonatomic) NSURLConnection *connection;
@@ -121,61 +121,9 @@
     } 
 }
 
-/* Check the last update date, request changes since then, and update the DB with those values 
- 
- The trick is that the feedback date isn't something the iPhone can calculate because I only download
- new lists of symbols once a month
- 
- So the request values should be
- 
- 1. empty string
- 2. max updated date as returned by server
- 3. old max updated date as returned by server
- 
- Also note that it must be stored in the database so we know not to download any updates that are already in the current DB
- 
- */
-- (void) syncSeriesChanges {
-
-    sqlite3 *db;
- 	sqlite3_stmt *statement;
-    sqlite3_open_v2([[self dbPath] UTF8String], &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, NULL);
-    
-//    NSString *lastModified =@"2012-06-13";
-//    sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO config (key,value) VALUES ('seriesSync',?)", -1, &statement, NULL);
-//    sqlite3_bind_text(statement, 1, lastModified.UTF8String, lastModified.length, SQLITE_STATIC); // don't free space
-//    sqlite3_step(statement);
-//    sqlite3_finalize(statement);
-    
-    NSInteger retVal = sqlite3_prepare_v2(db, "SELECT value FROM config WHERE key='seriesSync'", -1, &statement, NULL);       //   e.g.  '2012-10-16'
-    
-    NSString *syncURL = @"http://chartinsight.com/getSeriesChanges.php?modified=";
-    
-    if (retVal == SQLITE_OK && sqlite3_step(statement)==SQLITE_ROW) {
-        
-        if (sqlite3_column_bytes(statement, 0) > 2) {
-           syncURL = [syncURL stringByAppendingString:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 0)]];
-        }
-    }
-    sqlite3_finalize(statement);
-    sqlite3_close(db);
-    
-    // DLog(@"syncURL is %@", syncURL);
-    
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:syncURL] cachePolicy:NSURLRequestReloadIgnoringCacheData timeoutInterval:60.0];
-    
-    self.connection = [NSURLConnection connectionWithRequest:request delegate:self];
-    if (self.connection) {
-        [self setReceivedData:[NSMutableData data]];       // initialize it
-    } else {
-        // DLog(@"download couldn't be started");
-    }
-}
-
 - (void) parseResponse {
     
-    NSLog(@"response is %@", self.responseString);
-    
+    DLog(@"response is %@", self.responseString);
     
     if (self.responseString.length < 10) {
           DLog(@"no need to update");
@@ -298,8 +246,6 @@
 	
 	@try {
 		NSString *docPath = [self dbPath];
-        
-       // DLog(@"Moving DB to %@", docPath);
 		
 		// Check the existence of database 
 		NSFileManager *mngr = [[NSFileManager alloc] init];
@@ -309,7 +255,7 @@
 			[mngr copyItemAtPath:[[NSBundle mainBundle] pathForResource:@"charts.db" ofType:nil] toPath:docPath error:NULL];
 		} else{
             [self checkExistingDB];
-            [self syncSeriesChanges];
+            // When app was in the App Store, a method contacted the server to update the local DB with splits, new stocks, acquired companies, etc.
         }
 		[mngr release];
         

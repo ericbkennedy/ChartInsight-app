@@ -1,12 +1,10 @@
 
-@interface ProgressIndicator : UIView {
-   @public
-    double activeDownloads;          // 1000 x active requests
-    double progressNumerator;        // divide by active downloads to get value of progressIndicator
-}
+@interface ProgressIndicator : UIView
 
 @property (nonatomic, strong) UIProgressView	*progressView;
 @property (nonatomic, strong) NSTimer           *timer;
+@property (nonatomic) double                    activeDownloads;   // 1000 x active requests
+@property (nonatomic) double                    progressNumerator;        // divide by active downloads to get value of progressIndicator
 
 - (void) reset;
 
@@ -25,6 +23,6 @@
  
  When a process completes, subtract its share of progress (progressNumerator / activeDownloads) and remove it from activeDownloads
  
- This might look a littl strange on fast connections, since it could finish in less than 1 second.  But that's ok.
+ This might look a little strange on fast connections, since it could finish in less than 1 second.  But that's ok.
  
  */

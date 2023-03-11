@@ -20,6 +20,7 @@
 @property (nonatomic, copy) NSString *name;
 @property (nonatomic, copy) NSString *fundamentalList;
 @property (nonatomic, copy) NSString *technicalList;
+@property (nonatomic, copy) NSString *startDateString; // searches return a string to convert to date later
 @property (nonatomic, copy) NSDate *startDate;
 
 
@@ -30,7 +31,7 @@
 - (void) removeFromFundamentals:(NSString *)type;
 - (void) removeFromTechnicals:(NSString *)type;
 
-- (void) setStartDateWithString:(NSString *)dateString;
+- (void) convertDateStringToDate;
 
 - (void) setColorWithHexString:(NSString *) stringToConvert;
 

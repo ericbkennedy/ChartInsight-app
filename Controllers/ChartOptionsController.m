@@ -26,18 +26,13 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 @end
 @implementation ChartOptionsController
 
-- (void)viewDidUnload {
-    [super viewDidUnload];
-	self.sections = nil;        // Release any retained subviews of the main view.
-}
-
 - (id) initWithStyle:(UITableViewStyle)style {
     self = [super initWithStyle:style];
     if (self != nil) {
         fundamentalControlRow = -1;
         [self setListedMetricKeys:[NSMutableArray new]];
         [self setListedMetricValues:[NSMutableArray new]];
-        [self setListedMetricKeyString:@"BasicEPSTotal,BookValuePerShare,"];
+        [self setListedMetricKeyString:@"EarningsPerShareBasic,CIRevenuePerShare,"];
         
         // better to have a separate dateFormatter than alter the style of the AppDelegate one used for API parsing
         [self setDateFormatter:[[NSDateFormatter alloc] init]];
@@ -272,23 +267,21 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         thisUpColor = [colorList objectAtIndex:i];
         
         [self.colorSegmentedControl insertSegmentWithImage:[self imageForChartType:self.series->chartType andColor:i showLabel:NO] atIndex:i animated:NO];
+
         if ([self.series matchesColor:thisUpColor]) {
             [self.colorSegmentedControl setSelectedSegmentIndex: i];
         }
     }
 }
 
-- (CGFloat) segmentWidth:(UIInterfaceOrientation)toOrientation {
+- (CGFloat) segmentWidthForOrientation:(UIInterfaceOrientation)toOrientation {
     CGFloat width = 320;
+    CGFloat horizontalPadding = 18;
     
-    if (UIDeviceOrientationIsLandscape(toOrientation)) {
-        if ([UIScreen mainScreen].bounds.size.height == 480) {
-            width = 480;
-        } else if ([UIScreen mainScreen].bounds.size.height == 568) {
-            width = 568;    // TODO: test this on the iPhone 5 in landscape mode
-        }
+    if (UIInterfaceOrientationIsLandscape(toOrientation)) {
+        width = 375;
     }
-    return width - 18.;
+    return width - horizontalPadding;
 }
 
 - (void) updateListedMetrics {
@@ -345,7 +338,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     self.saveButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(saveAndClose)];
     [self.saveButton setStyle:UIBarButtonItemStylePlain];
     
-    CGRect segmentRect = CGRectMake(9.0f, .0f, [self segmentWidth:[[UIApplication sharedApplication] statusBarOrientation]], 45.0f);
+    CGFloat segmentWidth = [self segmentWidthForOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+    
+    CGRect segmentRect = CGRectMake(9.0f, .0f, segmentWidth, 45.0f);
     
     [self setTypeSegmentedControl:[[UISegmentedControl alloc] initWithFrame:segmentRect]];
     
@@ -377,26 +372,14 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 
     self.navigationItem.leftBarButtonItem = self.saveButton;
     
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(confirmDelete)];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(deleteStock)];
     
     [self.navigationItem.rightBarButtonItem setTintColor:[UIColor redColor]];
 }
 
-- (void) confirmDelete {
-    
-    UIAlertController *deleteAlert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"Delete %@?", self.series.symbol]
-                                                                                                            message:nil
-                                                                                                    preferredStyle:UIAlertControllerStyleActionSheet];
-                                                                                                        
-    [deleteAlert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+- (void) deleteStock {
 
-    UIAlertAction *deleteAction = [UIAlertAction actionWithTitle:@"Delete" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action){
-        [self.delegate performSelector:@selector(deleteSeries:) withObject:self.series];
-    }];
-    
-    [deleteAlert addAction:deleteAction];
-
-    [self presentViewController:deleteAlert animated:YES completion:nil];
+    [self.delegate performSelector:@selector(deleteSeries:) withObject:self.series];
 }
 
 - (void) saveAndClose {
@@ -433,7 +416,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             }
             return 1;   // no fundamentals
         
-        case 3: return 4;   // technical options
+        case 3: return 3;   // technical options (RSI removed 2023
             
         default: return 1;
     }
@@ -453,9 +436,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             
         case 2:
             type = @"bollingerBand220";    break;
-            
-        case 3:
-            type = @"rsi14";    break;
     }
 
     if ([[self.series technicalList] rangeOfString:type].length > 0) {
@@ -618,15 +598,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
                 onOff.on = YES;
                 cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.series->upColor];
             }
-        } else if (row == 3) {
-            [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.series->upColorHalfAlpha]];
-            
-            cell.textLabel.text = @"RSI 14 periods";
-            
-            if ([[self.series technicalList] rangeOfString:@"rsi14"].length > 0) {
-                onOff.on = YES;
-                cell.textLabel.textColor = [UIColor darkGrayColor]; //  [UIColor colorWithCGColor:self.series->upColor];
-            }
         }
         
     } else if (section == 4) {
@@ -636,8 +607,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             [self setDefaultsButton:[UIButton buttonWithType:UIButtonTypeSystem]];            
             [self.defaultsButton.titleLabel setFont:[UIFont systemFontOfSize:14]];
             [self.defaultsButton setTitleColor:[UIColor colorWithWhite:0.9 alpha:0.9] forState:UIControlStateNormal];
-                
-            [self.defaultsButton setFrame:CGRectMake(0, 0, [self segmentWidth:[[UIApplication sharedApplication] statusBarOrientation]] - 2., 44.)];
+            
+            CGFloat segmentWidth = [self segmentWidthForOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+            [self.defaultsButton setFrame:CGRectMake(0, 0, segmentWidth - 2., 44.)];
             [self.defaultsButton setBackgroundColor:[UIColor clearColor]];
             [self.defaultsButton setOpaque:NO];
             [self.defaultsButton addTarget:self action:@selector(updateDefaults) forControlEvents:UIControlEventTouchDown];
@@ -664,19 +636,11 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 	return cell;
 }
 
-// Defaults are updated rarely so strip out industrial fundamentals and save as bankFundamentalDefaults
 - (void) updateDefaults {
 
     [[NSUserDefaults standardUserDefaults] setInteger:self.series->chartType forKey:@"chartTypeDefault"];
     [[NSUserDefaults standardUserDefaults] setValue:self.series.technicalList forKey:@"technicalDefaults"];
     [[NSUserDefaults standardUserDefaults] setValue:self.series.fundamentalList forKey:@"fundamentalDefaults"];
-    
-    NSString *bankFundamentalDefaults = [self.series.fundamentalList stringByReplacingOccurrencesOfString:@"CostOfSales," withString:@""];
-    bankFundamentalDefaults = [bankFundamentalDefaults stringByReplacingOccurrencesOfString:@"ResearchAndDevelopmentExpenses," withString:@""];
-    bankFundamentalDefaults = [bankFundamentalDefaults stringByReplacingOccurrencesOfString:@"SellingGeneralAndAdministrativeExpenses," withString:@""];
-    bankFundamentalDefaults = [bankFundamentalDefaults stringByReplacingOccurrencesOfString:@"TangibleBookValuePerShare," withString:@""];
-
-    [[NSUserDefaults standardUserDefaults] setValue:bankFundamentalDefaults forKey:@"bankFundamentalDefaults"];
     
     [self.defaultsButton setTitle:@"Default Chart Settings Saved" forState:UIControlStateNormal];
 }
@@ -685,7 +649,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
 	NSIndexPath *indexPath = [self.tableView indexPathForSelectedRow];
     
-    [self setDays:[self.gregorian components:NSDayCalendarUnit fromDate:self.datePicker.date toDate:[NSDate date] options:0]];
+    [self setDays:[self.gregorian components:NSCalendarUnitDay fromDate:self.datePicker.date toDate:[NSDate date] options:0]];
     
     NSInteger daysAgo = [self.days day];
     
@@ -865,25 +829,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     }
     [flc setMetrics:otherMetrics];
     [[self navigationController] pushViewController:flc animated:YES];
-}
-
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
-    return YES;
-}
-
-
-- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toOrientation duration:(NSTimeInterval)duration {
-    
-    CGFloat newWidth = [self segmentWidth:toOrientation];
-    
-    CGRect segmentRect = CGRectMake(9., 0.,  newWidth, 45.);
-    
-    [self.typeSegmentedControl setFrame:segmentRect];
-    [self.colorSegmentedControl setFrame:segmentRect];
-    
-    [self.defaultsButton setFrame:CGRectMake(0, 0, newWidth - 2, 44.)];
-
-    [self.tableView reloadData];    // force segment redraw
 }
 
 @end

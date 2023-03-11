@@ -11,15 +11,13 @@
 #import "RootViewController.h"
 #import "SettingsViewController.h"
 
+enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
+
 @interface SettingsViewController ()
 @property (strong, nonatomic) NSMutableArray *list;
 @end
 
 @implementation SettingsViewController
-
-- (BOOL)prefersStatusBarHidden {
-    return (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? YES: NO;
-}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -36,9 +34,7 @@
      self.navigationItem.rightBarButtonItem = barButtonItem;
 }
 
-- (void)dismiss {
-    NSLog(@"dismiss");
-        
+- (void)dismiss {        
     [self.presentingViewController dismissViewControllerAnimated:YES completion:nil];
 }
 
@@ -59,7 +55,7 @@
 }
 
 - (NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return section == 0 ? 1 : [self.list count];
+    return section == NIGHT_MODE_SECTION ? 1 : [self.list count];
 }
 
 - (CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -78,12 +74,19 @@
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
 	}
     
-    if (indexPath.section == 0) {
+    if (indexPath.section == NIGHT_MODE_SECTION) {
         cell.textLabel.text = @"Night mode";
 
         UISwitch *onOff = [UISwitch new];
         [onOff addTarget:self action:@selector(toggleNightDayAndDismiss) forControlEvents:UIControlEventTouchUpInside];
         [cell setAccessoryView:onOff];
+        
+        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == 1) {
+            onOff.on = TRUE;
+        } else {
+            onOff.on = FALSE;
+        }
+        
     } else {
         Comparison *comparison = [self.list objectAtIndex:indexPath.row];
      
@@ -101,12 +104,12 @@
 
 // Override to support conditional editing of the table view.
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    return indexPath.section > 0 ? YES : NO;
+    return indexPath.section == STOCK_LIST_SECTION ? YES : NO;
 }
 
 // Override to support editing the table view.
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
+    if (indexPath.section == STOCK_LIST_SECTION && editingStyle == UITableViewCellEditingStyleDelete) {
 
         Comparison *comparison = self.list[indexPath.row];
 
@@ -122,15 +125,13 @@
     }   
 }
 
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath {
-
-}
-
 // Override to support conditional rearranging of the table view.
 - (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
+    if (indexPath.section == STOCK_LIST_SECTION) {
+        return YES;
+    } else {
+        return NO;
+    }
 }
 
 @end

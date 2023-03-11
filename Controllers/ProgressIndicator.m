@@ -6,22 +6,10 @@
 - (id)initWithFrame:(CGRect)frame {
     
     if (self = [super initWithFrame:frame]) {
-        CGFloat x = 0, y = 0; // frame.origin.x, y = frame.origin.y;
         
         [self setProgressView:[[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleBar]];
-        [self.progressView setFrame:CGRectMake(x + 5, y + 45, 150, 10)];
-        [self.progressView setProgressTintColor:[UIColor whiteColor]];
-        [self.progressView setTrackTintColor:[UIColor darkGrayColor]];
+        [self.progressView setFrame:frame];
         [self addSubview:self.progressView];
-        UILabel *downloading = [UILabel new];
-        [downloading setText:@"Downloading..."];
-        [downloading setTextColor:[UIColor whiteColor]];
-        [downloading setBackgroundColor:[UIColor clearColor]];
-        [downloading setFrame:CGRectMake(x + 20, y + 15, 140, 20)];
-        [self addSubview:downloading];
-        [self setBackgroundColor:[UIColor colorWithWhite:0.4 alpha:0.7]];
-        self.layer.cornerRadius = 15.0f;
-        self.layer.masksToBounds = YES;
         
         // Create the timer object
         self.timer = nil;
@@ -35,11 +23,11 @@
 
 - (void) reset {
     [self.timer invalidate];
-    activeDownloads = progressNumerator = 0.;
+    self.activeDownloads = self.progressNumerator = 0.;
 }
 
 - (void) startAnimating {
-    activeDownloads += 1000.;
+    self.activeDownloads += 1000.;
     if (self.timer == nil) {
         [self setHidden:NO];
         // use [NSTimer alloc] to ensure it gets allocated to higher priority modes than static initializers would
@@ -49,47 +37,59 @@
         [[NSRunLoop mainRunLoop] addTimer:self.timer forMode:UITrackingRunLoopMode];
     }
     
-    [self.progressView setProgress:(progressNumerator / activeDownloads) animated:NO]; // or it will animate backwards!
+    [self.progressView setProgress:(self.progressNumerator / self.activeDownloads) animated:NO]; // or it will animate backwards!
     [self setHidden:NO];
     
 }
 
 - (void) updateActivityIndicator:(NSTimer *)incomingTimer {
-    
-    // timeout is 60 seconds, so ensure that a failed download doesn't reach 1.0 before timeout
-    // (1.0 / 70) * 0.1 = 0.00142
-    
- 
-    
-    if (activeDownloads <= 1 || progressNumerator > activeDownloads) {
-        // TO DO: figure out why progressNumerator goes past activeDownloads without a timeout canceling the timer
-        [self.progressView setProgress:1.0 animated:YES];
+    double progressAchieved = self.progressView.progress;
+    if (progressAchieved == 1.0) {
         [self setHidden:YES];
         [self.timer invalidate];
         [self setTimer:nil];
-    } else if (self.progressView.progress < .7 ) {
-        progressNumerator += 25.;
-    } else {
-         
-       progressNumerator += 1.;
+        return;
     }
     
-    double progressCalc = (progressNumerator / activeDownloads);
-    [self.progressView setProgress:progressCalc animated:YES];
+    // timeout is 60 seconds, so ensure that a failed download doesn't reach 1.0 before timeout
+    // (1.0 / 70) * 0.1 = 0.00142
+
+    if (self.activeDownloads <= 1 || self.progressNumerator > self.activeDownloads) {
+        // TO DO: figure out why progressNumerator goes past activeDownloads without a timeout canceling the timer
+        while (progressAchieved < 1) {
+            progressAchieved += 0.25;
+            [self.progressView setProgress:progressAchieved animated:YES];
+        }
+        [self.progressView setProgress:1.0 animated:YES];
+
+        return;
+    } else if (self.progressView.progress < .7) {
+        self.progressNumerator = self.progressNumerator + 25.;
+        progressAchieved = self.progressNumerator / self.activeDownloads;
+    } else {
+        self.progressNumerator += 1.;
+        progressAchieved = self.progressNumerator / self.activeDownloads;
+    }
+    [self.progressView setProgress:progressAchieved animated:YES];
 }
 
 - (void) stopAnimating {
+    double progressAchieved = self.progressView.progress;
 
- 
-    if (activeDownloads >= 1000.) {
+    if (self.activeDownloads >= 1000.) {
         //    When a process completes, subtract its share of progress (progressNumerator / activeDownloads) and remove it from activeDownloads
-        progressNumerator -= (progressNumerator / activeDownloads);
-        activeDownloads -= 1000.;
+        self.progressNumerator -= (self.progressNumerator / self.activeDownloads);
+        self.activeDownloads -= 1000.;
         
-        double progressCalc = (progressNumerator / activeDownloads);
+        double progressCalc = 1.0; // (self.progressNumerator / self.activeDownloads);
         [self.progressView setProgress:progressCalc animated:YES];
     } else {
-        [self.progressView setProgress:1.0 animated:YES];
+        
+        while (progressAchieved < 1) {
+            progressAchieved += 0.25;
+            [self.progressView setProgress:progressAchieved animated:YES];
+        }
+        
         [self setHidden:YES];
         [self.timer invalidate];
         [self setTimer:nil];
