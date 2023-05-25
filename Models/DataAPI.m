@@ -107,8 +107,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 }
 
 @property (nonatomic, copy) NSString *csvString;
-@property (strong, nonatomic) NSMutableData *receivedData;
-@property (strong, nonatomic) NSURLConnection *connection;
+@property (strong, nonatomic) NSURLSession *ephemeralSession;   // skip web cache since sqlite caches price data
 @property (nonatomic, assign) BOOL loadingData;
 @property (strong, nonatomic) NSDate *lastOfflineError;
 @property (strong, nonatomic) NSDate *lastNoNewDataError;       // set when a 404 occurs on a request for newer data
@@ -133,10 +132,20 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     // NOTE: this should really be the max that we would request at any one time, since stockData.barData is separate memory
     cArray = (BarStruct *)malloc(sizeof(BarStruct)*[self maxBars]);
     
+    self.ephemeralSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration];
+    
+    [self setDateFormatter:[[NSDateFormatter alloc] init]];
+    NSLocale *locale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US_POSIX"]; // 1996-12-19T16:39:57-08:00
+    [self.dateFormatter setLocale: locale];  // override user locale
+    [self.dateFormatter setDateFormat:@"yyyyMMdd'T'HH':'mm':'ss'Z'"];  // Z means UTC time
+    [self.dateFormatter setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+        
     return self;
 }
 
 -(void)dealloc {
+    [self.ephemeralSession invalidateAndCancel];
+    [_dateFormatter release];
     _delegate = nil;
     free(cArray);    
     _csvString = nil;    // don't release it because the setter manages release count
@@ -158,16 +167,13 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 
     NSString *dateString = [NSString stringWithFormat:@"%ld%02ld%02ldT20:00:00Z", bar.year, bar.month, bar.day];// 10am NYC first quote
         
-    return [[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] dateFromString:dateString];  
+    return [self.dateFormatter dateFromString:dateString];
 }
 
+// Called BEFORE creating a URLSessionTask if there was a recent offline error or it is too soon to try again
 -(void)cancelDownload {
     if (self.loadingData) {
-        [self.connection cancel];
         self.loadingData = NO;
-        
-        self.receivedData = nil;
-        self.connection = nil;
     }
     [self.delegate performSelector:@selector(APICanceled:) withObject:self];
 }
@@ -415,7 +421,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     
     if ( barsFromDB > 0 ) {     // no gap before, but maybe a gap afterwards
         
-        countBars = barsFromDB;  
+        countBars = barsFromDB;
             
         NSDate *newestDateSaved = [self dateFromBar:cArray[0]];
         NSDate *nextTradingDate = [newestDateSaved nextTradingDate:self.gregorian];
@@ -446,38 +452,43 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     }
     
     if (self.lastOfflineError != NULL && [[NSDate date] timeIntervalSinceDate:self.lastOfflineError] < 60) {
-         DLog(@"last offline error %@ was too recent to try again %f", self.lastOfflineError, [[NSDate date] timeIntervalSinceDate:self.lastOfflineError]);
+        DLog(@"last offline error %@ was too recent to try again %f", self.lastOfflineError, [[NSDate date] timeIntervalSinceDate:self.lastOfflineError]);
         [self cancelDownload];
         return;
     }
         
     self.loadingData = YES;
-    NSURLRequest *request = [NSURLRequest requestWithURL:[self formatRequestURL]
-                                                  cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                              timeoutInterval:60.0];
         
-    self.connection = [NSURLConnection connectionWithRequest:request delegate:self];
-    if (self.connection) {
-        self.receivedData = [[NSMutableData alloc] init];       // initialize it
-    } else {
-        //TODO: Inform the user that the download could not be started
-        self.loadingData = NO;
-    }
+    NSURL *URL = [self formatRequestURL];
+    NSURLSessionTask *task = [self.ephemeralSession dataTaskWithURL:URL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error)
+    {
+        if (error) {
+            [self handleClientError:error];
+        } else if (response && [response respondsToSelector:@selector(statusCode)]) {
+            NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
+            if (statusCode == 404) {
+                DLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, URL);
+                NSError *error = [NSError errorWithDomain:@"No new data" code:statusCode userInfo:nil];
+                [self handleClientError:error];
+                
+            } else if (statusCode == 200 && data && data.length > 10) {
+                self.loadingData = NO;
+                
+                NSString *csv = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                [self setCsvString:csv];
+                [csv release];
+                [self parseHistoricalCSV];
+            }
+        }
+    }];
+    [task resume];
 }
 
--(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    // append the new data to the receivedData
-    [self.receivedData appendData:data];
-}
-
--(void)connection:(NSURLConnection *)failedConnection didFailWithError:(NSError *)error {
+-(void)handleClientError:(NSError *)error {
     
-    DLog(@"%@ err = %@ for connection %@", self.symbol, [error localizedDescription], [failedConnection description]);
+    DLog(@"%@ err = %@", self.symbol, [error localizedDescription]);
 
     self.loadingData = NO;
-    [self.connection cancel];
-    self.receivedData = nil;
-    self.connection = nil;
     
     if ([error code] == 404) {      // the connection is working but the requested quote data isn't available for some reason
         [self setLastNoNewDataError:[NSDate date]];
@@ -497,7 +508,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         
         if (!intraday && oldestDateInSeq > 0) {  // DB has some dates, so resubmit shorter request and use those
         
-            NSDate *oldestDateInDB = [[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] 
+            NSDate *oldestDateInDB = [self.dateFormatter
                                         dateFromString:[NSString stringWithFormat:@"%ldT20:00:00Z", oldestDateInSeq]];
             
            // DLog(@"%@ after internet failure, oldest is %@ from NSInteger %d", symbol, oldestDateInDB, oldestDateInSeq);
@@ -513,48 +524,8 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
             }
         }
     }
+    // [(StockData *)self.delegate APIFailed] calls performSelectorOnMainThread
     [self.delegate performSelector:@selector(APIFailed:) withObject:[error localizedDescription]];
-}
-
-// disable caching since sqlite does our caching
-- (NSCachedURLResponse *)connection:(NSURLConnection *)connection willCacheResponse:(NSCachedURLResponse *)cachedResponse {
-    return nil;
-}
-
--(void)connection:(NSURLConnection *)c didReceiveResponse:(NSURLResponse *)response {
-    // this method is called when the server has determined that it
-    // has enough information to create the NSURLResponse
-    // it can be called multiple times, for example in the case of a
-    // redirect, so each time we reset the data.
-
-    if ([response respondsToSelector:@selector(statusCode)])  {
-        NSInteger statusCode = [((NSHTTPURLResponse *)response) statusCode];
-        if (statusCode == 404) {
-            
-            DLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, c.originalRequest.URL);
-            [c cancel];  // stop connecting; no more delegate messages
-            [self connection:c didFailWithError:[NSError errorWithDomain:@"No new data" code:statusCode userInfo:nil]];
-        }
-    }
-    [self.receivedData setLength:0];
-}
-
--(void)connectionDidFinishLoading:(NSURLConnection *)connection {
-    self.loadingData = NO;
-	self.connection = nil;
-    
-	NSString *csv = [[NSString alloc] initWithData:self.receivedData encoding:NSUTF8StringEncoding];
-    
-    [self setCsvString:csv];
-    [csv release];
-    [_receivedData release];
-	
-    self.receivedData = nil;
-    if (intraday) {
-        // removed intraday fetch
-    } else {
-        [self parseHistoricalCSV];
-    }
 }
 
 // Parse stock data API and save it to the DB for faster access

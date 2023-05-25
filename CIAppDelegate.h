@@ -12,12 +12,6 @@
 
 @property (strong, nonatomic) UIWindow *window;
 
-@property (strong, nonatomic) UIColor *chartBackground;
-@property (strong, nonatomic) UIColor *tableViewBackground;
-
-@property (strong, nonatomic) NSDateFormatter  *dateFormatter;
-@property (strong, nonatomic) NSLocale         *locale;    
-
 @property (strong, nonatomic) NSArray *chartTypes;
 @property (strong, nonatomic) NSMutableArray *colors;
 

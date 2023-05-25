@@ -29,17 +29,14 @@
 {
     if (on) {
         [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"nightBackground"];
-        self.chartBackground = [UIColor blackColor];
-        self.tableViewBackground = [UIColor colorWithWhite:0.1 alpha:1.0];
     } else {
         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"nightBackground"];
-        self.chartBackground = [UIColor colorWithWhite:0.964705882 alpha:1.0];
-        self.tableViewBackground = [UIColor colorWithRed:0.870588235 green:0.901960784 blue:0.968627451 alpha:1.0];
     }
     
     if (@available(iOS 13, *)) {    // Override system light or dark setting based on nightModeOn toggle
         _window.overrideUserInterfaceStyle = on ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
-        self.tabBarController.tabBar.backgroundColor = [UIColor systemBackgroundColor];
+        self.tabBarController.tabBar.backgroundColor = UIColor.systemBackgroundColor;
+        self.window.backgroundColor = UIColor.systemBackgroundColor;
     } else {
         // night mode not supported for iOS older than 13 which lacked native support
     }
@@ -83,12 +80,6 @@
     [colorList addObject: [UIColor colorWithRed:1. green:.6 blue:.0 alpha:1.0]];    // orange
     
     [self setColors:colorList];
-    
-    [self setDateFormatter:[[NSDateFormatter alloc] init]];
-    self.locale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US_POSIX"]; // 1996-12-19T16:39:57-08:00
-    [self.dateFormatter setLocale: self.locale];  // override user locale
-    [self.dateFormatter setDateFormat:@"yyyyMMdd'T'HH':'mm':'ss'Z'"];  // Z means UTC time
-    [self.dateFormatter setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
    
     [self setMetrics:[NSMutableArray arrayWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"metrics.plist" ofType:nil]]];
     
@@ -99,8 +90,6 @@
             [self.metricKeys setObject:type forKey:[type objectAtIndex:0]];
         }
     }
-    
-    self.window.backgroundColor = [self chartBackground];
     
     [self.window makeKeyAndVisible];
     return YES;

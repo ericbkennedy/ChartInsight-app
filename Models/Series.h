@@ -31,7 +31,7 @@
 - (void) removeFromFundamentals:(NSString *)type;
 - (void) removeFromTechnicals:(NSString *)type;
 
-- (void) convertDateStringToDate;
+- (void) convertDateStringToDateWithFormatter:(NSDateFormatter *)formatter;
 
 - (void) setColorWithHexString:(NSString *) stringToConvert;
 

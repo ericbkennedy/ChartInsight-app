@@ -115,8 +115,6 @@
 - (void) setPxHeight:(double)h withSparklineHeight:(double)s {
     sparklineHeight = s;
     pxHeight = h - sparklineHeight;
-
-    pt2px = 0.5/(UIScreen.mainScreen.scale);
     
     volumeHeight = 40 * UIScreen.mainScreen.scale;
     
@@ -210,6 +208,8 @@
     
     [self updateBools];
     [self.api setRequestNewestDate:desiredDate];
+    
+    [self.series convertDateStringToDateWithFormatter:self.api.dateFormatter];
     
     [self.api setRequestOldestDate:[self.series.startDate laterDate:[NSDate dateWithTimeInterval:(200+oldestBarShown * barUnit)*-240000 sinceDate:desiredDate]]];
 

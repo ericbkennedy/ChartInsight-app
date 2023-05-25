@@ -11,7 +11,7 @@
     BarStruct   *dailyData;     // for parallelism, dataAPI writes to a separate block of memory
     BarStruct   *barData;       // points to dailyData except for monthly or weekly
     BOOL sma50, sma200, bb20;
-    double pxHeight, sparklineHeight, pt2px, volumeBase, volumeHeight;
+    double pxHeight, sparklineHeight, volumeBase, volumeHeight;
     dispatch_queue_t concurrentQueue;
     
     @public
@@ -77,7 +77,7 @@
 
 - (void) APILoadedHistoricalData:(DataAPI *)dp;
 
--(void) APILoadedIntraday:(DataAPI *)dp;
+- (void) APILoadedIntraday:(DataAPI *)dp;
 
 - (void) APIFailed:(NSString *)message;
 

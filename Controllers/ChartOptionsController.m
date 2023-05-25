@@ -32,9 +32,8 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         fundamentalControlRow = -1;
         [self setListedMetricKeys:[NSMutableArray new]];
         [self setListedMetricValues:[NSMutableArray new]];
-        [self setListedMetricKeyString:@"EarningsPerShareBasic,CIRevenuePerShare,"];
+        [self setListedMetricKeyString:@"EarningsPerShareBasic,CIRevenuePerShare,CINetCashFromOpsPerShare"];
         
-        // better to have a separate dateFormatter than alter the style of the AppDelegate one used for API parsing
         [self setDateFormatter:[[NSDateFormatter alloc] init]];
         [self.dateFormatter setDateStyle:NSDateFormatterShortStyle];
         [self.dateFormatter setTimeStyle:NSDateFormatterNoStyle];
@@ -272,6 +271,8 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
     if (UIInterfaceOrientationIsLandscape(toOrientation)) {
         width = 375;
+    } else if (self.view.frame.size.width > width) {
+        width = self.view.frame.size.width;
     }
     return width - horizontalPadding;
 }
@@ -299,7 +300,14 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
     [self setColor:[UIColor colorWithCGColor:self.series->color]];
     [self setUpColor:[UIColor colorWithCGColor:self.series->upColor]];
-    [self.view setBackgroundColor:[UIColor colorWithRed:.85 green:.86 blue:.88 alpha:1.0]];
+    
+    if (@available(iOS 13, *)) {
+        self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
+        self.tableView.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
+    } else {
+        self.view.backgroundColor = [UIColor colorWithRed:.85 green:.86 blue:.88 alpha:1.0];
+        self.tableView.backgroundColor = self.view.backgroundColor;
+    }
     
     // Add metrics from other chart in the series
     for (NSString *key in self.sparklineKeys) {
@@ -324,26 +332,23 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
     self.title = [NSString stringWithFormat:@"%@ Chart Options", self.series.symbol];
     
-	[self setSections:@[@"", @"Color", @"Financials", @"Technicals", @"", @""]];
+	[self setSections:@[@"", @"Color", @"Financials", @"Technicals", @""]];
     
     // Show the saveButton even on the iPad to reassure people that the values will be saved
     self.saveButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(saveAndClose)];
     [self.saveButton setStyle:UIBarButtonItemStylePlain];
     
-    CGFloat segmentWidth = [self segmentWidthForOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
-    
-    CGRect segmentRect = CGRectMake(9.0f, .0f, segmentWidth, 45.0f);
-    
-    [self setTypeSegmentedControl:[[UISegmentedControl alloc] initWithFrame:segmentRect]];
-    
-    [self.typeSegmentedControl addTarget:self action:@selector(chartTypeChanged:) forControlEvents:UIControlEventValueChanged];
-    
+    NSMutableArray *segments = [NSMutableArray array];
     for (NSInteger i = 0; i < [[ChartOptionsController chartTypes] count]; i++) {
-        
-        [self.typeSegmentedControl insertSegmentWithImage:[self imageForChartType:i andColor:0 showLabel:YES] atIndex:i animated:NO];
+        segments[i] = [self imageForChartType:i andColor:0 showLabel:YES];
     }
-    [self setColorSegmentedControl:[[UISegmentedControl alloc] initWithFrame:segmentRect]];
-    
+    self.typeSegmentedControl = [[UISegmentedControl alloc] initWithItems:segments];
+    [self.typeSegmentedControl addTarget:self action:@selector(chartTypeChanged:) forControlEvents:UIControlEventValueChanged];
+
+    // frame width is often zero at this point so create an empty segmentedControl
+    // and allow renderColorSegments to add the segments later
+    self.colorSegmentedControl = [[UISegmentedControl alloc] initWithItems:@[]];
+        
     if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
         // selectedcolor only shows up if darker than tintColor, so don't use black
         [self.typeSegmentedControl setTintColor:[UIColor darkGrayColor]];
@@ -492,16 +497,17 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:nil] autorelease];
     }
     
-    [cell setBackgroundColor:[UIColor colorWithRed:.85 green:.86 blue:.88 alpha:1.0]];
-    
     cell.textLabel.textColor = [UIColor lightGrayColor];
     cell.textLabel.font = [UIFont systemFontOfSize:16];
     
+    CGFloat segmentWidth = [self segmentWidthForOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+    
     if (section == 0) {
+        self.typeSegmentedControl.frame = CGRectMake(9.0, .0, segmentWidth, 45.);
         [cell addSubview:self.typeSegmentedControl];
-        
-    } else if (section == 1) {        
-        
+                
+    } else if (section == 1) {
+        self.colorSegmentedControl.frame = CGRectMake(9.0, .0, segmentWidth, 45.);
         [cell addSubview:self.colorSegmentedControl];
 
     } else if (section == 2) {
@@ -598,9 +604,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             
             [self setDefaultsButton:[UIButton buttonWithType:UIButtonTypeSystem]];            
             [self.defaultsButton.titleLabel setFont:[UIFont systemFontOfSize:14]];
-            [self.defaultsButton setTitleColor:[UIColor colorWithWhite:0.9 alpha:0.9] forState:UIControlStateNormal];
-            
-            CGFloat segmentWidth = [self segmentWidthForOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+            [self.defaultsButton setTitleColor:[UIColor systemBlueColor] forState:UIControlStateNormal];
             [self.defaultsButton setFrame:CGRectMake(0, 0, segmentWidth - 2., 44.)];
             [self.defaultsButton setBackgroundColor:[UIColor clearColor]];
             [self.defaultsButton setOpaque:NO];
@@ -609,21 +613,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         
         [self.defaultsButton setTitle:@"Use These Settings For New Charts" forState:UIControlStateNormal];  // ensures it is reset after a change
         [cell.contentView addSubview:self.defaultsButton];
-            
- 
-    } else if (section == 5) {
-        
-        cell.textLabel.text = @"Newest Date Shown";
-        [cell.textLabel setTextColor:[UIColor darkGrayColor]];
-        [cell.detailTextLabel setTextColor:[UIColor darkGrayColor]];
-
-        if (self.series->daysAgo == 0) {
-            cell.detailTextLabel.text = @"Today";
-        } else {
-            [[self days] setDay:-self.series->daysAgo];
-            NSDate *dateAgo = [self.gregorian dateByAddingComponents:self.days toDate:[NSDate date] options:0];
-            cell.detailTextLabel.text = [self.dateFormatter stringFromDate:dateAgo];
-        }
     }
 	return cell;
 }
@@ -634,6 +623,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     [[NSUserDefaults standardUserDefaults] setValue:self.series.technicalList forKey:@"technicalDefaults"];
     [[NSUserDefaults standardUserDefaults] setValue:self.series.fundamentalList forKey:@"fundamentalDefaults"];
     
+    [self.defaultsButton setTitleColor:[UIColor darkTextColor] forState:UIControlStateNormal];
     [self.defaultsButton setTitle:@"Default Chart Settings Saved" forState:UIControlStateNormal];
 }
 
@@ -706,42 +696,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
     NSInteger section = rawIndexPath.section; 
 
-    if (section == 4) {
-         
-    } if (section == 5) {
-        if (self.datePicker == nil) {
-            [self setDatePicker:[[UIDatePicker alloc] init]];
-            [self.datePicker setDatePickerMode:UIDatePickerModeDate];   
-            [self.datePicker addTarget:self action:@selector(dateChanged:) forControlEvents:UIControlEventValueChanged];
-        }
-        
-        UITableViewCell *targetCell = [table cellForRowAtIndexPath:rawIndexPath];
-        
-        if ([targetCell.detailTextLabel.text isEqualToString:@"Today"]) {
-            self.datePicker.date = [NSDate date];
-            self.series->daysAgo = 0;
-        } else {
-            self.datePicker.date = [self.dateFormatter dateFromString:targetCell.detailTextLabel.text];
-        }
-        
-        if (self.datePicker.superview == nil)	{
-            self.tableView.scrollEnabled = NO; // or the picker will scroll
-            [self.tapWhenFinished setFrame:CGRectMake(CGRectGetMinX(self.view.bounds), CGRectGetMinY(self.view.bounds), self.view.bounds.size.width, self.view.frame.size.height - 180)];   // since we disable scrolling, it only needs to be frame.size.height - 180 tall
-            [self.tapWhenFinished setHidden:NO];
-            [self.tapWhenFinished setTitle:@"Tap When Finished" forState:UIControlStateNormal];
-            [self.tapWhenFinished setTitleShadowColor:[UIColor blackColor] forState:UIControlStateNormal];
-            [self.tapWhenFinished setOpaque:NO];
-            [self.tapWhenFinished setBackgroundColor:[UIColor colorWithWhite:0. alpha:0.6]];
-            [self.tapWhenFinished addTarget:self action:@selector(hidePicker) forControlEvents:UIControlEventTouchUpInside];
-            [self.view addSubview:self.tapWhenFinished];
-            [self.view bringSubviewToFront:self.tapWhenFinished];
-            [self.view addSubview: self.datePicker];
-        }
-        
-        // use the bounds because the scrollview bounds is larger than the screen height
-        [self.datePicker setFrame:CGRectMake(CGRectGetMinX(self.view.bounds), CGRectGetMaxY(self.view.bounds) - 180, self.view.bounds.size.width, 180)];
-        
-    } else if (section == 2) {
+    if (section == 2) {
         NSInteger row = rawIndexPath.row;
         NSInteger rowToFollow = row;
         

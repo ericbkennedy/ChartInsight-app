@@ -7,7 +7,9 @@
 @property (nonatomic, strong) ProgressIndicator	*progressIndicator;
 @property (nonatomic, strong) UIImageView                    *magnifier;        // AppDelegate will hide on suspend
 
-- (void) reloadList:(Comparison *)comparison;
+// SettingsViewController will call reloadWhenVisible after a stock comparison is deleted
+// so this controller can reload the tableView when the user switches back to this tab
+- (void) reloadWhenVisible;
 
 - (void) reloadWithSeries:(Series *)series;
 

@@ -157,8 +157,9 @@
     return self;
 }
 
-- (void) convertDateStringToDate {
-   NSDate *dateFromString = [[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] dateFormatter] dateFromString:[self.startDateString stringByAppendingString:@"T20:00:00Z"]];
+- (void) convertDateStringToDateWithFormatter:(NSDateFormatter *)formatter {
+    
+   NSDate *dateFromString = [formatter dateFromString:[self.startDateString stringByAppendingString:@"T20:00:00Z"]];
        
    [self setStartDate:[dateFromString laterDate:[NSDate dateWithTimeIntervalSinceReferenceDate:23328000]]];
 }

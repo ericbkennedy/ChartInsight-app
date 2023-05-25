@@ -33,6 +33,7 @@ typedef struct CBarData {
 @property (strong, nonatomic) NSDate *requestNewestDate;
 @property (strong, nonatomic) NSDate *oldestDate;
 @property (strong, nonatomic) NSDate *newestDate;
+@property (strong, nonatomic) NSDateFormatter *dateFormatter;
 @property (strong, nonatomic) NSCalendar *gregorian;
 
 - (id) init;

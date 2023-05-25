@@ -73,8 +73,7 @@
         title = [title stringByAppendingFormat:@"%@ ", series.symbol];
 
         series.startDateString = [NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 4)];
-        [series convertDateStringToDate];
-        
+        // startDateString will be converted to NSDate by [StockData init] as price data is loaded
         
         series->hasFundamentals = sqlite3_column_int(statement, 5);
         

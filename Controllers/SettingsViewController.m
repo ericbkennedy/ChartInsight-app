@@ -27,7 +27,9 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
     [self setList:[Comparison listAll:dbPath]];
 
-    self.view.backgroundColor = [(CIAppDelegate *)UIApplication.sharedApplication.delegate chartBackground];
+    if (@available(iOS 13, *)) {
+        self.view.backgroundColor = [UIColor systemBackgroundColor];
+    }
     self.tableView.editing = YES;
 
     UIBarButtonItem *barButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismiss)];
@@ -54,7 +56,9 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
         [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightModeOn:YES];
     }
     
-    self.view.backgroundColor = [(CIAppDelegate *)UIApplication.sharedApplication.delegate tableViewBackground];
+    if (@available(iOS 13, *)) {
+        self.view.backgroundColor = [UIColor systemBackgroundColor];
+    }
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -133,7 +137,7 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
         [self.list removeObjectAtIndex:indexPath.row];
         
-        [(RootViewController *)self.delegate reloadList:nil];
+        [(RootViewController *)self.delegate reloadWhenVisible];
         
         [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
     } else if (editingStyle == UITableViewCellEditingStyleInsert) {

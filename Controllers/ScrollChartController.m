@@ -24,7 +24,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 }
 @property (strong, nonatomic) NSMutableArray    *stocks;
 @property (strong, nonatomic) NSDecimalNumber   *chartPercentChange;
-@property (strong, nonatomic) NSDecimalNumber   *two;
 @property (strong, nonatomic) NSDecimalNumberHandler *roundDown;
 @property (strong, nonatomic) BigNumberFormatter *numberFormatter;
 @property (strong, nonatomic) NSArray             *sparklineKeys;
@@ -86,10 +85,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         self.stocks = [[NSMutableArray alloc] init];
        
         [self setRoundDown:[NSDecimalNumberHandler decimalNumberHandlerWithRoundingMode:NSRoundDown scale:0 raiseOnExactness:NO raiseOnOverflow:NO raiseOnUnderflow:NO raiseOnDivideByZero:NO]];
-        
-        [self setTwo:[[[NSDecimalNumber alloc] initWithInt:2] autorelease]];
-        
-        pt2px = 0.5/(self.layer.contentsScale);
         
         BigNumberFormatter *newNumberFormatter = [[BigNumberFormatter alloc] init];
         [self setNumberFormatter:newNumberFormatter];
@@ -171,7 +166,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
 - (void) renderCharts {
 
-    CGContextClearRect(layerContext, CGRectMake(0, 0, self.layer.contentsScale * maxWidth, pxHeight + 5));    
+    CGContextClearRect(layerContext, CGRectMake(0, 0, self.layer.contentsScale * maxWidth, pxHeight + 5));
     
     StockData *stock;
 
@@ -430,14 +425,15 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
         NSDecimalNumber *range = [[stock maxHigh] decimalNumberBySubtracting:[stock scaledLow]];
         
-        NSDecimalNumber *increment, *avoidLabel, *nextLabel;
+        NSDecimalNumber *increment, *avoidLabel, *nextLabel, *two;
+        two = [[[NSDecimalNumber alloc] initWithInt:2] autorelease];
 
         if ([range doubleValue] > 1000) {
             increment = [[[NSDecimalNumber alloc] initWithInt:10000] autorelease];
             
             while ([[range decimalNumberByDividingBy:increment withBehavior:self.roundDown] doubleValue] < 4.) {   
                 // too many labels
-                increment = [increment decimalNumberByDividingBy:self.two];
+                increment = [increment decimalNumberByDividingBy:two];
             }
             
         } else if ([range doubleValue] > 20) {
@@ -445,7 +441,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             
             while ([[range decimalNumberByDividingBy:increment withBehavior:self.roundDown] doubleValue] > 10.) {   
                 // too many labels
-                increment = [increment decimalNumberByMultiplyingBy:self.two];
+                increment = [increment decimalNumberByMultiplyingBy:two];
             }
             
         } else if ([range doubleValue] > 10) {
@@ -609,7 +605,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
 - (void) drawRect:(CGRect)rect {
     CGContextRef ctx = UIGraphicsGetCurrentContext();
-    CGContextSetFillColorWithColor(ctx, [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground].CGColor);
+    CGContextSetFillColorWithColor(ctx, self.chartBackground.CGColor);
     
     CGContextFillRect(ctx, CGRectMake(0, 0, self.layer.contentsScale * maxWidth, pxHeight + 5));    // labels and moving averages extend outside pxHeight and leave artifacts
     
@@ -812,11 +808,11 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     [self showString:l atPoint:CGPointMake(x, y) withColor:[UIColor colorWithCGColor:s.series->upColor]];
     
     if (showBox) {
-        CGFloat boxWidth = l.length * 5 * self.layer.contentsScale, // size to fit string l
-                boxHeight = 10 * self.layer.contentsScale;
+        CGFloat boxWidth = l.length * 14, // size to fit string l in *points* not device pixels
+                boxHeight = 28;
         
         CGContextSetStrokeColorWithColor(layerContext,s.series->upColorHalfAlpha);
-        CGContextStrokeRect(layerContext, CGRectMake(x - 0.5, y - 9*UIScreen.mainScreen.scale, boxWidth, boxHeight));
+        CGContextStrokeRect(layerContext, CGRectMake(x - 0.5, y - 24, boxWidth, boxHeight));
      }
 }
 
@@ -837,7 +833,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     CGContextSetFontSize(layerContext, 10 * self.layer.contentsScale);
     CGContextSetTextDrawingMode (context, kCGTextFill);
     
-    CGContextSetFillColorWithColor(context, [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground].CGColor);
+    CGContextSetFillColorWithColor(context, self.chartBackground.CGColor);
     CGContextFillRect(context, CGRectMake(0, 0, fullWidth, svHeight + 40));
     
     if (self.layer.contentsScale == 2.) {
@@ -877,7 +873,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(magnifierSize, magnifierSize), NO, self.layer.contentsScale);
     CGContextRef lensContext = UIGraphicsGetCurrentContext();
         
-    CGContextSetFillColorWithColor(lensContext, [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground].CGColor);
+    CGContextSetFillColorWithColor(lensContext, self.chartBackground.CGColor);
     CGContextFillRect(lensContext, CGRectMake(0, 0, magnifierSize, magnifierSize));
     
     CGFloat yPressed = y * self.layer.contentsScale;
@@ -924,7 +920,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     
                     // reduce opacity by filling .25 alpha background over image so scope values are clearer
                     CGContextSetFillColorWithColor(lensContext,
-                                                   CGColorCreateCopyWithAlpha([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground].CGColor, 0.25));
+                                                   CGColorCreateCopyWithAlpha(self.chartBackground.CGColor, 0.25));
                     CGContextFillRect(lensContext, CGRectMake(0., 0., magnifierSize, magnifierSize));
                     
                     CGContextSetStrokeColorWithColor(lensContext, (upClose ? stock.series->upColor : stock.series->color));
@@ -1052,7 +1048,16 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         [self.progressIndicator stopAnimating];        
     }
 }
- 
+
+// Use system color for iOS >= 13 and off-white for iOS 12
+- (UIColor *) chartBackground {
+    if (@available(iOS 13, *)) {
+        return UIColor.systemBackgroundColor;
+    } else {
+        return [UIColor colorWithWhite:0.964705882 alpha:1.];
+    }
+}
+
 - (BOOL) isOpaque {
     return YES;
 } 

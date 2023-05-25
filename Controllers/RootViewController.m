@@ -19,6 +19,7 @@
 
 @property (assign, nonatomic) BOOL dragWindow;
 @property (assign, nonatomic) BOOL newComparison;
+@property (assign, nonatomic) BOOL needsReload; // set by reloadWhenVisible
 
 @property (nonatomic, strong) UINavigationController    *popOverNav;    // required for navgiation controller within popover
 @property (nonatomic, strong) UITapGestureRecognizer   *doubleTapRecognizer;
@@ -204,8 +205,6 @@
 
     self.leftGap = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 60 : 100;
     
-    [self.view setBackgroundColor:[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground]];
-        
     [self setGregorian:[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian]];
     [self setDays:[[NSDateComponents alloc] init]];
     
@@ -222,8 +221,14 @@
     self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, self.toolbarHeight + self.statusBarHeight,
                                                                     205, self.height - 2 * self.toolbarHeight)
                                                    style:UITableViewStylePlain] autorelease];
+        
+    if (@available(iOS 13, *)) {
+        self.view.backgroundColor = UIColor.secondarySystemBackgroundColor;
+    } else {
+        self.view.backgroundColor = [UIColor colorWithWhite:0.964705882 alpha:1.];
+        self.tableView.backgroundColor = UIColor.clearColor;
+    }
     
-    [self.tableView setBackgroundColor:[UIColor clearColor]];
     [self.tableView setClipsToBounds:NO];      // YES would create rounded corners, which doesn't matter when the background is all the same
 	[self.tableView setDelegate:self];
 	[self.tableView setDataSource:self];
@@ -309,6 +314,10 @@
     if ([self resizeFrameToSize:self.view.frame.size]) {
         [self resizeSubviewsForSize:CGSizeMake(self.width, self.height)];
     }
+    if (self.needsReload) {
+        [self reloadList:nil];
+        self.needsReload = NO;
+    }
 }
 
 // called by FindSeriesController when a new stock is added
@@ -337,7 +346,6 @@
     
     for (NSInteger i = 0; i < newSeriesList.count; i++) {
         Series *s = [newSeriesList objectAtIndex:i];
-        [s convertDateStringToDate];
         
         // don't alter chart type because it is set as a default
         [s setUpColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
@@ -430,7 +438,10 @@
     UIEdgeInsets safeAreaInsets = [UIApplication.sharedApplication.keyWindow safeAreaInsets];
     
     self.toolbarHeight = 44;
-    self.statusBarHeight = safeAreaInsets.top;
+    self.statusBarHeight = 20;
+    if (safeAreaInsets.top > self.statusBarHeight) {
+        self.statusBarHeight = safeAreaInsets.top;
+    }
     
     newWidth = newSize.width;
 
@@ -455,7 +466,11 @@
         [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
     }
     
-    self.view.backgroundColor = [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] tableViewBackground];
+    if (@available(iOS 13, *)) {
+        self.view.backgroundColor = [UIColor secondarySystemBackgroundColor];
+    } else {
+        self.view.backgroundColor = [UIColor colorWithWhite:0.9 alpha:1.0];
+    }
     
     [super viewWillAppear:animated];
 }
@@ -774,6 +789,10 @@
         [self resetToolbarWithSearch:YES];
         [self.scc loadChart];
     }
+}
+
+- (void) reloadWhenVisible {
+    self.needsReload = YES;
 }
 
 - (BOOL)isOpaque {

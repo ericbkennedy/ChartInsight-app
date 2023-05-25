@@ -4,8 +4,6 @@
 #import "StockData.h"
 
 @interface FundamentalAPI ()
-@property (strong, nonatomic) NSURLConnection *connection;
-@property (strong, nonatomic) NSMutableData *receivedData;
 @property (strong, nonatomic) NSString *responseString;
 @property (strong, nonatomic) NSString *symbol;
 @end
@@ -24,39 +22,8 @@
     return [NSURL URLWithString:[NSString stringWithFormat:@"https://www.chartinsight.com/api/iOSFundamentals/%@/%@", self.symbol, keys]];
 }
 
--(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    [self.receivedData appendData:data];
-}
-
--(void)connection:(NSURLConnection *)failedConnection didFailWithError:(NSError *)error {
-    
-    DLog(@"%@ fundamentalAPI err = %@ for connection %@", self.symbol, [error localizedDescription], [failedConnection description]);
-
-    [self.connection cancel];
-    self.receivedData = nil;
-    self.connection = nil;
-    [self.delegate performSelector:@selector(APIFailed:) withObject:[error localizedDescription]];
-}
-
--(void)connection:(NSURLConnection *)c didReceiveResponse:(NSURLResponse *)response {
-    // this can be called multiple times (in the case of a redirect), so each time we reset the data.
-    
-    if ([response respondsToSelector:@selector(statusCode)])  {
-        NSInteger statusCode = [((NSHTTPURLResponse *)response) statusCode];
-        if (statusCode == 404) {
-            [c cancel];  // stop connecting; no more delegate messages
-            [self connection:c didFailWithError:nil];
-            DLog(@"%@ fundamentalAPI error with %ld", self.symbol, statusCode);
-        }
-    }
-    [self.receivedData setLength:0];
-        
-}
-
-
 // this is tricky because the CSV report is parsed by quarter, not type, but we store the values in arrays per type
 // so we need to create an array per type, and store index those arrays with another array so we can add extra objects to the arrays instead of the dictionary itself
-
 - (void) parseResponse {
     
     // DLog(@"parseResponse on %@", self.responseString);
@@ -122,19 +89,6 @@
     return -1;
 }
 
-
-- (void) connectionDidFinishLoading:(NSURLConnection *)connection {
-	self.connection = nil;
-    
-	NSString *csv = [[NSString alloc] initWithData:self.receivedData encoding:NSUTF8StringEncoding];
-    
-    [self setResponseString:csv];    
-    [csv release];
-	
-    self.receivedData = nil;    // don't release receivedData because iOS manages retain counts
-    [self parseResponse];
-}
-
 - (NSDecimalNumber *) valueForReport:(NSInteger)r withKey:(NSString *)key {
     
     NSMutableArray *array = [self.columns objectForKey:key];
@@ -147,7 +101,6 @@
 
 - (void) dealloc {
     self.delegate = nil;
-    self.receivedData = nil;    // don't release receivedData because iOS manages retain counts
     [super dealloc];
 }
 
@@ -162,15 +115,35 @@
     [self setDay:[NSMutableArray arrayWithCapacity:50]];
     [self setQuarter:[NSMutableArray arrayWithCapacity:50]];
     [self setBarAlignments:[NSMutableArray arrayWithCapacity:50]];
+        
+    NSURL *URL = [self formatRequestWithKeys:series.fundamentalList];
     
-    NSURLRequest *request = [NSURLRequest requestWithURL:[self formatRequestWithKeys:series.fundamentalList] cachePolicy:NSURLRequestReloadIgnoringCacheData timeoutInterval:60.0];
-    
-    self.connection = [NSURLConnection connectionWithRequest:request delegate:self];
-    if (self.connection) {      
-        [self setReceivedData:[NSMutableData data]];       // initialize it
-    } else {
-        //TODO: Inform the user that the download could not be started
-    }
+    NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithURL:URL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        
+        if (error) {
+            [self.delegate performSelector:@selector(APIFailed:) withObject:[error localizedDescription]];
+
+        } else if (response && [response respondsToSelector:@selector(statusCode)]) {
+            NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
+            if (statusCode == 404) {
+                DLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, URL);
+                
+                [self.delegate performSelector:@selector(APIFailed:) withObject:@"404 response"];
+
+            } else if (statusCode == 200 && data && data.length > 10) {
+                
+                DLog(@"%@ statusCode %ld data.length %ld ", self.symbol, (long)statusCode, data.length);
+                                
+                NSString *csv = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                NSLog(@"%@", csv);
+                [self setResponseString:csv];
+                [csv release];
+                
+                [self parseResponse];
+            }
+        }
+    }];
+    [task resume];
 }
 
 
