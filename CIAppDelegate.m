@@ -12,6 +12,9 @@
 @interface CIAppDelegate ()
 @property (strong, nonatomic) NSMutableArray *metrics;
 @property (strong, nonatomic) NSMutableDictionary *metricKeys;
+@property (strong, nonatomic) UITabBarController *tabBarController;
+@property (strong, nonatomic) UINavigationController *favoritesNavigationController;
+@property (strong, nonatomic) UINavigationController *settingsNavigationController;
 @property (strong, nonatomic) RootViewController *favoritesViewController;
 @end
 
@@ -26,20 +29,19 @@
 {
     if (on) {
         [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"nightBackground"];
-        [[[self navigationController] navigationBar] setBarStyle:UIBarStyleBlack];
-        [[[self navigationController] navigationBar] setTranslucent:NO];
         self.chartBackground = [UIColor blackColor];
         self.tableViewBackground = [UIColor colorWithWhite:0.1 alpha:1.0];
     } else {
         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"nightBackground"];
-        [[[self navigationController] navigationBar] setBarStyle:UIBarStyleDefault];
-        [[[self navigationController] navigationBar] setTranslucent:NO];
         self.chartBackground = [UIColor colorWithWhite:0.964705882 alpha:1.0];
         self.tableViewBackground = [UIColor colorWithRed:0.870588235 green:0.901960784 blue:0.968627451 alpha:1.0];
     }
     
     if (@available(iOS 13, *)) {    // Override system light or dark setting based on nightModeOn toggle
         _window.overrideUserInterfaceStyle = on ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
+        self.tabBarController.tabBar.backgroundColor = [UIColor systemBackgroundColor];
+    } else {
+        // night mode not supported for iOS older than 13 which lacked native support
     }
 }
 
@@ -47,12 +49,24 @@
     
     [self setWindow:[[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]]];
 
+    self.tabBarController = [[UITabBarController alloc] init];
+    
     self.favoritesViewController = [[RootViewController alloc] init];
 
-    [self setNavigationController:[[UINavigationController alloc] initWithRootViewController:self.favoritesViewController]];
-    [self.window setRootViewController:self.navigationController];
+    self.favoritesNavigationController = [[UINavigationController alloc] initWithRootViewController:self.favoritesViewController];
+    self.favoritesNavigationController.title = @"Watchlist";
+    
+    SettingsViewController *settingsViewController = [[SettingsViewController alloc] initWithStyle:UITableViewStyleGrouped];
+    settingsViewController.delegate = self.favoritesViewController; // Reload list of stocks after one is deleted (but not on viewDidAppear)
+    
+    self.settingsNavigationController = [[UINavigationController alloc] initWithRootViewController:settingsViewController];
+    self.settingsNavigationController.title = @"Settings";
+    
+    self.tabBarController.viewControllers = @[self.favoritesNavigationController, self.settingsNavigationController];
+    
+    self.window.rootViewController = self.tabBarController;
 
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == 1) {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == YES) {
         [self nightModeOn:YES];
     } else {
         [self nightModeOn:NO];
@@ -93,10 +107,14 @@
 }
 
 - (BOOL) nightBackground {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == 1) {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == YES) {
         return YES;
     }
     return NO;
+}
+
+- (void) showFavoritesTab {
+    self.tabBarController.selectedIndex = 0;
 }
 
 - (NSString *) titleForKey:(NSString *)key {

@@ -183,25 +183,17 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     }
     
     if (showLabel) {
-        CGContextSetTextMatrix(ctx, CGAffineTransformMake(1.0,0.0, 0.0, -1.0, 0.0, 0.0));  // iOS flipped coordinates
-         CGContextSetFontSize(ctx, 10.0);
-        CGContextSelectFont (ctx, "HelveticaNeue", 10.0, kCGEncodingMacRoman);
-        CGContextSetTextDrawingMode (ctx, kCGTextFill);
         [[UIColor whiteColor] setFill];
         NSString *label = [[ChartOptionsController chartTypes] objectAtIndex:type];
-
-        CGContextShowTextAtPoint(ctx, 6 - label.length, 32, label.UTF8String, label.length);
+        NSDictionary *textAttributes = @{NSFontAttributeName: [UIFont systemFontOfSize:9.0]};
+        [label drawAtPoint:CGPointMake(6. - label.length, 22.) withAttributes:textAttributes];
     }
      
     UIImage *screenshot = UIGraphicsGetImageFromCurrentImageContext();
     
     UIGraphicsEndImageContext();
     
-    if ([UIDevice.currentDevice.systemVersion compare:@"7" options:NSNumericSearch] == NSOrderedDescending) {
-         return [screenshot imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
-    } else {
-        return screenshot;
-    }
+    return [screenshot imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
 }
 
 - (UIImage *)imageForOverlayType:(NSInteger)type andColor:(CGColorRef)c {

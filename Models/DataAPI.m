@@ -224,6 +224,11 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     return [result autorelease];
 }
 
+- (void)getIntradayQuote {
+
+    // TODO: add back intraday updates
+}
+
 -(NSURL *) formatRequestURL {
     
     NSUInteger unitFlags = NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitYear;

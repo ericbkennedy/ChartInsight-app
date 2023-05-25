@@ -25,8 +25,6 @@
 // called by FindSeriesController when a new stock is added
 - (void) insertSeries:(NSMutableArray *)newSeriesList;
 
-- (void) nightDayToggle;
-
 @end
 
 

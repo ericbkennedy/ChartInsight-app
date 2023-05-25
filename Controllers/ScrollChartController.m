@@ -6,6 +6,7 @@
 #import "FundamentalAPI.h"
 #import "Series.h"
 
+const CGFloat magnifierSize = 100.; // both width and height
 const CGFloat dotPattern[2] = {1.0, 6.0};
 const CGFloat dashPattern[2] = {1.0, 1.5};
 const CGFloat dotGripColor[4] = {0.5, 0.5, 0.8, 1.0};
@@ -176,6 +177,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
     CGContextSetBlendMode(layerContext, kCGBlendModeNormal);
     
+    UIGraphicsPushContext(layerContext); // sets the current graphics context in order to showString:atPoint:
+    
     NSDecimalNumber *reportValue = [NSDecimalNumber notANumber];    // init for safety
     CGPoint p;
     NSString *label;
@@ -191,10 +194,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         CGContextSetLineWidth(layerContext, 1.0);   // pIXELs
         CGContextStrokeLineSegments(layerContext, stock->monthLines, stock->monthCount);
         
-        
-        CGContextSetFontSize(layerContext, 9 * self.layer.contentsScale);
-        CGContextSelectFont (layerContext, "HelveticaNeue", 9*self.layer.contentsScale, kCGEncodingMacRoman);
         CGContextSetFillColorWithColor(layerContext, stock.series->upColor);
+        UIColor *stockColor = [UIColor colorWithCGColor:stock.series->upColor];
         
         NSInteger monthLabelIndex = 0;
         CGFloat offset = 10 *  self.layer.contentsScale;
@@ -208,7 +209,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             
             if (monthLabelIndex < [[stock monthLabels] count]) {
                 label = [[stock monthLabels] objectAtIndex:monthLabelIndex];
-                CGContextShowTextAtPoint(layerContext, p.x, p.y + offset, label.UTF8String, label.length);
+                [self showString:label atPoint:CGPointMake(p.x, p.y + offset) withColor:stockColor];
             }
         }
     }
@@ -256,8 +257,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             CGContextSetStrokeColor(layerContext, monthLineColor);
             CGContextStrokeLineSegments(layerContext, stock->monthLines, stock->monthCount);
             
-            CGContextSetFontSize(layerContext, 9 * self.layer.contentsScale);
-            CGContextSetFillColorWithColor(layerContext, stock.series->upColor);
+            UIColor *stockColor = [UIColor colorWithCGColor:stock.series->upColor];
             
             NSInteger monthLabelIndex = 0;
             CGFloat offset = 10 *  self.layer.contentsScale;
@@ -271,7 +271,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                 
                 if (monthLabelIndex < [[stock monthLabels] count]) {
                     label = [[stock monthLabels] objectAtIndex:monthLabelIndex];
-                    CGContextShowTextAtPoint(layerContext, p.x, p.y + offset * (s + 1), [label UTF8String], [label length]);
+                    [self showString:label atPoint:CGPointMake(p.x, p.y + offset * (s + 1)) withColor:stockColor];
                 } else {
                    // DLog(@"Missing month label for index %d", monthLabelIndex);
                 }
@@ -509,7 +509,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     NSDecimalNumber *sparkHeight = [[[NSDecimalNumber alloc] initWithDouble:(90)] autorelease];
     double qWidth = xFactor * 60;   // use SCC xFactor to avoid having to divide by barUnit
   
-    double h = 0., yNegativeAdjustment = 0., y = [sparkHeight doubleValue], yLabel = 15;
+    double h = 0., yNegativeAdjustment = 0., y = [sparkHeight doubleValue], yLabel = 20;
     
     for (NSString *key in self.sparklineKeys) { // go through keys in order in case one series has the key turned off
         NSDecimalNumber *range = [self.comparison rangeForKey:key];   
@@ -534,6 +534,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         }
         NSString *title = nil, *label = nil;
         CGPoint labelPosition = CGPointZero;
+        const CGFloat minBarHeightForLabel = 25; // if fundamental bar is shorter then this, put metric value above the bar
        
         for (StockData *stock in self.stocks) {
             
@@ -549,7 +550,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     title = [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
                     CGFloat x = MIN(pxWidth + 5, stock->fundamentalAlignments[r] + 10);
                     CGContextSetFillColorWithColor(layerContext, [stock series]->upColor);
-                    CGContextShowTextAtPoint (layerContext, x, yLabel, [title UTF8String], [title length]);
+                    UIColor *stockColor = [UIColor colorWithCGColor:stock.series->upColor];
+                    [self showString:title atPoint:CGPointMake(x, yLabel) withColor:stockColor];
                 }
             
                 for (/* r = newestReportInView  */; r < stock.fundamentalAPI.oldestReportInView && stock->fundamentalAlignments[r] > 0; r++) {
@@ -566,12 +568,19 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     }
                     h = [[reportValue decimalNumberByMultiplyingBy:sparklineYFactor] doubleValue];
                     
+                    UIColor *metricColor = [UIColor blackColor];
+                    
                     if ([reportValue compare:[NSDecimalNumber zero]] == NSOrderedAscending) {   // negative value
-                        labelPosition.y = y + 18;  // subtracting the height pushes it too far down
+                        labelPosition.y = y;  // subtracting the height pushes it too far down
                         CGContextSetFillColor(layerContext, redMetric);
+                        metricColor = [UIColor redColor];
                     } else {
-                        labelPosition.y = y + 18 - h;
+                        labelPosition.y = y + minBarHeightForLabel - h;
+                        if (h < minBarHeightForLabel) {
+                            labelPosition.y = y - minBarHeightForLabel; // show above the bar instead
+                        }
                         CGContextSetFillColorWithColor(layerContext, [stock series]->upColorHalfAlpha);
+                        metricColor = [UIColor colorWithCGColor:stock.series->upColorHalfAlpha];
                     }
                     
                     CGContextSetBlendMode(layerContext, kCGBlendModeNormal);
@@ -581,9 +590,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                         label = [self.numberFormatter formatFinancial:reportValue withXfactor:xFactor];
                         CGContextSetBlendMode(layerContext, kCGBlendModePlusLighter);
                     
-                        labelPosition.x = stock->fundamentalAlignments[r] - 11.5 * label.length;
-                        
-                        CGContextShowTextAtPoint(layerContext, labelPosition.x, labelPosition.y, label.UTF8String, label.length);
+                        labelPosition.x = stock->fundamentalAlignments[r] - 11.5 * label.length - 10;
+                        [self showString:label atPoint:CGPointMake(labelPosition.x, labelPosition.y) withColor:metricColor];
+//                        CGContextShowTextAtPoint(layerContext, labelPosition.x, labelPosition.y, label.UTF8String, label.length);
                     }
                 }                
             }
@@ -592,6 +601,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         yLabel += 10 + [sparkHeight doubleValue];
         yNegativeAdjustment = 0.;
     }
+    
+    UIGraphicsPopContext(); // remove layerContext
+    
     [self setNeedsDisplay];
 }
 
@@ -797,13 +809,14 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     y = [s pxAlign:y alignTo:0.5];
     x = [s pxAlign:x alignTo:0.5];
     
-    CGContextShowTextAtPoint (layerContext, x, y, [l UTF8String], [l length]);
+    [self showString:l atPoint:CGPointMake(x, y) withColor:[UIColor colorWithCGColor:s.series->upColor]];
     
     if (showBox) {
-        CGPoint textPosition = CGContextGetTextPosition(layerContext);
-                
+        CGFloat boxWidth = l.length * 5 * self.layer.contentsScale, // size to fit string l
+                boxHeight = 10 * self.layer.contentsScale;
+        
         CGContextSetStrokeColorWithColor(layerContext,s.series->upColorHalfAlpha);
-        CGContextStrokeRect(layerContext, CGRectMake(x - 0.5, y - 9*UIScreen.mainScreen.scale, textPosition.x - x, 10*UIScreen.mainScreen.scale));
+        CGContextStrokeRect(layerContext, CGRectMake(x - 0.5, y - 9*UIScreen.mainScreen.scale, boxWidth, boxHeight));
      }
 }
 
@@ -836,7 +849,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     CGFloat x = 2.;
     NSString *label;
     for (StockData *stock in self.stocks) {
-        CGContextSetFillColorWithColor(context, stock.series->upColor);
+        UIColor *stockColor = [UIColor colorWithCGColor:stock.series->upColor];
 
         label = [NSString stringWithFormat:@"%@ ", stock.series.symbol];
     
@@ -845,14 +858,14 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         } else if (barUnit > 4) {
             label = [label stringByAppendingString:@"weekly "];
         }
-        CGContextShowTextAtPoint(context, x * self.layer.contentsScale, 20., [label UTF8String], [label length]);
+        [self showString:label atPoint:CGPointMake(x * self.layer.contentsScale, 20.) withColor:stockColor];
         x += 3 * label.length * self.layer.contentsScale;
         label = @"";
     }
     
     label = @" on Chart Insight app";
     
-    CGContextShowTextAtPoint(context, x * self.layer.contentsScale, 20., [label UTF8String], [label length]);
+    [self showString:label atPoint:CGPointMake(x * self.layer.contentsScale, 20.) withColor:UIColor.grayColor];
         
      UIImage *screenshot = UIGraphicsGetImageFromCurrentImageContext();
      UIGraphicsEndImageContext();
@@ -861,33 +874,32 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
 
 - (UIImage *) magnifyBarAtX:(CGFloat)x y:(CGFloat)y {
-    
-    UIGraphicsBeginImageContextWithOptions(CGSizeMake(100, 100), NO, self.layer.contentsScale);    
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(magnifierSize, magnifierSize), NO, self.layer.contentsScale);
     CGContextRef lensContext = UIGraphicsGetCurrentContext();
-    
-    CGContextSetTextMatrix(lensContext, CGAffineTransformMake(1.0,0.0, 0.0, -1.0, 0.0, 0.0));  // iOS flipped coordinates
-    CGContextSelectFont (lensContext, "HelveticaNeue", 5 * self.layer.contentsScale, kCGEncodingMacRoman);
-    CGContextSetTextDrawingMode (lensContext, kCGTextFill);
-    
+        
     CGContextSetFillColorWithColor(lensContext, [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground].CGColor);
-    CGContextFillRect(lensContext, CGRectMake(0, 0, 100., 100.));
+    CGContextFillRect(lensContext, CGRectMake(0, 0, magnifierSize, magnifierSize));
     
     CGFloat yPressed = y * self.layer.contentsScale;
     
-    x = (x - 25.) * self.layer.contentsScale;      // subtract 25. to make the touch point the center of the lens, not the top left corner
-    y = (y - 25.) * self.layer.contentsScale;
-       
     CGFloat scale = UIScreen.mainScreen.scale;
+    CGFloat magnification = 2.0;
     
-    if (scale == 1.) {
-        CGContextScaleCTM(lensContext, 2., 2.); 
+    CGFloat midpoint = magnifierSize / (2 * magnification);
+    
+    x = (x - midpoint) * self.layer.contentsScale;      // subtract midpoint to make the touch point the center of the lens, not the top left corner
+    y = (y - 2 * midpoint) * self.layer.contentsScale;
+        
+    // CGContextDrawLayerAtPoint will paint pixels from the chart in layerRef as points in lensContext
+    // this automatically magnifies it by 2x on 2x retina but we need to rescale by 2/3 for 3x retina screens
+    if (scale >= 1) {
+        CGContextScaleCTM(lensContext, magnification / scale, magnification / scale);
     }
-    
     CGContextDrawLayerAtPoint(lensContext, CGPointMake(-x,-y), layerRef);
     
     NSString *label = @"";
     
-    CGFloat centerX = x + 25. * scale - xFactor * barUnit / 2; // because xRaw starts at xFactor/2
+    CGFloat centerX = x + midpoint * scale - xFactor * barUnit / 2; // because xRaw starts at xFactor/scale
         
     CGContextSetBlendMode(lensContext, kCGBlendModeNormal);
         
@@ -913,7 +925,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     // reduce opacity by filling .25 alpha background over image so scope values are clearer
                     CGContextSetFillColorWithColor(lensContext,
                                                    CGColorCreateCopyWithAlpha([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground].CGColor, 0.25));
-                    CGContextFillRect(lensContext, CGRectMake(0., 0., 100., 100.));
+                    CGContextFillRect(lensContext, CGRectMake(0., 0., magnifierSize, magnifierSize));
                     
                     CGContextSetStrokeColorWithColor(lensContext, (upClose ? stock.series->upColor : stock.series->color));
                     CGContextSetLineWidth(lensContext, UIScreen.mainScreen.scale);
@@ -929,19 +941,23 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                         label = [label stringByAppendingString:[[NSString stringWithFormat:@"%ld", bar.year] substringFromIndex:2]];
                     }
                     
+                    UIColor *textColor = UIColor.blackColor;
+                    
                     if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
                         [[UIColor whiteColor] setFill];
+                        textColor = UIColor.whiteColor;
                     } else {
                         [[UIColor blackColor] setFill];
                     }
-                    CGContextShowTextAtPoint(lensContext, 16.* scale, 7. * scale, [label UTF8String], [label length]);        // bar date
+                    // show string for bar date
+                    [self showString:label atPoint:CGPointMake(16. * scale, 7. * scale) withColor:textColor size:12.];
                     
                     double scopeFactor = (bar.high > bar.low) ? 31. * scale / (bar.high - bar.low) : 0;
                     double midPoint = (bar.high + bar.low)/2.;
                     
                     label = [self.numberFormatter stringFromNumber:[NSNumber numberWithDouble:bar.open]];
                     double y = 27.5 * scale + scopeFactor * (midPoint - bar.open);
-                    CGContextShowTextAtPoint(lensContext, 10. * scale, y, [label UTF8String], [label length]);
+                    [self showString:label atPoint:CGPointMake(10. * scale, y) withColor:textColor size:12.];
                     
                     y = (y < 27.5 * scale) ? y + 2.5 * scale : y - 5. * scale;                               // avoid text
                     CGContextMoveToPoint(lensContext, 20. * scale, y);
@@ -949,21 +965,21 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                 
                     label = [self.numberFormatter stringFromNumber:[NSNumber numberWithDouble:bar.high]];
                     y = 27.5 * scale + scopeFactor * (midPoint - bar.high);
-                    CGContextShowTextAtPoint(lensContext, 22. * scale, y, [label UTF8String], [label length]);
+                    [self showString:label atPoint:CGPointMake(22. * scale, y) withColor:textColor size:12.];
 
                     y = (y < 27.5 * scale) ? y + 2.5 * scale : y - 5.* scale;                               // avoid text
                     CGContextMoveToPoint(lensContext, 25. * scale, y);
                     
                     label = [self.numberFormatter stringFromNumber:[NSNumber numberWithDouble:bar.low]];
                     y = 27.5*scale + scopeFactor * (midPoint - bar.low);
-                    CGContextShowTextAtPoint(lensContext, 22. * scale, y, [label UTF8String], [label length]);
+                    [self showString:label atPoint:CGPointMake(22. * scale, y) withColor:textColor size:12.];
                     
                     y = (y < 27.5*scale) ? y + 2.5*scale : y - 5. * scale;                                // avoid text
                     CGContextAddLineToPoint(lensContext, 25.*scale, y);
                     
                     label = [self.numberFormatter stringFromNumber:[NSNumber numberWithDouble:bar.close]];                    
                     y = 27.5 * scale + scopeFactor * (midPoint - bar.close);
-                    CGContextShowTextAtPoint(lensContext, 33.*scale, y, [label UTF8String], [label length]);
+                    [self showString:label atPoint:CGPointMake(33. * scale, y) withColor:textColor size:12.];
                     
                     y = (y < 27.5*scale) ? y + 2.5*scale : y - 5.* scale;;                               // avoid text
                     CGContextMoveToPoint(lensContext, 25.* scale, y);
@@ -979,6 +995,21 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     UIGraphicsEndImageContext();
     return screenshot;
 }
+
+// Renders string in current graphics context with default size
+- (void) showString:(NSString *)string atPoint:(CGPoint)point withColor:(UIColor *)color{
+    [self showString:string atPoint:point withColor:color size:24.];
+}
+
+// Renders string in current graphics context with provided size (to set a lower size for magnifyBarAtX)
+- (void) showString:(NSString *)string atPoint:(CGPoint)point withColor:(UIColor *)color size:(CGFloat)size {
+    NSDictionary *textAttributes = @{NSFontAttributeName: [UIFont systemFontOfSize:size],
+                                     NSForegroundColorAttributeName: color
+    };
+    point.y -= size; // Shift y by font size for similar rendering to prior CGContextShowTextAtPoint
+    [string drawAtPoint:point withAttributes:textAttributes];
+}
+
 
 - (NSDictionary *) infoForPressedBar {
     if (pressedBarIndex >= 0 && pressedBarStock != nil) {

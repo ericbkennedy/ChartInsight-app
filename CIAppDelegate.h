@@ -11,7 +11,6 @@
 @interface CIAppDelegate : UIResponder <UIApplicationDelegate>
 
 @property (strong, nonatomic) UIWindow *window;
-@property (strong, nonatomic) UINavigationController *navigationController;
 
 @property (strong, nonatomic) UIColor *chartBackground;
 @property (strong, nonatomic) UIColor *tableViewBackground;
@@ -31,5 +30,7 @@
 - (BOOL) nightBackground;
 
 - (void)nightModeOn:(BOOL)on;
+
+- (void)showFavoritesTab;
 
 @end

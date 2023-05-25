@@ -797,6 +797,7 @@
              [self updateHighLow];
         }
         busy = NO;
+        [self.delegate performSelectorOnMainThread:@selector(stopProgressIndicator) withObject:nil waitUntilDone:NO];
       });
     
     DLog(@"after %ld bars (%ld new), newest %@ and oldest %@", bars, dp->countBars, self.newest, self.oldest);

@@ -4,13 +4,12 @@
 #import "ChartOptionsController.h"
 #import "FindSeriesController.h"
 #import "MoveDB.h"
-#import "SettingsViewController.h"
 
 @interface RootViewController ()
 
 @property (assign, nonatomic) CGFloat width;
 @property (assign, nonatomic) CGFloat height;
-@property (assign, nonatomic) CGFloat statusBarHeight; // 0 except on iPad
+@property (assign, nonatomic) CGFloat statusBarHeight;  // set using safeAreaInsets
 @property (assign, nonatomic) CGFloat toolbarHeight;
 @property (assign, nonatomic) CGFloat leftGap;
 @property (assign, nonatomic) CGFloat lastShift;
@@ -29,7 +28,6 @@
 @property (nonatomic, strong) UIPinchGestureRecognizer *pinchRecognizer;
 @property (nonatomic, strong) UIBarButtonItem *minimizeButton;
 @property (nonatomic, strong) UIToolbar *customNavigationToolbar;     //  better formatting than using self.navigationItem
-@property (strong, nonatomic) UIToolbar *settingsToolbar;
 
 @property (strong, nonatomic) NSDateComponents *days;
 
@@ -86,16 +84,6 @@
     self.popOverNav.popoverPresentationController.sourceView = self.view;
     self.popOverNav.popoverPresentationController.barButtonItem = button;
     [self presentViewController:self.popOverNav animated:YES completion:nil];
-}
-
-- (void) editSettings:(id)sender {
-    SettingsViewController *settingsViewController = [[SettingsViewController alloc] initWithStyle:UITableViewStyleGrouped];
-    settingsViewController.delegate = self;
-    
-    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:settingsViewController];
-    navigationController.modalPresentationStyle = UIModalPresentationPageSheet;
-    
-    [self presentViewController:navigationController animated:YES completion:nil];
 }
 
 - (void) addSeries:(id)sender {        
@@ -204,44 +192,19 @@
     }
 }
 
-- (void) nightDayToggle {
-    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
-        [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
-        [self.settingsToolbar setBarStyle:UIBarStyleDefault];
-        [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightModeOn:NO];
-
-    } else {
-        [self.customNavigationToolbar setBarStyle:UIBarStyleBlack];
-        [self.settingsToolbar setBarStyle:UIBarStyleBlack];
-        [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightModeOn:YES];
-    }
-    self.view.backgroundColor = [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] tableViewBackground];
-    
-//    [self.view setBackgroundColor:[UIColor colorWithRed:0.870588235 green:0.901960784 blue:0.968627451 alpha:1.0]];
-    // [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground]];
-    [self.scc redrawCharts];
-    [self.tableView reloadData];
-}
-
-- (UIStatusBarStyle)preferredStatusBarStyle {
-    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground] == NO) {
-        return UIStatusBarStyleLightContent;
-    } else {
-        return UIStatusBarStyleBlackOpaque; // old iPad doesn't support iOS 13 UIStatusBarStyleDarkContent
-    }
-}
-
 - (void)viewDidLoad {
     MoveDB *move = [[[MoveDB alloc] init] autorelease];
     [move moveDBforDelegate:self];                      // copy db to documents or check existing db
     
     [super viewDidLoad];
     
-    [self resizeFrameToSize:[UIScreen mainScreen].bounds.size];
+    [self resizeFrameToSize:self.view.frame.size]; //[UIScreen mainScreen].bounds.size];
+    self.edgesForExtendedLayout = UIRectEdgeNone;
+    self.extendedLayoutIncludesOpaqueBars = NO;
 
     self.leftGap = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 60 : 100;
     
-    [self.view setBackgroundColor:[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground]];	
+    [self.view setBackgroundColor:[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartBackground]];
         
     [self setGregorian:[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian]];
     [self setDays:[[NSDateComponents alloc] init]];
@@ -253,28 +216,9 @@
     
     [self setMinimizeButton:[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"maximize"] style:UIBarButtonItemStylePlain target:self action:@selector(minimizeChart)]];
     
-    self.settingsToolbar = [UIToolbar new];
-    self.settingsToolbar.translucent = NO;
-    self.settingsToolbar.frame = CGRectMake(0, self.height + 20, 205, self.toolbarHeight);
-    
-    UIBarButtonItem *settingsItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"settingsUnselected"] style:UIBarButtonItemStylePlain target:self action:@selector(editSettings:)];
-    
-    UIBarButtonItem *flexibleSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:NULL action:NULL];
-    
-    [self.settingsToolbar setItems:@[settingsItem, flexibleSpace]];
-    [self.view addSubview:self.settingsToolbar];
-   
-    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground] == NO) {
-        // Note if user selected dark mode in settings that will override the bar style here
-        [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
-        [self.settingsToolbar setBarStyle:UIBarStyleDefault];
-    } else {
-    	[self.customNavigationToolbar setBarStyle:UIBarStyleBlack];
-        [self.settingsToolbar setBarStyle:UIBarStyleBlack];
-    }
-    
     [self setList:[Comparison listAll:[self bestDbPath]]];
     
+    // There's a toolbar above the tableView and a tabBar below so reduce height by 2 * self.toolbarHeight
     self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, self.toolbarHeight + self.statusBarHeight,
                                                                     205, self.height - 2 * self.toolbarHeight)
                                                    style:UITableViewStylePlain] autorelease];
@@ -305,8 +249,8 @@
     [self.magnifier.layer setZPosition:3];
     [self.magnifier setHidden:YES];
     [self.view addSubview:self.magnifier];
-        
-    [self setProgressIndicator:[[ProgressIndicator alloc] initWithFrame:CGRectMake(0, 32., self.width, 4)]];
+
+    [self setProgressIndicator:[[ProgressIndicator alloc] initWithFrame:CGRectMake(0, self.toolbarHeight, self.width, 4.)]];
     [self.view addSubview:self.progressIndicator];
     [self.progressIndicator.layer setZPosition:4];
     [self.progressIndicator setHidden:YES]; // until startAnimating is called
@@ -343,10 +287,9 @@
 - (void) resizeSubviewsForSize:(CGSize)newSize {
     [self.customNavigationToolbar setFrame:CGRectMake(0, self.statusBarHeight, newSize.width, self.toolbarHeight)];
     CGFloat combinedToolbarHeight = self.statusBarHeight + self.toolbarHeight;
-    
+
     self.tableView.frame = CGRectMake(0, combinedToolbarHeight, 205, newSize.height - combinedToolbarHeight);
-    self.settingsToolbar.frame = CGRectMake(0, newSize.height - self.toolbarHeight, 205, self.toolbarHeight);    
-    self.progressIndicator.frame = CGRectMake(0, 32., self.width, 4);
+    self.progressIndicator.frame = CGRectMake(0, self.toolbarHeight, self.width, 4);
     self.scc.layer.position = CGPointMake(self.scc.layer.position.x, combinedToolbarHeight);
     
     [self.tableView reloadData];
@@ -363,7 +306,7 @@
 - (void) viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     
-    if ([self resizeFrameToSize:[UIScreen mainScreen].bounds.size]) {
+    if ([self resizeFrameToSize:self.view.frame.size]) {
         [self resizeSubviewsForSize:CGSizeMake(self.width, self.height)];
     }
 }
@@ -484,16 +427,20 @@
 
 - (BOOL) resizeFrameToSize:(CGSize)newSize {
 	CGFloat newWidth, newHeight;
+    UIEdgeInsets safeAreaInsets = [UIApplication.sharedApplication.keyWindow safeAreaInsets];
+    
     self.toolbarHeight = 44;
+    self.statusBarHeight = safeAreaInsets.top;
     
     newWidth = newSize.width;
-    newHeight = newSize.height;
-    
-    self.statusBarHeight = 20.; // NOTE this could be larger if a navigation app is running
-    
+
+    // To show stock ticker buttons in the toolbar, a custom toolbar is displayed and the navigationController's toolbar is hidden
+    // Thus newSize must be reduced by height of 2 toolbars
+    newHeight = newSize.height - self.statusBarHeight - 2 * self.toolbarHeight - safeAreaInsets.bottom;
+        
 	if (self.width != newWidth) {
 		self.width = newWidth;
-		self.height = newHeight - self.toolbarHeight - self.statusBarHeight;
+        self.height = newHeight;
  		return TRUE;
 	}
 	return FALSE;
@@ -502,6 +449,14 @@
 - (void) viewWillAppear:(BOOL)animated {
     // hide navigationController so our customToolbar can take its place for better button sizing
 	[self.navigationController setNavigationBarHidden:YES animated:NO];
+    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
+        [self.customNavigationToolbar setBarStyle:UIBarStyleBlack];
+    } else {
+        [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
+    }
+    
+    self.view.backgroundColor = [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] tableViewBackground];
+    
     [super viewWillAppear:animated];
 }
 
@@ -667,11 +622,15 @@
     CGFloat xPress = [recognizer locationInView:self.view].x - 5. - self.scc.layer.position.x; // 5pts of left buffer for grip
     CGFloat yPress = [recognizer locationInView:self.view].y - 5. - self.toolbarHeight;      // 5 pts of top buffer
     
-    [self.magnifier setFrame:CGRectMake( [recognizer locationInView:self.view].x - 40, yPress - 75., 100., 100.)];
+    const float midpoint = 50.;
+    const float height = 2 * midpoint;
+    const float width = 2 * midpoint;
+    
+    [self.magnifier setFrame:CGRectMake( [recognizer locationInView:self.view].x - midpoint, yPress - midpoint, width, height)];
     
     self.magnifier.layer.borderColor = [[UIColor lightGrayColor] CGColor];
-    self.magnifier.layer.borderWidth = 3;
-    self.magnifier.layer.cornerRadius = 50;
+    self.magnifier.layer.borderWidth = 1;
+    self.magnifier.layer.cornerRadius = midpoint;
     self.magnifier.layer.masksToBounds = YES;
     
     // Note that this always returns some image, even when the user moves to the Y axis labels

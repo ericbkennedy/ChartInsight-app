@@ -21,12 +21,13 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title  = @"Edit Settings";
+    self.title  = @"Settings";
 
     NSString *dbPath = [NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()];
 
     [self setList:[Comparison listAll:dbPath]];
 
+    self.view.backgroundColor = [(CIAppDelegate *)UIApplication.sharedApplication.delegate chartBackground];
     self.tableView.editing = YES;
 
     UIBarButtonItem *barButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismiss)];
@@ -35,7 +36,7 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 }
 
 - (void)dismiss {        
-    [self.presentingViewController dismissViewControllerAnimated:YES completion:nil];
+    [(CIAppDelegate *)UIApplication.sharedApplication.delegate showFavoritesTab];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -45,9 +46,15 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
 #pragma mark - Table view data source
 
-- (void)toggleNightDayAndDismiss {
-        [self.delegate nightDayToggle];
-        [self dismiss];
+- (void)toggleNightDay {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == YES) {
+        // user wants day/light mode
+        [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightModeOn:NO];
+    } else {
+        [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightModeOn:YES];
+    }
+    
+    self.view.backgroundColor = [(CIAppDelegate *)UIApplication.sharedApplication.delegate tableViewBackground];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -55,7 +62,14 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 }
 
 - (NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return section == NIGHT_MODE_SECTION ? 1 : [self.list count];
+    if (section == NIGHT_MODE_SECTION) {
+        if (@available(iOS 13, *)) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+    return [self.list count];
 }
 
 - (CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -75,13 +89,14 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 	}
     
     if (indexPath.section == NIGHT_MODE_SECTION) {
+        
         cell.textLabel.text = @"Night mode";
-
+        
         UISwitch *onOff = [UISwitch new];
-        [onOff addTarget:self action:@selector(toggleNightDayAndDismiss) forControlEvents:UIControlEventTouchUpInside];
+        [onOff addTarget:self action:@selector(toggleNightDay) forControlEvents:UIControlEventTouchUpInside];
         [cell setAccessoryView:onOff];
         
-        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == 1) {
+        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"nightBackground"] == YES) {
             onOff.on = TRUE;
         } else {
             onOff.on = FALSE;
@@ -92,13 +107,14 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
      
         cell.textLabel.text = [comparison title];
         cell.textLabel.font = [UIFont systemFontOfSize:13];
-        
-        if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground] != NO) {
-            cell.textLabel.textColor = [UIColor lightGrayColor];
-        } else {
-            cell.textLabel.textColor = [UIColor colorWithRed:.490 green:.479 blue:0.432 alpha:1.0];
-        }
     }
+    
+    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground] != NO) {
+        cell.textLabel.textColor = [UIColor lightGrayColor];
+    } else {
+        cell.textLabel.textColor = [UIColor colorWithRed:.490 green:.479 blue:0.432 alpha:1.0];
+    }
+    
     return cell;
 }
 
@@ -132,6 +148,13 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
     } else {
         return NO;
     }
+}
+
+- (nullable NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    if (section == STOCK_LIST_SECTION) {
+        return @"Watchlist stocks";
+    }
+    return @"";
 }
 
 @end
