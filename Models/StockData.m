@@ -460,9 +460,8 @@
     } else if (0 == newestBarShown) {
         
         if ([self.api.nextClose isTodayIntraday]) {
-//            Intraday quote no longer works
-//            busy = YES;
-//            [self.api getIntradayQuote];
+            busy = YES;
+            [self.api getIntradayQuote];
 
         } else if ([self.api.nextClose compare:[NSDate date]] == NSOrderedAscending) { // next close is in the past
             busy = YES;            

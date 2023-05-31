@@ -81,7 +81,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     
 //    // DLog(@"secondsSinceNow %f for %@", secondsSinceNow, self);
     
-    if (secondsSinceNow < 27000. && secondsSinceNow > -22500.) { // date is today after 6:30am and before 6pm 
+    if (secondsSinceNow < 27000. && secondsSinceNow > -22500.) { // date is today after 6:30am and before 6pm
         return YES;
     }
     return NO;
@@ -115,7 +115,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 
 -(void)fetch;
 -(NSURL *) formatRequestURL;
--(void)historicalDataLoadedWithIntraday:(BOOL)includesIntraday;
+-(void)historicalDataLoaded;
 -(void)parseHistoricalCSV;
 
 @end
@@ -218,7 +218,6 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     [self setLastNoNewDataError:[NSDate distantPast]];
     [self setNextClose:[NSDate distantPast]];
     
-    intraday = NO;
     countBars = 0;
 
     [self fetch];
@@ -232,7 +231,69 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 
 - (void)getIntradayQuote {
 
-    // TODO: add back intraday updates
+    if (self.loadingData) {
+        return;
+    } else if (self.lastOfflineError != NULL && [[NSDate date] timeIntervalSinceDate:self.lastOfflineError] < 60) {
+        DLog(@"last offline error %@ was too recent to try again %f", self.lastOfflineError, [[NSDate date] timeIntervalSinceDate:self.lastOfflineError]);
+        [self cancelDownload];
+        return;
+    }
+
+    self.loadingData = YES;
+    NSString *token = @"placeholderToken";
+    NSString *urlString = [NSString stringWithFormat:@"https://chartinsight.com/api/intraday/%@/%@",
+                           [self URLEncode:self.symbol], token];
+    
+    NSURLSessionTask *task = [self.ephemeralSession
+                              dataTaskWithURL:[NSURL URLWithString:urlString]
+                            completionHandler:^(NSData *data, NSURLResponse *response, NSError *error)
+    {
+        if (error) {
+            [self handleClientError:error];
+        } else if (response && [response respondsToSelector:@selector(statusCode)]) {
+            self.loadingData = NO;
+            NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
+            if (statusCode == 404) {
+                DLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, urlString);
+                NSError *error = [NSError errorWithDomain:@"No new data" code:statusCode userInfo:nil];
+                [self handleClientError:error];
+                
+            } else if (statusCode == 200 && data && data.length > 5) {
+                NSError *jsonError = nil;
+                NSDictionary *intradayQuote = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&jsonError];
+                if (jsonError) {
+                    [self handleClientError:jsonError];
+
+                } else if (intradayQuote && [intradayQuote isKindOfClass:NSDictionary.class] && intradayQuote.count > 7) {
+                    intradayBar.year = [intradayQuote[@"lastSaleYear"] integerValue];
+                    intradayBar.month = [intradayQuote[@"lastSaleMonth"] integerValue];
+                    intradayBar.day = [intradayQuote[@"lastSaleDay"] integerValue];
+                    intradayBar.open = [intradayQuote[@"open"] doubleValue];
+                    intradayBar.high = [intradayQuote[@"high"] doubleValue];
+                    intradayBar.low = [intradayQuote[@"low"] doubleValue];
+                    intradayBar.close = [intradayQuote[@"last"] doubleValue]; // Note last instead of close
+                    intradayBar.volume = [intradayQuote[@"volume"] doubleValue];
+                    intradayBar.adjClose = intradayBar.close;   // Only provided by historical API
+                    intradayBar.splitRatio = 1.;
+                    intradayBar.movingAvg1  = -1.;
+                    intradayBar.movingAvg2  = -1.;
+                    intradayBar.mbb         = -1.;
+                    intradayBar.stdev       = -1.;
+                    
+                    double previousClose = [intradayQuote[@"prevClose"] doubleValue];
+
+                    DLog(@" %ld %ld %ld %f %f %f %f", intradayBar.year, intradayBar.month, intradayBar.day, intradayBar.open, intradayBar.high, intradayBar.low, intradayBar.close);
+
+                    if (fabs(cArray[0].close - previousClose) > 0.02) {
+                        DLog(@"%@ previous close %f doesn't match %f", self.symbol, previousClose, cArray[0].close);
+                    }
+                    
+                    [self.delegate performSelector:@selector(APILoadedIntraday:) withObject:self];
+                }
+            }
+        }
+    }];
+    [task resume];
 }
 
 -(NSURL *) formatRequestURL {
@@ -262,7 +323,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     return [NSURL URLWithString:url];
 }
 
--(void) historicalDataLoadedWithIntraday:(BOOL)includesIntraday {
+-(void) historicalDataLoaded {
     if (countBars == 0) { // Server doesn't have newer data due to delayed fetch from source API
         [self.delegate performSelector:@selector(APILoadedHistoricalData:) withObject:self];
     }
@@ -282,15 +343,9 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         [self setNewestDateLoaded:self.newestDate];
         DLog(@"%@ newest date loaded is now %@", self.symbol, self.newestDateLoaded);
         
-        if (includesIntraday) {
-            [self setNextClose:self.newestDate];
-           // DLog(@"because historical response includes intraday, nextClose is %@", nextClose);
-        } else {
-            [self setNextClose:[self.newestDate nextTradingDate:self.gregorian]];
-            if ([self.nextClose isTodayIntraday]) {
-               // DLog(@"still need intraday data");
-              //  Intraday fetch has been disabled: [self getIntradayQuote];
-            }
+        [self setNextClose:[self.newestDate nextTradingDate:self.gregorian]];
+        if ([self.nextClose isTodayIntraday]) {
+            [self getIntradayQuote];
         }
     }
     [self.delegate performSelector:@selector(APILoadedHistoricalData:) withObject:self];
@@ -426,10 +481,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         NSDate *newestDateSaved = [self dateFromBar:cArray[0]];
         NSDate *nextTradingDate = [newestDateSaved nextTradingDate:self.gregorian];
         
-        // DLog(@"next trading date after newest date saved is %@ vs newest date requested %@", nextTradingDate,           self.requestNewestDate);
-            
-        // only contact Yahoo if the nextTradingDate is in the past (so historical bars are available) AND is newer than the newestDateLoaded
-        // nextTrading date must be earlier than newestRequested loaded and also now
+        // DLog(@"next trading date after newest date saved is %@ vs newest date requested %@", nextTradingDate, self.requestNewestDate);
        
         if ([nextTradingDate isTodayIntraday] == NO
             && [self.requestNewestDate timeIntervalSinceDate:nextTradingDate] >= 0.         // missing past trading date
@@ -446,7 +498,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
             
             [self setOldestDate:[self dateFromBar:cArray[ barsFromDB - 1] ]];
             
-            [self historicalDataLoadedWithIntraday:NO];
+            [self historicalDataLoaded];
             return;
         }
     }
@@ -496,33 +548,13 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         [self setLastOfflineError:[NSDate date]];
     }
     
-    if (!intraday && barsFromDB > 0) {   // use what we have
+    if (barsFromDB > 0) {   // use what we have
         
         DLog(@"%@ didFailWithError for request from %@ to %@", self.symbol, self.requestOldestDate, self.requestNewestDate);
          
         countBars = barsFromDB;
 
-        [self historicalDataLoadedWithIntraday:NO];
-        
-    } else {
-        
-        if (!intraday && oldestDateInSeq > 0) {  // DB has some dates, so resubmit shorter request and use those
-        
-            NSDate *oldestDateInDB = [self.dateFormatter
-                                        dateFromString:[NSString stringWithFormat:@"%ldT20:00:00Z", oldestDateInSeq]];
-            
-           // DLog(@"%@ after internet failure, oldest is %@ from NSInteger %d", symbol, oldestDateInDB, oldestDateInSeq);
-            
-            if ([oldestDateInDB compare:self.requestNewestDate] == NSOrderedAscending) {
-                [self setRequestOldestDate:oldestDateInDB];
-    
-                if ((barsFromDB = [self loadSavedRows]) > 0) {
-                    countBars = barsFromDB;
-                    [self historicalDataLoadedWithIntraday:NO];
-                    return;
-                }
-            }
-        }
+        [self historicalDataLoaded];
     }
     // [(StockData *)self.delegate APIFailed] calls performSelectorOnMainThread
     [self.delegate performSelector:@selector(APIFailed:) withObject:[error localizedDescription]];
@@ -536,7 +568,6 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     // 2009-01-02,2.6069,2.7635,2.5850,2.7547,746015946
     NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^(\\d+)-(\\d+)-(\\d+),([^,]+),([^,]+),([^,]+),([^,]+),(\\d+)"
                                                                            options:NSRegularExpressionAnchorsMatchLines error:nil];
-    __block BOOL zeroIndexIsIntraday = NO;
     __block NSUInteger i = 0;
     __block NSUInteger barsFromWeb = [regex numberOfMatchesInString:self.csvString options:0 range:NSMakeRange(0, [self.csvString length])];
     
@@ -546,7 +577,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     if (barsFromWeb == 0) {         
         DLog(@"%@ empty response from API: %@", self.symbol, self.csvString);
         self.loadingData = NO;
-        return [self historicalDataLoadedWithIntraday:NO];        // canceling download causes problems, so call historicalDataLoaded with countBars = 0
+        return [self historicalDataLoaded];  // countBars = zero indicates no new data available
     }
     
     NSInteger lastBar = barsFromDB + barsFromWeb - 1;
@@ -595,7 +626,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         //DLog(@"%@ %ld %ld %ld %ld %f %f %f %f %f %f", self.symbol, i, webBars[i].year, webBars[i].month, webBars[i].day, webBars[i].open, webBars[i].high, webBars[i].low, webBars[i].close, webBars[i].adjClose, webBars[i].volume);
         
         // Save data to DB for offline access
-        if (i > 0 || zeroIndexIsIntraday == NO) {
+        if (i > 0) {
             sqlite3_bind_int64(statement, 1, self.seriesId);
             sqlite3_bind_int64(statement, 2, [self dateIntFromBar:webBars[i]]);        
             sqlite3_bind_text(statement, 3, [[self.csvString substringWithRange:[match rangeAtIndex:4]] UTF8String], -1, SQLITE_TRANSIENT);
@@ -662,7 +693,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     
     countBars = barsFromDB + barsFromWeb;
     
-    [self historicalDataLoadedWithIntraday:zeroIndexIsIntraday];
+    [self historicalDataLoaded];
 }
 
 // called after 1000 bars are deleted

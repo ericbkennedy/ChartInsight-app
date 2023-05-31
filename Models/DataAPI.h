@@ -21,7 +21,6 @@ typedef struct CBarData {
     BarStruct *cArray;
     BarStruct intradayBar;
     NSInteger existingBars;
-    BOOL intraday;
     NSInteger countBars, dataOffset;
 }
 
