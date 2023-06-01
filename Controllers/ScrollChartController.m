@@ -75,7 +75,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     CGContextSetTextDrawingMode (layerContext, kCGTextFill);
 }
 
-- (id) init {
+- (instancetype) init {
     if (self = [super init]) {
         scaleShift = 0.;
         xFactor = 7.5;

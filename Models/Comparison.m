@@ -5,7 +5,7 @@
 
 @implementation Comparison
 
-- (id) init {
+- (instancetype) init {
     self = [super init];
     [self setSeriesList:[NSMutableArray arrayWithCapacity:4]];
     return self;
@@ -27,6 +27,19 @@
 
 + (NSMutableArray *) listAll:(NSString *)myDbPath {
         
+    typedef NS_ENUM(NSInteger, ListAllColumnIndex) {
+        ListAllColumnComparisonId,
+        ListAllColumnComparisonSeriesId,
+        ListAllColumnSeriesId,
+        ListAllColumnSymbol,
+        ListAllColumnStartDate,
+        ListAllColumnHasFundamentals,
+        ListAllColumnChartType,
+        ListAllColumnDaysAgo,
+        ListAllColumnColor,
+        ListAllColumnFundamentalList,
+        ListAllColumnTechnicalList
+    };
     sqlite3 *db;
     
     if (sqlite3_open_v2([myDbPath UTF8String], &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
@@ -59,37 +72,39 @@
         } else {
            // DLog(@"allocating existing series id %d", lastComparisonId);
         }
-
-        // K.rowid, seriesId, symbol, startDate, chartType, daysAgo, color, fundamentals, technicals
         
         series = [[Series alloc] init];         
-        series->comparisonSeriesId = sqlite3_column_int(statement, 1);
-        series->id = sqlite3_column_int(statement, 2);
+        series->comparisonSeriesId = sqlite3_column_int(statement, ListAllColumnComparisonSeriesId);
+        series->id = sqlite3_column_int(statement, ListAllColumnSeriesId);
                               
-        [series setSymbol:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 3)]];
+        [series setSymbol:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, ListAllColumnSymbol)]];
         
        // DLog(@"symbol is %@", [series symbol]);
         
         title = [title stringByAppendingFormat:@"%@ ", series.symbol];
 
-        series.startDateString = [NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 4)];
+        series.startDateString = [NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, ListAllColumnStartDate)];
         // startDateString will be converted to NSDate by [StockData init] as price data is loaded
         
-        series->hasFundamentals = sqlite3_column_int(statement, 5);
+        series->hasFundamentals = sqlite3_column_int(statement, ListAllColumnHasFundamentals);
         
-        series->chartType = sqlite3_column_int(statement, 6);
-        series->daysAgo = sqlite3_column_int(statement, 7);
+        series->chartType = sqlite3_column_int(statement, ListAllColumnChartType);
+        series->daysAgo = sqlite3_column_int(statement, ListAllColumnDaysAgo);
         
-        if (sqlite3_column_bytes(statement, 8) > 2) {
-            [series setColorWithHexString:[NSString stringWithUTF8String:(const char *)sqlite3_column_text(statement, 8)]];            
+        if (sqlite3_column_bytes(statement, ListAllColumnColor) > 2) {
+            [series setColorWithHexString:[NSString stringWithUTF8String:(const char *)sqlite3_column_text(statement, ListAllColumnColor)]];
         } else {
             [series setColorWithHexString:@"009900"];   // green (and by convention, red)
         }
+                
+        if (sqlite3_column_bytes(statement, ListAllColumnFundamentalList) > 2) {
+            const char *fundamentals = (const char *)sqlite3_column_text(statement, ListAllColumnFundamentalList);
+            [series setFundamentalList:[NSString stringWithUTF8String:fundamentals]];
+        }
         
-        if (sqlite3_column_bytes(statement, 10) > 2) {
-            const char *technicals = (const char *)sqlite3_column_text(statement, 10);
+        if (sqlite3_column_bytes(statement, ListAllColumnTechnicalList) > 2) {
+            const char *technicals = (const char *)sqlite3_column_text(statement, ListAllColumnTechnicalList);
             [series setTechnicalList:[NSString stringWithUTF8String:technicals]];
-           // DLog(@"technical list is now %@", [series fundamentalList]);
         }
         
         [[comparison seriesList] addObject:series];

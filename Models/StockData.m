@@ -408,34 +408,12 @@
     [self computeChart];
 }
 
-- (void) removeNewerBars:(NSInteger)dailyBarsToRemove {
-    
-    if (dailyBars < dailyBarsToRemove) {
-        DLog(@"%@ only has %ld dailyBars, so canceling removeNewerBars", self.series.symbol, dailyBars);
-        return;
-    }
-    DLog(@"%@ adding to %ld dailyBars would exceed %ld so removing %ld newer bars", self.series.symbol, dailyBars, [self.api maxBars], dailyBarsToRemove);
-    
-    dailyBars -= dailyBarsToRemove;        // remove 1000 bars
-    
-    NSInteger summaryBarsToRemove = (dailyBarsToRemove/barUnit);
-    bars -= summaryBarsToRemove;
-    
-    [self createNewBarDataWithShift:0 fromIndex:dailyBarsToRemove];
-  
-    newestBarShown -= summaryBarsToRemove;
-    oldestBarShown -= summaryBarsToRemove;
-    
-    [self setNewest:[self.api dateFromBar:dailyData[0]]];
-    [self.api adjustNewestDateLoadedTo:self.newest];
-    DLog(@"%@ after removing 1000 dailyBars, newwest is %@", self.series.symbol, self.newest);
-    [self updateFundamentalAlignment];  // bar alignment will be off by 1000 bars
-}
-
 - (NSDecimalNumber *) shiftRedraw:(NSInteger)barsShifted withBars:(NSInteger)screenBarWidth {
     
     if (oldestBarShown + barsShifted >= [self.api maxBars]) {
-        [self removeNewerBars:screenBarWidth];
+        DLog(@"Early return because oldestBarShown %ld + barsShifted %ld > maxBars", oldestBarShown, barsShifted);
+        // Simplify fetch logic by returning to prevent scrolling to older dates instead of calling removeNewerBars
+        return self.percentChange;
     }
     oldestBarShown += barsShifted;
         
@@ -772,9 +750,9 @@
         } else if ([self.oldest compare:[self.api oldestDate]] == NSOrderedDescending) {    // case 3. Older dates
         
             if ((dailyBars + dp->countBars) > [self.api maxBars]) {
-                [self removeNewerBars:dp->countBars];
+                DLog(@"removeNewerBars was needed to support historical charts back to the 1950s but is no longer supported");
             }
-            startCopy = dailyBars;      // copy to end of dailyDaily
+            startCopy = dailyBars;      // copy to end of dailyBars
             
             [self setOldest:[self.api oldestDate]];
         }

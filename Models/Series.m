@@ -289,7 +289,7 @@
     if (list.count == 0) {            
         Series *newSeries = [[self alloc] init];
         [newSeries setSymbol:@""];
-        [newSeries setName:@"No matches found -"];
+        [newSeries setName:@"No matches with supported fundamentals"];
         [list addObject:[NSMutableArray arrayWithObject:newSeries]];
         [newSeries release]; 
     }
