@@ -112,6 +112,10 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     CGContextClearRect(layerContext, CGRectMake(0, 0, self.layer.contentsScale * maxWidth, pxHeight));
     [self setNeedsDisplay];
     
+    for (StockData *s in self.stocks) {
+        [s invalidateAndCancel];    // ensures StockData, DataAPI and FundamentalAPI get deallocated
+    }
+    
     [self.stocks removeAllObjects];
 }
 

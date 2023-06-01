@@ -2,29 +2,104 @@
 #import "DataAPI.h"
 #import "sqlite3.h"
 
-#define REQUEST_BARS 260    // Shanghai index in 2005
+const char *API_KEY = "placeholderToken";
 
-// saveHistory is used twice so leave this here
-const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, high, low, close, adjClose, volume, oldest) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+@interface DataAPI () {
+@private
+    NSInteger barsFromDB;
+}
 
-@implementation NSDate (DataAPI)
+@property (nonatomic, copy) NSString *csvString;
+@property (strong, nonatomic) NSURLSession *ephemeralSession;   // skip web cache since sqlite caches price data
+@property (nonatomic, assign) BOOL loadingData;
+@property (strong, nonatomic) NSDate *lastOfflineError;
+@property (strong, nonatomic) NSDate *lastNoNewDataError;       // set when a 404 occurs on a request for newer data
+@property (strong, nonatomic) NSDate *newestDateLoaded;         // rule out newer gaps by tracking the newest date loaded
 
-- (NSInteger) formatDate:(NSCalendar *)calendar {
-    assert(self != nil);
+-(void)fetch;
+-(NSURL *) formatRequestURL;
+-(void)historicalDataLoaded;
+-(void)parseHistoricalCSV;
+
+@end
+
+@implementation DataAPI
+
+- (NSInteger) maxBars {
+    return 10000;    // Supports 50 years of price data (though API limits price data to 2009 start of XML fundamentals)
+}
+
+-(id) init {
+    self = [super init];
+    
+    // NOTE: this should really be the max that we would request at any one time, since stockData.barData is separate memory
+    cArray = (BarStruct *)malloc(sizeof(BarStruct)*[self maxBars]);
+    
+    self.ephemeralSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration];
+    
+    [self setDateFormatter:[[NSDateFormatter alloc] init]];
+    NSLocale *locale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US_POSIX"]; // 1996-12-19T16:39:57-08:00
+    [self.dateFormatter setLocale: locale];  // override user locale
+    [self.dateFormatter setDateFormat:@"yyyyMMdd'T'HH':'mm':'ss'Z'"];  // Z means UTC time
+    [self.dateFormatter setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+        
+    return self;
+}
+
+// Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
+- (void)invalidateAndCancel {
+    [self.ephemeralSession invalidateAndCancel];
+    _delegate = nil;
+}
+
+-(void)dealloc {
+    [_dateFormatter release];
+    _delegate = nil;
+    free(cArray);    
+    _csvString = nil;    // don't release it because the setter manages release count
+    _symbol = nil;
+    _oldestDate = nil;
+    _newestDateLoaded = nil;
+    [super dealloc];
+}
+
+-(BarStruct *)getCBarData {
+    return cArray;
+}
+
+-(void) setBarData:(BarStruct *)barData {
+    cArray = barData;
+}
+
+- (NSDate *) dateFromBar:(BarStruct)bar {
+
+    NSString *dateString = [NSString stringWithFormat:@"%ld%02ld%02ldT20:00:00Z", bar.year, bar.month, bar.day];// 4pm NYC close
+        
+    return [self.dateFormatter dateFromString:dateString];
+}
+
+// Called BEFORE creating a URLSessionTask if there was a recent offline error or it is too soon to try again
+-(void)cancelDownload {
+    if (self.loadingData) {
+        self.loadingData = NO;
+    }
+    [self.delegate performSelector:@selector(APICanceled:) withObject:self];
+}
+
+- (NSInteger) getIntegerFormatForDate:(NSDate *)date {
+    assert(date != nil);
     
     NSUInteger unitFlags = NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitYear;
-    NSDateComponents *dateParts = [calendar components:unitFlags fromDate:self];
+    NSDateComponents *dateParts = [self.gregorian components:unitFlags fromDate:date];
     
     return ([dateParts year] * 10000 + ([dateParts month]*100) + [dateParts day]);
 }
 
-- (BOOL) isHoliday:(NSCalendar *)calendar {
+- (BOOL) isHolidayDate:(NSDate *)date {
     
-    NSInteger dateInt = [self formatDate:calendar];
+    NSInteger dateInt = [self getIntegerFormatForDate:date];
     
     switch (dateInt) {  // https://www.nyse.com/markets/hours-calendars
-        case 20230407:
-        case 20230529:
         case 20230619:
         case 20230704:
         case 20230904:
@@ -55,135 +130,28 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     return NO;
 }
 
-- (NSDate *) nextTradingDate:(NSCalendar *)calendar {
-    
-    NSDate *nextTradingDate = [self copy];    
+- (NSDate *) getNextTradingDateAfterDate:(NSDate *)date {
+    NSDate *nextTradingDate = [date copy];
     NSDateComponents *days = [[NSDateComponents alloc] init];
-    
     [days setDay:1];
     
     do {
-        nextTradingDate = [calendar dateByAddingComponents:days toDate:nextTradingDate options:0]; // add another day
-        //     // DLog(@"new date is %@", nextTradingDate);
+        nextTradingDate = [self.gregorian dateByAddingComponents:days toDate:nextTradingDate options:0]; // add another day
         
-    } while ([nextTradingDate isHoliday:calendar]
-             || 1 == [[calendar components:NSCalendarUnitWeekday fromDate:nextTradingDate] weekday]   // Sunday
-             || 7 == [[calendar components:NSCalendarUnitWeekday fromDate:nextTradingDate] weekday]); // Saturday
-             
-   // DLog(@"next trading date is %@ from %@", nextTradingDate, self);
+    } while ([self isHolidayDate:nextTradingDate]
+             || 1 == [[self.gregorian components:NSCalendarUnitWeekday fromDate:nextTradingDate] weekday]   // Sunday
+             || 7 == [[self.gregorian components:NSCalendarUnitWeekday fromDate:nextTradingDate] weekday]); // Saturday
+    
     [days release];
-
-    return nextTradingDate;    
-}
-
-- (BOOL) isTodayIntraday {
-    CGFloat secondsSinceNow = [self timeIntervalSinceNow];
-    
-//    // DLog(@"secondsSinceNow %f for %@", secondsSinceNow, self);
-    
-    if (secondsSinceNow < 27000. && secondsSinceNow > -22500.) { // date is today after 6:30am and before 6pm
-        return YES;
-    }
-    return NO;
-}
-
-- (BOOL) nextTradingDateIsToday:(NSCalendar *)calendar {
-    CGFloat secondsBeforeNextTradingDate = [[self nextTradingDate:calendar] timeIntervalSinceDate:[NSDate date]];
-   // DLog(@"secondsBeforeNextTradingDate =%f", secondsBeforeNextTradingDate);
-    
-    if (secondsBeforeNextTradingDate > -86401.0f) {
-       // DLog(@"next trading date is at least a day ago");
-        if (secondsBeforeNextTradingDate < 16000.0f)
-            return YES;
-    }
-    return NO;
-}
-@end
-
-@interface DataAPI () {
-@private
-    NSInteger barsFromDB;
-    NSInteger oldestDateInSeq;        // lets us resubmit shorter request if internet is down
-}
-
-@property (nonatomic, copy) NSString *csvString;
-@property (strong, nonatomic) NSURLSession *ephemeralSession;   // skip web cache since sqlite caches price data
-@property (nonatomic, assign) BOOL loadingData;
-@property (strong, nonatomic) NSDate *lastOfflineError;
-@property (strong, nonatomic) NSDate *lastNoNewDataError;       // set when a 404 occurs on a request for newer data
-@property (strong, nonatomic) NSDate *newestDateLoaded;         // rule out newer gaps by tracking the newest date loaded
-
--(void)fetch;
--(NSURL *) formatRequestURL;
--(void)historicalDataLoaded;
--(void)parseHistoricalCSV;
-
-@end
-
-@implementation DataAPI
-
-- (NSInteger) maxBars {
-    return 16000;    // SPX back to 1950, which is the oldest now that the DJIA isn't available through Yahoo.  I have 9 months before it exceeds this (15809 in 10/28)
-}
-
--(id) init {
-    self = [super init];
-    
-    // NOTE: this should really be the max that we would request at any one time, since stockData.barData is separate memory
-    cArray = (BarStruct *)malloc(sizeof(BarStruct)*[self maxBars]);
-    
-    self.ephemeralSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration];
-    
-    [self setDateFormatter:[[NSDateFormatter alloc] init]];
-    NSLocale *locale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US_POSIX"]; // 1996-12-19T16:39:57-08:00
-    [self.dateFormatter setLocale: locale];  // override user locale
-    [self.dateFormatter setDateFormat:@"yyyyMMdd'T'HH':'mm':'ss'Z'"];  // Z means UTC time
-    [self.dateFormatter setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
-        
-    return self;
-}
-
--(void)dealloc {
-    [self.ephemeralSession invalidateAndCancel];
-    [_dateFormatter release];
-    _delegate = nil;
-    free(cArray);    
-    _csvString = nil;    // don't release it because the setter manages release count
-    _symbol = nil;
-    _oldestDate = nil;
-    _newestDateLoaded = nil;
-    [super dealloc];
-}
-
--(BarStruct *)getCBarData {
-    return cArray;
-}
-
--(void) setBarData:(BarStruct *)barData {
-    cArray = barData;
-}
-
-- (NSDate *) dateFromBar:(BarStruct)bar {
-
-    NSString *dateString = [NSString stringWithFormat:@"%ld%02ld%02ldT20:00:00Z", bar.year, bar.month, bar.day];// 10am NYC first quote
-        
-    return [self.dateFormatter dateFromString:dateString];
-}
-
-// Called BEFORE creating a URLSessionTask if there was a recent offline error or it is too soon to try again
--(void)cancelDownload {
-    if (self.loadingData) {
-        self.loadingData = NO;
-    }
-    [self.delegate performSelector:@selector(APICanceled:) withObject:self];
+    return nextTradingDate;
 }
 
 // tracking nextClose handles holidays, weekends, and when a user resumes using the app after inactivity
 // but should only apply for NEWER dates, not when they scroll to the past
 
-- (void) getNewerThanDate:(NSDate *)currentNewest screenBarWidth:(NSInteger)screenBarWidth {
+- (void) fetchNewerThanDate:(NSDate *)currentNewest screenBarWidth:(NSInteger)screenBarWidth {
      
-    [self setRequestOldestDate:[currentNewest nextTradingDate:self.gregorian]];
+    [self setRequestOldestDate:[self getNextTradingDateAfterDate:currentNewest]];
     
     // sets earlier of today or 1 year after oldest date
     [self setRequestNewestDate:[[NSDate date] earlierDate:[self.requestOldestDate dateByAddingTimeInterval:MAX(365, screenBarWidth)*86400]]];
@@ -193,7 +161,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     [self fetch];
 }
 
-- (void) getOlderDataFrom:(NSDate *)requestStart untilDate:(NSDate *)currentOldest {
+- (void) fetchOlderDataFrom:(NSDate *)requestStart untilDate:(NSDate *)currentOldest {
     countBars = 0;
     
     [self setRequestNewestDate:[currentOldest dateByAddingTimeInterval:-86400]];   // avoid overlap
@@ -205,7 +173,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     [self fetch];   
 }
 
-- (void) getInitialData {
+- (void) fetchInitialData {
 
     // prefetch by a year for older requests
     [self setRequestNewestDate:[[NSDate date] earlierDate:[self.requestNewestDate dateByAddingTimeInterval:365*86400]]];
@@ -229,7 +197,18 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     return [result autorelease];
 }
 
-- (void)getIntradayQuote {
+- (BOOL) shouldFetchIntradayQuote {
+    
+    CGFloat secondsSinceNow = [self.nextClose timeIntervalSinceNow];
+        
+    if (secondsSinceNow < 23000. && secondsSinceNow > -3600) {
+        // current time in NYC is between 9:30am and 5pm of nextClose so only intraday data is available
+        return YES;
+    }
+    return NO;
+}
+
+- (void) fetchIntradayQuote {
 
     if (self.loadingData) {
         return;
@@ -240,9 +219,8 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     }
 
     self.loadingData = YES;
-    NSString *token = @"placeholderToken";
-    NSString *urlString = [NSString stringWithFormat:@"https://chartinsight.com/api/intraday/%@/%@",
-                           [self URLEncode:self.symbol], token];
+    NSString *urlString = [NSString stringWithFormat:@"https://chartinsight.com/api/intraday/%@?token=%s",
+                           [self URLEncode:self.symbol], API_KEY];
     
     NSURLSessionTask *task = [self.ephemeralSession
                               dataTaskWithURL:[NSURL URLWithString:urlString]
@@ -284,11 +262,16 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 
                     DLog(@" %ld %ld %ld %f %f %f %f", intradayBar.year, intradayBar.month, intradayBar.day, intradayBar.open, intradayBar.high, intradayBar.low, intradayBar.close);
 
-                    if (fabs(cArray[0].close - previousClose) > 0.02) {
-                        DLog(@"%@ previous close %f doesn't match %f", self.symbol, previousClose, cArray[0].close);
-                    }
+                    NSDate *lastSaleDate = [self dateFromBar:intradayBar];
                     
-                    [self.delegate performSelector:@selector(APILoadedIntraday:) withObject:self];
+                    if ([lastSaleDate compare:self.newestDateLoaded] == NSOrderedDescending) {
+                        NSLog(@"lastSaleDate %@ > %@ newestDateLoaded", lastSaleDate, self.newestDateLoaded);
+                        [self.delegate performSelector:@selector(APILoadedIntraday:) withObject:self];
+                    } else if (fabs(cArray[0].close - previousClose) > 0.02) {
+                        NSString *message = [NSString stringWithFormat:@"%@ previous close %f doesn't match %f", self.symbol, previousClose, cArray[0].close];
+                        [self.delegate performSelector:@selector(APIFailed:) withObject:message];
+                        // Intraday API uses IEX data and may not have newer
+                    }
                 }
             }
         }
@@ -320,6 +303,8 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     url = [url stringByAppendingFormat:@"-%ld", [compsEnd day]];
     
     DLog(@"%@", url);
+    url = [url stringByAppendingFormat:@"&token=%s", API_KEY];
+
     return [NSURL URLWithString:url];
 }
 
@@ -343,9 +328,9 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         [self setNewestDateLoaded:self.newestDate];
         DLog(@"%@ newest date loaded is now %@", self.symbol, self.newestDateLoaded);
         
-        [self setNextClose:[self.newestDate nextTradingDate:self.gregorian]];
-        if ([self.nextClose isTodayIntraday]) {
-            [self getIntradayQuote];
+        [self setNextClose:[self getNextTradingDateAfterDate:self.newestDate]];
+        if ([self shouldFetchIntradayQuote]) {
+            [self fetchIntradayQuote];
         }
     }
     [self.delegate performSelector:@selector(APILoadedHistoricalData:) withObject:self];
@@ -374,10 +359,10 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 - (NSInteger) loadSavedRows {
     
     NSInteger i, newestDateInDB, iOldestRequested, iNewestRequested, retVal = 0, barsInDB = 0;
-    oldestDateInSeq = 0;
+    NSInteger oldestDateInSeq = 0;        // will be oldest date cached in local db
 
-    iNewestRequested = [self.requestNewestDate formatDate:self.gregorian];
-    iOldestRequested = [self.requestOldestDate formatDate:self.gregorian];
+    iNewestRequested = [self getIntegerFormatForDate:self.requestNewestDate];
+    iOldestRequested = [self getIntegerFormatForDate:self.requestOldestDate];
     
     NSString *sqlOldest = [NSString stringWithFormat:@"SELECT MAX(CASE WHEN oldest = 1 THEN date ELSE 0 END), MAX(date), count(*) from history WHERE series = %ld AND date >= %ld AND date <= %ld", self.seriesId, iOldestRequested, iNewestRequested];
 
@@ -479,12 +464,12 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         countBars = barsFromDB;
             
         NSDate *newestDateSaved = [self dateFromBar:cArray[0]];
-        NSDate *nextTradingDate = [newestDateSaved nextTradingDate:self.gregorian];
+        NSDate *nextTradingDate = [self getNextTradingDateAfterDate:newestDateSaved];
+        [self setNextClose:nextTradingDate];
         
         // DLog(@"next trading date after newest date saved is %@ vs newest date requested %@", nextTradingDate, self.requestNewestDate);
        
-        if ([nextTradingDate isTodayIntraday] == NO
-            && [self.requestNewestDate timeIntervalSinceDate:nextTradingDate] >= 0.         // missing past trading date
+        if ([self.requestNewestDate timeIntervalSinceDate:nextTradingDate] >= 0.         // missing past trading date
             && [self.lastNoNewDataError timeIntervalSinceNow] < -60.
             && [nextTradingDate timeIntervalSinceDate:self.newestDateLoaded] > 0.) {     // after newest date loaded
 
@@ -599,6 +584,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     
     sqlite3_stmt *statement;
     
+    char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, high, low, close, adjClose, volume, oldest) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     sqlite3_prepare_v2(db, saveHistory, -1, &statement, NULL);
    
     // Split CSV using regex (which won't match header "date,open,high,low,close,volume"
@@ -626,7 +612,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
         //DLog(@"%@ %ld %ld %ld %ld %f %f %f %f %f %f", self.symbol, i, webBars[i].year, webBars[i].month, webBars[i].day, webBars[i].open, webBars[i].high, webBars[i].low, webBars[i].close, webBars[i].adjClose, webBars[i].volume);
         
         // Save data to DB for offline access
-        if (i > 0) {
+        if (i >= 0) { // often only the first bar with index = 0 needs to be saved to the DB
             sqlite3_bind_int64(statement, 1, self.seriesId);
             sqlite3_bind_int64(statement, 2, [self dateIntFromBar:webBars[i]]);        
             sqlite3_bind_text(statement, 3, [[self.csvString substringWithRange:[match rangeAtIndex:4]] UTF8String], -1, SQLITE_TRANSIENT);
@@ -666,7 +652,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
     NSInteger sqlnewestDate;
     
     if ([self.newestDateLoaded compare:[NSDate distantPast]] == NSOrderedDescending) {
-        sqlnewestDate = [self.newestDateLoaded formatDate:self.gregorian];
+        sqlnewestDate = [self getIntegerFormatForDate:self.newestDateLoaded];
     } else {
         sqlnewestDate = [self dateIntFromBar:cArray[0]];
     }
@@ -699,7 +685,7 @@ const char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, hi
 // called after 1000 bars are deleted
 - (void) adjustNewestDateLoadedTo:(NSDate *)adjustedDate {
     [self setNewestDateLoaded:adjustedDate];
-    [self setNextClose:[self.newestDateLoaded nextTradingDate:self.gregorian]];
+    [self setNextClose:[self getNextTradingDateAfterDate:self.newestDateLoaded]];
 }
 
 

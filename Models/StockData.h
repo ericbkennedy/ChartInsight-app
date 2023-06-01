@@ -86,4 +86,7 @@
 // Note this takes doubles even on 32 bit platforms because a double modulo function is used
 - (double) pxAlign:(double)raw alignTo:(double)alignTo;
 
+// Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
+- (void) invalidateAndCancel;
+
 @end

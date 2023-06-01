@@ -135,7 +135,6 @@
                 DLog(@"%@ statusCode %ld data.length %ld ", self.symbol, (long)statusCode, data.length);
                                 
                 NSString *csv = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                NSLog(@"%@", csv);
                 [self setResponseString:csv];
                 [csv release];
                 

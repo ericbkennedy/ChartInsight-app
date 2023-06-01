@@ -255,8 +255,9 @@
     [self.magnifier setHidden:YES];
     [self.view addSubview:self.magnifier];
 
-    [self setProgressIndicator:[[ProgressIndicator alloc] initWithFrame:CGRectMake(0, self.toolbarHeight, self.width, 4.)]];
-    [self.view addSubview:self.progressIndicator];
+    [self setProgressIndicator:[[ProgressIndicator alloc] initWithFrame:CGRectMake(0, 0, self.width, 4.)]];
+    // Add progressIndicator as subview of customNavigationToolbar to ensure placement below status bar
+    [self.customNavigationToolbar addSubview:self.progressIndicator];
     [self.progressIndicator.layer setZPosition:4];
     [self.progressIndicator setHidden:YES]; // until startAnimating is called
     [self.scc setProgressIndicator:self.progressIndicator];
@@ -294,7 +295,7 @@
     CGFloat combinedToolbarHeight = self.statusBarHeight + self.toolbarHeight;
 
     self.tableView.frame = CGRectMake(0, combinedToolbarHeight, 205, newSize.height - combinedToolbarHeight);
-    self.progressIndicator.frame = CGRectMake(0, self.toolbarHeight, self.width, 4);
+    self.progressIndicator.frame = CGRectMake(0, 0, self.width, 4); // relative to parent customNavigationToolbar
     self.scc.layer.position = CGPointMake(self.scc.layer.position.x, combinedToolbarHeight);
     
     [self.tableView reloadData];

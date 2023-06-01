@@ -123,11 +123,20 @@
     self.chartBase = [[[NSDecimalNumber alloc] initWithDouble:(volumeBase - volumeHeight/2 - sparklineHeight)] autorelease];
 }
 
-- (void)dealloc {
+// Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
+- (void)invalidateAndCancel {
+    // fundamentalAPI uses the sharedSession so don't invalidate it
     [self.fundamentalAPI setDelegate:nil];
-    [_fundamentalAPI release];
+    [self.fundamentalAPI release];
+    self.fundamentalAPI = nil; // will trigger dealloc on fundamentalAPI
+    [self.api invalidateAndCancel];
     [self.api setDelegate:nil];
     [self.api release];
+    self.api = nil;
+}
+
+- (void)dealloc {
+    DLog(@"%@ is being deallocated", self.series.symbol);
     self.delegate = nil;
     // don't release memory I didn't alloc in StockData, like the gregorian calendar
     
@@ -228,7 +237,7 @@
 
     [self setFundamentalAPI:nil];
 
-    [self.api getInitialData];
+    [self.api fetchInitialData];
 
     if ([self.series fundamentalList].length > 4) {
         [self.delegate performSelector:@selector(showProgressIndicator)];
@@ -455,18 +464,18 @@
             
    //     NSDate *requestStart = [[self.series startDate] laterDate:[self.oldest dateByAddingTimeInterval:MAX(365,screenBarWidth)* barUnit *-86400]];
                                     
-        [self.api getOlderDataFrom:self.series.startDate untilDate:self.oldest];
+        [self.api fetchOlderDataFrom:self.series.startDate untilDate:self.oldest];
 
     } else if (0 == newestBarShown) {
         
-        if ([self.api.nextClose isTodayIntraday]) {
+        if ([self.api shouldFetchIntradayQuote]) {
             busy = YES;
-            [self.api getIntradayQuote];
+            [self.api fetchIntradayQuote];
 
         } else if ([self.api.nextClose compare:[NSDate date]] == NSOrderedAscending) { // next close is in the past
             busy = YES;            
             [self.delegate performSelectorOnMainThread:@selector(showProgressIndicator) withObject:nil waitUntilDone:NO];
-            [self.api getNewerThanDate:[self newest] screenBarWidth:screenBarWidth];
+            [self.api fetchNewerThanDate:[self newest] screenBarWidth:screenBarWidth];
         }
     }
     
@@ -533,6 +542,7 @@
 
 -(void) APIFailed:(NSString *)message {
     busy = NO;
+    DLog(@"%@", message);
     [self.delegate performSelectorOnMainThread:@selector(requestFailedWithMessage:) withObject:message waitUntilDone:NO];
 }
 

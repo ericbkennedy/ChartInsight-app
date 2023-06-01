@@ -4,14 +4,6 @@ typedef struct CBarData {
     double open, high, low, close, adjClose, volume, movingAvg1, movingAvg2, mbb, stdev, splitRatio;
 } BarStruct;
 
-// NSDate category
-@interface NSDate (DataAPI)
-- (NSInteger) formatDate:(NSCalendar *)calendar;
-- (BOOL) isHoliday:(NSCalendar *)calendar;
-- (BOOL) isTodayIntraday;
-- (NSDate *) nextTradingDate:(NSCalendar *)calendar;
-@end
-
 @class DataAPI;
 
 @interface DataAPI : NSObject {
@@ -39,14 +31,16 @@ typedef struct CBarData {
 
 - (NSInteger) maxBars;
 
-- (void) getInitialData;
+- (void) fetchInitialData;
 
-- (void) getIntradayQuote;
+- (BOOL) shouldFetchIntradayQuote;
+
+- (void) fetchIntradayQuote;
 
 // StockData sets requestStart to avoid requesting dates prior to IPO
-- (void) getOlderDataFrom:(NSDate *)requestStart untilDate:(NSDate *)currentOldest;
+- (void) fetchOlderDataFrom:(NSDate *)requestStart untilDate:(NSDate *)currentOldest;
 
-- (void) getNewerThanDate:(NSDate *)currentNewest screenBarWidth:(NSInteger)screenBarWidth;
+- (void) fetchNewerThanDate:(NSDate *)currentNewest screenBarWidth:(NSInteger)screenBarWidth;
 
 - (BarStruct *) getCBarData;
 
@@ -56,6 +50,9 @@ typedef struct CBarData {
 
 // called after 1000 bars are deleted
 - (void) adjustNewestDateLoadedTo:(NSDate *)adjustedDate;
+
+// called by StockData when a stock is removed or the chart is cleared before switching stocks
+- (void) invalidateAndCancel;
 
 - (NSString *)URLEncode:(NSString *)string;     // called by stock data for infoForPressedBar
 
