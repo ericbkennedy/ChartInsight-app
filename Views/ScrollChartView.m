@@ -1,5 +1,5 @@
 #import <CoreText/CoreText.h>
-#import "ScrollChartController.h"
+#import "ScrollChartView.h"
 #import "ChartInsight-Swift.h" // for BigNumberFormatter
 #import "CIAppDelegate.h"
 #import "StockData.h"
@@ -16,7 +16,7 @@ const CGFloat redMetric[4] = {1., .0, .0, .8};  // needs to be brighter than gre
 
 const CGFloat dashPatern[2] =  {1.0,  3.0};
 
-@interface ScrollChartController () <CAAnimationDelegate> {
+@interface ScrollChartView () <CAAnimationDelegate> {
     CGLayerRef    layerRef;
     CGContextRef  layerContext;
     NSInteger     pressedBarIndex;   // need to track the index so we can compare against the total number of bars
@@ -30,7 +30,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 @property (strong, nonatomic) NSDate          *lastNetworkErrorShown;
 @end
 
-@implementation ScrollChartController
+@implementation ScrollChartView
 
 - (void) dealloc {
     
@@ -507,7 +507,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
     
     NSDecimalNumber *sparkHeight = [[[NSDecimalNumber alloc] initWithDouble:(90)] autorelease];
-    double qWidth = xFactor * 60;   // use SCC xFactor to avoid having to divide by barUnit
+    double qWidth = xFactor * 60;   // use xFactor to avoid having to divide by barUnit
   
     double h = 0., yNegativeAdjustment = 0., y = [sparkHeight doubleValue], yLabel = 20;
     
@@ -655,7 +655,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     
     CGFloat newXfactor = xFactor * newScale;
         
-    // Keep scc.xFactor and scc.barUnit separate and multiply them together for StockData.xFactor
+    // Keep xFactor and barUnit separate and multiply them together for StockData.xFactor
     
     if (newXfactor < 1.) {
         barUnit = 19.;              // switch to monthly

@@ -2,9 +2,9 @@
 #import "Comparison.h"
 #import "ProgressIndicator.h"
 
-@class ScrollChartController;
+@class ScrollChartView;
 
-@interface ScrollChartController : UIView {
+@interface ScrollChartView : UIView {
     @public
     CGFloat         xFactor, svWidth, pxWidth, barUnit, svHeight, maxWidth, scaledWidth, pxHeight;
     BOOL            showDotGrips;

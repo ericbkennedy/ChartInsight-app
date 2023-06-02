@@ -902,8 +902,9 @@
         
         NSDecimalNumber *reportValue;
         
-        // Only SCC can calculate min and max values across multiple stocks in a comparison
-        // SCC will also calculate the labels, so keep the NSDecimalNumber originals and just calculate quarter-end x values
+        // Only ScrollChartView can calculate min and max values across multiple stocks in a comparison.
+        // ScrollChartView will also calculate the labels, so keep the NSDecimalNumber originals and
+        // just calculate quarter-end x values.
         
         // Use NSMutableArray to preserve the order 
         // book value must be handled separately because we DO need to calculate the min and max values and use those on the main chart

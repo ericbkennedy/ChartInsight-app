@@ -1,9 +1,9 @@
 #import "CIAppDelegate.h"
 #import "RootViewController.h"
-#import "ScrollChartController.h"
+#import "ScrollChartView.h"
 #import "ChartOptionsController.h"
 #import "FindSeriesController.h"
-#import "MoveDB.h"
+#import "ChartInsight-Swift.h" // for DBUpdater
 
 @interface RootViewController ()
 
@@ -32,11 +32,11 @@
 
 @property (strong, nonatomic) NSDateComponents *days;
 
-@property (strong, nonatomic) ScrollChartController *scc;
+@property (strong, nonatomic) ScrollChartView *scc;
 
 @property (strong, nonatomic) NSMutableArray *list;     // stocks from comparison table
 
-@property (strong, nonatomic) NSMutableString *dbPath;
+@property (strong, nonatomic) NSString *dbPath;
 
 @property (strong, nonatomic) NSDictionary *infoForPressedBar;
 
@@ -194,12 +194,12 @@
 }
 
 - (void)viewDidLoad {
-    MoveDB *move = [[[MoveDB alloc] init] autorelease];
-    [move moveDBforDelegate:self];                      // copy db to documents or check existing db
+    DBUpdater *updater = [[DBUpdater alloc] init];
+    [updater moveDBToDocumentsForDelegate:self];                      // copy db to documents and/or update existing db
     
     [super viewDidLoad];
     
-    [self resizeFrameToSize:self.view.frame.size]; //[UIScreen mainScreen].bounds.size];
+    [self resizeFrameToSize:self.view.frame.size];
     self.edgesForExtendedLayout = UIRectEdgeNone;
     self.extendedLayoutIncludesOpaqueBars = NO;
 
@@ -219,7 +219,7 @@
     
     // There's a toolbar above the tableView and a tabBar below so reduce height by 2 * self.toolbarHeight
     self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, self.toolbarHeight + self.statusBarHeight,
-                                                                    205, self.height - 2 * self.toolbarHeight)
+                                                                    205, self.height) // set by resizeFrameToSize:
                                                    style:UITableViewStylePlain] autorelease];
         
     if (@available(iOS 13, *)) {
@@ -236,7 +236,7 @@
 	[self.view addSubview:self.tableView];
     [self.view sendSubviewToBack:self.tableView];
     
-    [self setScc:[[ScrollChartController alloc] init]];
+    [self setScc:[[ScrollChartView alloc] init]];
     [self.scc.layer setAnchorPoint:CGPointMake(0., 0.)];                      // allows bounds = frame
     [self.scc.layer setPosition:CGPointMake(self.leftGap, CGRectGetMaxY(self.customNavigationToolbar.frame))];  // ipad menu bar
     [self.scc setBounds:CGRectMake(0, 0, self.width, self.height)];
@@ -588,7 +588,7 @@
     }
 }
 
-// the only purpose of this recognizer is to prevent selecting cells behing the CALayer ScrollChartController
+// the only purpose of this recognizer is to prevent selecting cells behing the CALayer ScrollChartView
 - (void)singleTap:(UITapGestureRecognizer *)recognizer {
     
     CGPoint point = [recognizer locationInView:self.view];
@@ -801,8 +801,8 @@
 } 
 
 - (void) dbMoved:(NSString *)newPath {
-
-	[self setDbPath:(NSMutableString *)newPath];
+    DLog(@"Moved to %@", newPath);
+	[self setDbPath:newPath];
     [self reloadList:nil];
 }
 
