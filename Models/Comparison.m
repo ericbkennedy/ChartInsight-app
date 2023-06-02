@@ -19,8 +19,6 @@
         for (Series *s in self.seriesList) {
             [s release];
         }
-        // TODO: fix this, it keeps crashing for some reason
-    //    [self.seriesList release];
     }
     [super dealloc];
 }

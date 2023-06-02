@@ -1,6 +1,6 @@
 #import <CoreText/CoreText.h>
 #import "ScrollChartController.h"
-#import "BigNumberFormatter.h"
+#import "ChartInsight-Swift.h" // for BigNumberFormatter
 #import "CIAppDelegate.h"
 #import "StockData.h"
 #import "FundamentalAPI.h"
@@ -587,12 +587,11 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     CGContextFillRect(layerContext, CGRectMake(stock->fundamentalAlignments[r], y, -qWidth, -h));
                                         
                     if (barUnit < 5. && stocksWithFundamentals == 1) {     // don't show labels for monthly or comparison charts
-                        label = [self.numberFormatter formatFinancial:reportValue withXfactor:xFactor];
+                        label = [self.numberFormatter stringFromNumber:reportValue maxDigits:2*xFactor];
                         CGContextSetBlendMode(layerContext, kCGBlendModePlusLighter);
                     
                         labelPosition.x = stock->fundamentalAlignments[r] - 11.5 * label.length - 10;
                         [self showString:label atPoint:CGPointMake(labelPosition.x, labelPosition.y) withColor:metricColor];
-//                        CGContextShowTextAtPoint(layerContext, labelPosition.x, labelPosition.y, label.UTF8String, label.length);
                     }
                 }                
             }

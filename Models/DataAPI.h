@@ -27,7 +27,7 @@ typedef struct CBarData {
 @property (strong, nonatomic) NSDateFormatter *dateFormatter;
 @property (strong, nonatomic) NSCalendar *gregorian;
 
-- (id) init;
+- (instancetype) init;
 
 - (NSInteger) maxBars;
 

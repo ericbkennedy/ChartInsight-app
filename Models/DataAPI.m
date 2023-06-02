@@ -12,6 +12,7 @@ const char *API_KEY = "placeholderToken";
 @property (nonatomic, copy) NSString *csvString;
 @property (strong, nonatomic) NSURLSession *ephemeralSession;   // skip web cache since sqlite caches price data
 @property (nonatomic, assign) BOOL loadingData;
+@property (strong, nonatomic) NSDate *lastIntradayFetch;
 @property (strong, nonatomic) NSDate *lastOfflineError;
 @property (strong, nonatomic) NSDate *lastNoNewDataError;       // set when a 404 occurs on a request for newer data
 @property (strong, nonatomic) NSDate *newestDateLoaded;         // rule out newer gaps by tracking the newest date loaded
@@ -29,9 +30,10 @@ const char *API_KEY = "placeholderToken";
     return 10000;    // Supports 50 years of price data (though API limits price data to 2009 start of XML fundamentals)
 }
 
--(id) init {
+- (instancetype)init {
     self = [super init];
     
+    self.lastIntradayFetch = [NSDate dateWithTimeIntervalSinceReferenceDate:0];
     // NOTE: this should really be the max that we would request at any one time, since stockData.barData is separate memory
     cArray = (BarStruct *)malloc(sizeof(BarStruct)*[self maxBars]);
     
@@ -199,9 +201,10 @@ const char *API_KEY = "placeholderToken";
 
 - (BOOL) shouldFetchIntradayQuote {
     
-    CGFloat secondsSinceNow = [self.nextClose timeIntervalSinceNow];
-        
-    if (secondsSinceNow < 23000. && secondsSinceNow > -3600) {
+    CGFloat secondsSinceNow = [self.nextClose timeIntervalSinceNow];    
+    CGFloat secondsSinceLastFetch = [self.lastIntradayFetch timeIntervalSinceNow];
+
+    if (secondsSinceLastFetch < -60 && secondsSinceNow < 23000. && secondsSinceNow > -3600) {
         // current time in NYC is between 9:30am and 5pm of nextClose so only intraday data is available
         return YES;
     }
@@ -267,6 +270,7 @@ const char *API_KEY = "placeholderToken";
                     if ([lastSaleDate compare:self.newestDateLoaded] == NSOrderedDescending) {
                         NSLog(@"lastSaleDate %@ > %@ newestDateLoaded", lastSaleDate, self.newestDateLoaded);
                         [self.delegate performSelector:@selector(APILoadedIntraday:) withObject:self];
+                        self.lastIntradayFetch = [NSDate date];
                     } else if (fabs(cArray[0].close - previousClose) > 0.02) {
                         NSString *message = [NSString stringWithFormat:@"%@ previous close %f doesn't match %f", self.symbol, previousClose, cArray[0].close];
                         [self.delegate performSelector:@selector(APIFailed:) withObject:message];

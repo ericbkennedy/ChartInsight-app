@@ -20,11 +20,6 @@
 
 @implementation CIAppDelegate
 
-- (void)dealloc {
-    [_window release];
-    [super dealloc];
-}
-
 - (void)nightModeOn:(BOOL)on
 {
     if (on) {

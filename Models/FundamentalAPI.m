@@ -10,7 +10,7 @@
 
 @implementation FundamentalAPI 
 
-- (id) init {
+- (instancetype) init {
     self = [super init];
     self.reportTypes = 0;
     
@@ -131,9 +131,6 @@
                 [self.delegate performSelector:@selector(APIFailed:) withObject:@"404 response"];
 
             } else if (statusCode == 200 && data && data.length > 10) {
-                
-                DLog(@"%@ statusCode %ld data.length %ld ", self.symbol, (long)statusCode, data.length);
-                                
                 NSString *csv = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                 [self setResponseString:csv];
                 [csv release];

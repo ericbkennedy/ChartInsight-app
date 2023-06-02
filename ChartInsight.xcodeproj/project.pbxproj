@@ -21,7 +21,6 @@
 		0B42BC241C420C2F00139C33 /* Comparison.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC161C420C2F00139C33 /* Comparison.m */; };
 		0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC191C420C2F00139C33 /* FundamentalAPI.m */; };
 		0B42BC261C420C2F00139C33 /* Series.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC1D1C420C2F00139C33 /* Series.m */; };
-		0B42BC271C420C2F00139C33 /* BigNumberFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC1F1C420C2F00139C33 /* BigNumberFormatter.m */; };
 		0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC281C420C4700139C33 /* CIAppDelegate.m */; };
 		0B42BC331C420C8100139C33 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */; };
 		0B42BC351C420C8100139C33 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC2F1C420C8100139C33 /* main.m */; };
@@ -32,7 +31,20 @@
 		0BB7F521183C31B90040F1C6 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F520183C31B90040F1C6 /* Foundation.framework */; };
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
+		80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */; };
+		80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */; };
+		80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		80D5B9EC2A294F2100314733 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0BB7F515183C31B90040F1C6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0BB7F51C183C31B90040F1C6;
+			remoteInfo = ChartInsight;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		0B1BD558183C351100EE97D1 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -60,8 +72,6 @@
 		0B42BC1B1C420C2F00139C33 /* DataAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DataAPI.h; path = Models/DataAPI.h; sourceTree = SOURCE_ROOT; };
 		0B42BC1C1C420C2F00139C33 /* Series.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Series.h; path = Models/Series.h; sourceTree = SOURCE_ROOT; };
 		0B42BC1D1C420C2F00139C33 /* Series.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Series.m; path = Models/Series.m; sourceTree = SOURCE_ROOT; };
-		0B42BC1E1C420C2F00139C33 /* BigNumberFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BigNumberFormatter.h; path = Models/BigNumberFormatter.h; sourceTree = SOURCE_ROOT; };
-		0B42BC1F1C420C2F00139C33 /* BigNumberFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BigNumberFormatter.m; path = Models/BigNumberFormatter.m; sourceTree = SOURCE_ROOT; };
 		0B42BC201C420C2F00139C33 /* MoveDB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveDB.h; path = Models/MoveDB.h; sourceTree = SOURCE_ROOT; };
 		0B42BC281C420C4700139C33 /* CIAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CIAppDelegate.m; sourceTree = SOURCE_ROOT; };
 		0B42BC291C420C4700139C33 /* CIAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CIAppDelegate.h; sourceTree = SOURCE_ROOT; };
@@ -79,6 +89,11 @@
 		0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Bridging-Header.h"; sourceTree = "<group>"; };
+		80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigNumberFormatter.swift; sourceTree = "<group>"; };
+		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartInsightTests.swift; sourceTree = "<group>"; };
+		80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigNumberFormatterTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +106,13 @@
 				0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */,
 				0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */,
 				0BB7F521183C31B90040F1C6 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		80D5B9E52A294F2100314733 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,10 +163,9 @@
 				0B42BC191C420C2F00139C33 /* FundamentalAPI.m */,
 				0B42BC1C1C420C2F00139C33 /* Series.h */,
 				0B42BC1D1C420C2F00139C33 /* Series.m */,
-				0B42BC1E1C420C2F00139C33 /* BigNumberFormatter.h */,
-				0B42BC1F1C420C2F00139C33 /* BigNumberFormatter.m */,
 				0B42BC201C420C2F00139C33 /* MoveDB.h */,
 				0B42BC131C420C2F00139C33 /* MoveDB.m */,
+				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
 			);
 			name = Models;
 			path = ChartInsight/Models;
@@ -154,12 +175,14 @@
 			isa = PBXGroup;
 			children = (
 				0B42BC381C420CB600139C33 /* Images.xcassets */,
+				80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */,
 				0B42BC291C420C4700139C33 /* CIAppDelegate.h */,
 				0B42BC281C420C4700139C33 /* CIAppDelegate.m */,
 				0B16DB4329BC1C2B00FCA714 /* Data */,
 				0B1BD527183C33B800EE97D1 /* Controllers */,
 				0B1BD540183C33C300EE97D1 /* Models */,
 				0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */,
+				80D5B9E92A294F2100314733 /* Tests */,
 				0B42BC2F1C420C8100139C33 /* main.m */,
 				0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */,
 				0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */,
@@ -172,6 +195,7 @@
 			isa = PBXGroup;
 			children = (
 				0BB7F51D183C31B90040F1C6 /* ChartInsight.app */,
+				80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -187,6 +211,15 @@
 				0BB7F539183C31B90040F1C6 /* XCTest.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		80D5B9E92A294F2100314733 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */,
+				80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -209,6 +242,24 @@
 			productReference = 0BB7F51D183C31B90040F1C6 /* ChartInsight.app */;
 			productType = "com.apple.product-type.application";
 		};
+		80D5B9E72A294F2100314733 /* ChartInsightTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 80D5B9EE2A294F2100314733 /* Build configuration list for PBXNativeTarget "ChartInsightTests" */;
+			buildPhases = (
+				80D5B9E42A294F2100314733 /* Sources */,
+				80D5B9E52A294F2100314733 /* Frameworks */,
+				80D5B9E62A294F2100314733 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				80D5B9ED2A294F2100314733 /* PBXTargetDependency */,
+			);
+			name = ChartInsightTests;
+			productName = ChartInsightTests;
+			productReference = 80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -217,11 +268,17 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				CLASSPREFIX = CI;
+				LastSwiftUpdateCheck = 1430;
 				LastUpgradeCheck = 1430;
 				ORGANIZATIONNAME = "Chart Insight LLC";
 				TargetAttributes = {
 					0BB7F51C183C31B90040F1C6 = {
+						LastSwiftMigration = 1430;
 						ProvisioningStyle = Automatic;
+					};
+					80D5B9E72A294F2100314733 = {
+						CreatedOnToolsVersion = 14.3;
+						TestTargetID = 0BB7F51C183C31B90040F1C6;
 					};
 				};
 			};
@@ -239,6 +296,7 @@
 			projectRoot = "";
 			targets = (
 				0BB7F51C183C31B90040F1C6 /* ChartInsight */,
+				80D5B9E72A294F2100314733 /* ChartInsightTests */,
 			);
 		};
 /* End PBXProject section */
@@ -255,6 +313,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		80D5B9E62A294F2100314733 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -268,11 +333,11 @@
 				0B42BC221C420C2F00139C33 /* StockData.m in Sources */,
 				0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */,
 				0B42BC0B1C420BE500139C33 /* FindSeriesController.m in Sources */,
+				80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */,
 				0B42BC211C420C2F00139C33 /* MoveDB.m in Sources */,
 				0B42BC241C420C2F00139C33 /* Comparison.m in Sources */,
 				0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */,
 				0B56776C1CE90E70009F02D4 /* SettingsViewController.m in Sources */,
-				0B42BC271C420C2F00139C33 /* BigNumberFormatter.m in Sources */,
 				0B42BC351C420C8100139C33 /* main.m in Sources */,
 				0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */,
 				0B42BC0C1C420BE500139C33 /* ProgressIndicator.m in Sources */,
@@ -281,7 +346,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		80D5B9E42A294F2100314733 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
+				80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		80D5B9ED2A294F2100314733 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0BB7F51C183C31B90040F1C6 /* ChartInsight */;
+			targetProxy = 80D5B9EC2A294F2100314733 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0BB7F547183C31B90040F1C6 /* Debug */ = {
@@ -387,6 +469,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer: Eric Kennedy (873B425HPH)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -400,6 +483,9 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "ChartInsight-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				WRAPPER_EXTENSION = app;
 			};
@@ -409,6 +495,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer: Eric Kennedy (873B425HPH)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -422,8 +509,81 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "ChartInsight-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+		80D5B9EF2A294F2100314733 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = KGH5A5RXPH;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight.ChartInsightTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ChartInsight.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ChartInsight";
+			};
+			name = Debug;
+		};
+		80D5B9F02A294F2100314733 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = KGH5A5RXPH;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight.ChartInsightTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ChartInsight.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ChartInsight";
 			};
 			name = Release;
 		};
@@ -444,6 +604,15 @@
 			buildConfigurations = (
 				0BB7F54A183C31B90040F1C6 /* Debug */,
 				0BB7F54B183C31B90040F1C6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		80D5B9EE2A294F2100314733 /* Build configuration list for PBXNativeTarget "ChartInsightTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80D5B9EF2A294F2100314733 /* Debug */,
+				80D5B9F02A294F2100314733 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

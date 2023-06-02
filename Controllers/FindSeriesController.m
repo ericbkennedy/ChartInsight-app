@@ -13,7 +13,7 @@
     [self.searchBar setFrame:CGRectMake(0., 0., self.tableView.bounds.size.width, 44.)];
 }
 
-- (id)initWithStyle:(UITableViewStyle)style {
+- (instancetype)initWithStyle:(UITableViewStyle)style {
 
     self = [super initWithStyle:style];
     self.searchBar = [[UISearchBar alloc] initWithFrame:CGRectMake(0., 0., self.tableView.bounds.size.width, 44.)];
@@ -28,11 +28,11 @@
     return self;
 }
 
--(void) viewWillAppear:(BOOL)animated {
+- (void)viewWillAppear:(BOOL)animated {
     [self.searchBar becomeFirstResponder];
 }
 
-- (void) viewWillDisappear:(BOOL)animated {
+- (void)viewWillDisappear:(BOOL)animated {
     [self.searchBar resignFirstResponder];
 }
 
@@ -92,8 +92,7 @@
 	}	
 }
 
-- (void)seriesFound:(NSArray *)seriesList {    
-    [seriesList retain];
+- (void)seriesFound:(NSArray *)seriesList {
     [self.list removeAllObjects];
     
 	if ([seriesList count] > 0) {
@@ -107,8 +106,6 @@
 	
 	if (self.list.count > indexPath.row) {
 		 NSMutableArray *seriesList = [self.list objectAtIndex:indexPath.row];
-            
-        [seriesList retain];     // only thing retaining it so far is the list returned by FCC which will be released
 
         // A "No matches" placeholder with symbol="" will appear for ETFs or foriegn stocks. Ignore clicks on that
         if ([seriesList.firstObject isKindOfClass:NSClassFromString(@"Series")]) {

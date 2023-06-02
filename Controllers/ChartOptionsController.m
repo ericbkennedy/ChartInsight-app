@@ -26,7 +26,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 @end
 @implementation ChartOptionsController
 
-- (id) initWithStyle:(UITableViewStyle)style {
+- (instancetype) initWithStyle:(UITableViewStyle)style {
     self = [super initWithStyle:style];
     if (self != nil) {
         fundamentalControlRow = -1;
@@ -313,15 +313,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     for (NSString *key in self.sparklineKeys) {
         [self setListedMetricKeyString:[self.listedMetricKeyString stringByAppendingFormat:@"%@,", key]];
     }
-    
-    if (self.series->hasFundamentals == 1) {
-        
-        
-        [self setListedMetricKeyString:[self.listedMetricKeyString stringByReplacingOccurrencesOfString:@"CostOfSales" withString:@""]];
-        [self setListedMetricKeyString:[self.listedMetricKeyString stringByReplacingOccurrencesOfString:@"ResearchAndDevelopmentExpenses" withString:@""]];
-        [self setListedMetricKeyString:[self.listedMetricKeyString stringByReplacingOccurrencesOfString:@"SellingGeneralAndAdministrativeExpenses" withString:@""]];
-        [self setListedMetricKeyString:[self.listedMetricKeyString stringByReplacingOccurrencesOfString:@"TangibleBookValuePerShare" withString:@""]];
-    }    
     
     [self setListedMetricKeyString:[self.listedMetricKeyString stringByAppendingString:self.series.fundamentalList]];
     
