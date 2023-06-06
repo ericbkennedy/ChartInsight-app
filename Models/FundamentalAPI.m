@@ -89,21 +89,14 @@
     return -1;
 }
 
-- (NSDecimalNumber *) valueForReport:(NSInteger)r withKey:(NSString *)key {
+- (nullable NSDecimalNumber *) valueForReport:(NSInteger)r withKey:(NSString *)key {
     
-    NSMutableArray *array = [self.columns objectForKey:key];
+    NSArray *array = [self.columns objectForKey:key];
     if (r < array.count) {
         return [array objectAtIndex:r];        
     }
     return nil;
 }
-
-
-- (void) dealloc {
-    self.delegate = nil;
-    [super dealloc];
-}
-
 
 - (void) getFundamentalsForSeries:(Series *)series withDelegate:(id)caller {
     

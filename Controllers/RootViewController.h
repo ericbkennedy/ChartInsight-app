@@ -3,9 +3,11 @@
 
 @interface RootViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
 
-@property (strong, nonatomic) NSCalendar *gregorian;
+NS_ASSUME_NONNULL_BEGIN
+
+@property (nonatomic, strong) NSCalendar *gregorian;
 @property (nonatomic, strong) ProgressIndicator	*progressIndicator;
-@property (nonatomic, strong) UIImageView                    *magnifier;        // AppDelegate will hide on suspend
+@property (nonatomic, strong) UIImageView *magnifier;   // CIAppDelegate will hide on suspend
 
 // SettingsViewController will call reloadWhenVisible after a stock comparison is deleted
 // so this controller can reload the tableView when the user switches back to this tab
@@ -27,6 +29,7 @@
 // called by FindSeriesController when a new stock is added
 - (void) insertSeries:(NSMutableArray *)newSeriesList;
 
+NS_ASSUME_NONNULL_END
 @end
 
 

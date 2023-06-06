@@ -1,8 +1,8 @@
 
 @interface ProgressIndicator : UIView
 
-@property (nonatomic, strong) UIProgressView	*progressView;
-@property (nonatomic, strong) NSTimer           *timer;
+@property (nonatomic, strong, nonnull) UIProgressView *progressView;
+@property (nonatomic, strong, nullable) NSTimer *timer;
 @property (nonatomic) double                    activeDownloads;   // 1000 x active requests
 @property (nonatomic) double                    progressNumerator;        // divide by active downloads to get value of progressIndicator
 

@@ -101,7 +101,7 @@
     self.tabBarController.selectedIndex = 0;
 }
 
-- (NSString *) titleForKey:(NSString *)key {
+- (nullable NSString *) titleForKey:(NSString *)key {
     
     NSArray *item = [self.metricKeys objectForKey:key];    
     if (item != nil) {
@@ -110,7 +110,7 @@
     return nil;
 }
 
-- (NSString *) descriptionForKey:(NSString *)key {
+- (nullable NSString *) descriptionForKey:(NSString *)key {
     NSArray *item = [self.metricKeys objectForKey:key];    
     if (item != nil) {
         return [item objectAtIndex:2];

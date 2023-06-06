@@ -11,18 +11,6 @@
     return self;
 }
 
-- (void) dealloc {
-   // DLog(@"dealloc comparison %d", self.id);
-    
-    if (self.seriesList != nil) {
-        
-        for (Series *s in self.seriesList) {
-            [s release];
-        }
-    }
-    [super dealloc];
-}
-
 + (NSMutableArray *) listAll:(NSString *)myDbPath {
         
     typedef NS_ENUM(NSInteger, ListAllColumnIndex) {
@@ -41,7 +29,7 @@
     sqlite3 *db;
     
     if (sqlite3_open_v2([myDbPath UTF8String], &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
-        return nil;
+        return [NSMutableArray array];  // To avoid optionals, return an empty array instead of nil
     }
         
 	sqlite3_stmt *statement;
@@ -254,20 +242,6 @@
     return [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] metrics];
 }
 
-- (BOOL) showDialGrips {
-    NSInteger daysAgo = 0;
-    if (self.seriesList.count > 1) {
-        for (Series *series in self.seriesList) {
-            if (series->daysAgo > 0 || series->daysAgo != daysAgo) {
-                return YES;
-            } else {
-                daysAgo = series->daysAgo;
-            }
-        }
-    }
-    return NO;
-}
-
 // Count of superset of all keys for all subcharts excluding book value per share, which is an overlay
 - (NSArray *) sparklineKeys {
 
@@ -297,7 +271,7 @@
     [self setMaxForKey:[NSMutableDictionary new]];
 }
 
-- (void) updateMinMaxForKey:(NSString *)key withValue:(NSDecimalNumber *)reportValue {
+- (void) updateMinMaxForKey:(nullable NSString *)key withValue:(nullable NSDecimalNumber *)reportValue {
     if (reportValue != nil && [reportValue isEqualToNumber:[NSDecimalNumber notANumber]] == NO) {
         if ([self.minForKey objectForKey:key] == nil || [[self.minForKey objectForKey:key] isEqualToNumber:[NSDecimalNumber notANumber]]) {            
             if ([reportValue compare:[NSDecimalNumber zero]] == NSOrderedAscending) {
@@ -320,18 +294,18 @@
     }
 }
 
-- (NSDecimalNumber *) rangeForKey:(NSString *)key {
+- (nonnull NSDecimalNumber *) rangeForKey:(nullable NSString *)key {
     if ([self.minForKey objectForKey:key] == nil) {
         return [NSDecimalNumber notANumber];
     }
     return [[self.maxForKey objectForKey:key] decimalNumberBySubtracting:[self.minForKey objectForKey:key]];
 }
     
-- (NSDecimalNumber *) minForKey:(NSString *)key {
+- (nullable NSDecimalNumber *) minForKey:(nullable NSString *)key {
     return [self.minForKey objectForKey:key];
 }
 
-- (NSDecimalNumber *) maxForKey:(NSString *)key {
+- (nullable NSDecimalNumber *) maxForKey:(nullable NSString *)key {
     return [self.maxForKey objectForKey:key];
 }
 

@@ -3,11 +3,6 @@
 
 @implementation FindSeriesController
 
-- (void)dealloc {
-    _delegate = nil;
-    [super dealloc];
-}
-
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
     [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
     [self.searchBar setFrame:CGRectMake(0., 0., self.tableView.bounds.size.width, 44.)];

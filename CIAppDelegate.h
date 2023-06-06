@@ -7,19 +7,20 @@
 //
 
 #import <UIKit/UIKit.h>
+NS_ASSUME_NONNULL_BEGIN
 
 @interface CIAppDelegate : UIResponder <UIApplicationDelegate>
 
 @property (strong, nonatomic) UIWindow *window;
 
-@property (strong, nonatomic) NSArray *chartTypes;
-@property (strong, nonatomic) NSMutableArray *colors;
+@property (strong, nonatomic) NSArray<NSString *> *chartTypes;
+@property (strong, nonatomic) NSMutableArray<NSString *> *colors;
 
-- (NSArray *) metrics;
+- (nonnull NSArray *) metrics;
 
-- (NSString *) titleForKey:(NSString *)key;
+- (nullable NSString *) titleForKey:(nonnull NSString *)key;
 
-- (NSString *) descriptionForKey:(NSString *)key;
+- (nullable NSString *) descriptionForKey:(nonnull NSString *)key;
 
 - (BOOL) nightBackground;
 
@@ -27,4 +28,5 @@
 
 - (void)showFavoritesTab;
 
+NS_ASSUME_NONNULL_END
 @end

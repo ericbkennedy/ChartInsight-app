@@ -63,13 +63,6 @@
 
 @implementation RootViewController
 
-- (void)dealloc {
-    [_list removeAllObjects];
-    [_list release];
-    [_gregorian release];
-    [super dealloc];
-}
-
 - (BOOL)shouldAutorotate {
     return YES;
 }
@@ -116,7 +109,6 @@
     [ctc setSparklineKeys:[self.scc.comparison sparklineKeys]];
     [ctc setSeries:series];
     [ctc setDelegate:self];
-    [ctc setGregorian:self.gregorian];
   
     [self popoverPush:ctc fromButton:sender];
 }

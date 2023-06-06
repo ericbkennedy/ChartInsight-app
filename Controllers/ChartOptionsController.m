@@ -11,11 +11,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 @property (strong, nonatomic) UIColor *color;
 @property (strong, nonatomic) UIColor *upColor;
 @property (strong, nonatomic) UIButton *defaultsButton;
-@property (strong, nonatomic) UIBarButtonItem *saveButton;  // appears only when the date picker is open
+@property (strong, nonatomic) UIBarButtonItem *doneButton;
 @property (strong, nonatomic) NSArray *sections;
 @property (nonatomic, copy) NSString *fundamentalDescription;
-@property (strong, nonatomic) NSDateComponents *days;
-@property (strong, nonatomic) UIDatePicker *datePicker; 
 @property (strong, nonatomic) UISegmentedControl *typeSegmentedControl;
 @property (strong, nonatomic) UISegmentedControl *colorSegmentedControl;
 @property (strong, nonatomic) UIButton *tapWhenFinished;
@@ -39,19 +37,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         [self.dateFormatter setTimeStyle:NSDateFormatterNoStyle];
     }
     return self;
-}
-
-- (void)dealloc {	
-    _delegate = nil;
-    [_saveButton release];
-    [_colorSegmentedControl release];
-    [_typeSegmentedControl release];
-    [_dateFormatter release];
-	[_days release];
-    if (_datePicker != nil) {
-        [_datePicker release];
-    }
-	[super dealloc];
 }
 
 - (NSArray *) metrics {
@@ -325,9 +310,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
 	[self setSections:@[@"", @"Color", @"Financials", @"Technicals", @""]];
     
-    // Show the saveButton even on the iPad to reassure people that the values will be saved
-    self.saveButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(saveAndClose)];
-    [self.saveButton setStyle:UIBarButtonItemStylePlain];
+    // Show the doneButton even on the iPad to reassure people that the values will be saved
+    self.doneButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(saveAndClose)];
+    [self.doneButton setStyle:UIBarButtonItemStylePlain];
     
     NSMutableArray *segments = [NSMutableArray array];
     for (NSInteger i = 0; i < [[ChartOptionsController chartTypes] count]; i++) {
@@ -356,9 +341,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         
     [self renderColorSegments];
     
-    [self setDays:[[NSDateComponents alloc] init]];
-
-    self.navigationItem.leftBarButtonItem = self.saveButton;
+    self.navigationItem.leftBarButtonItem = self.doneButton;
     
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(deleteStock)];
     
@@ -618,24 +601,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     [self.defaultsButton setTitle:@"Default Chart Settings Saved" forState:UIControlStateNormal];
 }
 
-- (void) dateChanged:(id)sender {
-    
-	NSIndexPath *indexPath = [self.tableView indexPathForSelectedRow];
-    
-    [self setDays:[self.gregorian components:NSCalendarUnitDay fromDate:self.datePicker.date toDate:[NSDate date] options:0]];
-    
-    NSInteger daysAgo = [self.days day];
-    
-    if (daysAgo < 0) {
-        daysAgo = 0;    // prevent future dates
-    }
-    
-    self.series->daysAgo = daysAgo;
-    
-	UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:indexPath];
-	cell.detailTextLabel.text = [self.dateFormatter stringFromDate:self.datePicker.date];
-}
-
 - (void) chartTypeChanged:(id) sender {
     
     self.series->chartType = [self.typeSegmentedControl selectedSegmentIndex];
@@ -674,7 +639,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 
 - (void) hidePicker {
     [self.tableView reloadData];
-    [self.datePicker removeFromSuperview];
     [self.tapWhenFinished removeFromSuperview];
     self.tapWhenFinished.hidden = YES;
     self.tableView.scrollEnabled = YES;

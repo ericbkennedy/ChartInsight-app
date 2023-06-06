@@ -22,12 +22,12 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     NSInteger     pressedBarIndex;   // need to track the index so we can compare against the total number of bars
     StockData     *pressedBarStock;  // track full stock object not just symbol so we can check if monthly or weekly
 }
-@property (strong, nonatomic) NSMutableArray    *stocks;
-@property (strong, nonatomic) NSDecimalNumber   *chartPercentChange;
+@property (strong, nonatomic) NSMutableArray<StockData *> *stocks;
+@property (strong, nonatomic) NSDecimalNumber *chartPercentChange;
 @property (strong, nonatomic) NSDecimalNumberHandler *roundDown;
 @property (strong, nonatomic) BigNumberFormatter *numberFormatter;
-@property (strong, nonatomic) NSArray             *sparklineKeys;
-@property (strong, nonatomic) NSDate          *lastNetworkErrorShown;
+@property (strong, nonatomic) NSArray<NSString *> *sparklineKeys;
+@property (strong, nonatomic) NSDate *lastNetworkErrorShown;
 @end
 
 @implementation ScrollChartView

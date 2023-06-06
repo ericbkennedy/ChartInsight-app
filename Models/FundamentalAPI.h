@@ -16,25 +16,27 @@
 @class Series; // forward declare to avoid circular header inclusion
 
 @interface FundamentalAPI : NSObject
+NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) NSInteger reportTypes;                        // width of reportValues multidimensional array
 @property (nonatomic, assign) NSInteger oldestReportInView;
 @property (nonatomic, assign) NSInteger newestReportInView;
 @property (nonatomic, assign) NSInteger seriesId;
-@property (nonatomic, assign) id delegate;
-@property (strong, nonatomic) NSMutableArray *year;
-@property (strong, nonatomic) NSMutableArray *month;
-@property (strong, nonatomic) NSMutableArray *day;
-@property (strong, nonatomic) NSMutableArray *quarter;
-@property (strong, nonatomic) NSMutableArray *barAlignments;
-@property (strong, nonatomic) NSMutableDictionary *columns;
+@property (nonatomic, assign, nullable) id delegate;
+@property (strong, nonatomic) NSMutableArray<NSNumber *> *year;
+@property (strong, nonatomic) NSMutableArray<NSNumber *> *month;
+@property (strong, nonatomic) NSMutableArray<NSNumber *> *day;
+@property (strong, nonatomic) NSMutableArray<NSNumber *> *quarter;
+@property (strong, nonatomic) NSMutableArray<NSNumber *> *barAlignments;
+@property (strong, nonatomic) NSMutableDictionary<NSString *, NSArray *> *columns;
 
 - (void) getFundamentalsForSeries:(Series *)series withDelegate:(id)caller;
 
 /* Returns nil if no reports for this key */
-- (NSDecimalNumber *) valueForReport:(NSInteger)r withKey:(NSString *)key;
+- (nullable NSDecimalNumber *) valueForReport:(NSInteger)r withKey:(NSString *)key;
 
 - (void) setBarAlignment:(NSInteger)b forReport:(NSInteger)r;
 
 - (NSInteger) barAlignmentForReport:(NSInteger)r;
 
+NS_ASSUME_NONNULL_END
 @end
