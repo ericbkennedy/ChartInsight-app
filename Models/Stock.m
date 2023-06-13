@@ -1,23 +1,23 @@
-#import "Series.h"
+#import "Stock.h"
 #include <CoreGraphics/CGColor.h>
 #import "CIAppDelegate.h"
 #import "sqlite3.h"
 
-@implementation Series
+@implementation Stock
 
 - (void) setColor:(CGColorRef)c {
-    color = c;
-    colorHalfAlpha = CGColorCreateCopyWithAlpha(c, .5);
+    _color = c;
+    _colorHalfAlpha = CGColorCreateCopyWithAlpha(c, .5);
 }
 
 - (void) setUpColor:(CGColorRef)uc {
-    upColor = uc;
-    upColorHalfAlpha = CGColorCreateCopyWithAlpha(uc, .5);
+    _upColor = uc;
+    _upColorHalfAlpha = CGColorCreateCopyWithAlpha(uc, .5);
     
     CGFloat *components = malloc(sizeof(CGFloat) * 4);
     CGFloat *darkComponents = malloc(sizeof(CGFloat) * 4);
     
-    memcpy(components, CGColorGetComponents(upColor), sizeof(CGFloat) * 4);
+    memcpy(components, CGColorGetComponents(_upColor), sizeof(CGFloat) * 4);
     
     for (NSInteger i = 0; i < 3; i++) {
 
@@ -30,12 +30,12 @@
     
     CGColorSpaceRef deviceRGB = CGColorSpaceCreateDeviceRGB();
     
-    colorInverse = CGColorCreate(deviceRGB, components);
+    _colorInverse = CGColorCreate(deviceRGB, components);
 
     darkComponents[3] = 0.5;
-    upColorDarkHalfAlpha = CGColorCreate(deviceRGB, darkComponents);
+    _upColorDarkHalfAlpha = CGColorCreate(deviceRGB, darkComponents);
     
-    colorInverseHalfAlpha = CGColorCreateCopyWithAlpha(colorInverse, .75);
+    _colorInverseHalfAlpha = CGColorCreateCopyWithAlpha(_colorInverse, .75);
     CGColorSpaceRelease(deviceRGB);
 }
 
@@ -57,10 +57,10 @@
     CGColorRef colorRef = CGColorCreate(deviceRGB, components);
     [self setColor:colorRef];
     [self setUpColor:colorRef];
-    // don't release colorRef because it isn't a retainable object; only call CGColorRelease when series is dealloc'ed
+    // don't release colorRef because it isn't a retainable object; only call CGColorRelease when stock is dealloc'ed
     CGColorSpaceRelease(deviceRGB);
     
-    if (chartType < 3) {
+    if (self.chartType < 3) {
         if (r == 0 && b == 0) {
             [self setColor:[UIColor redColor].CGColor];
         }
@@ -76,7 +76,7 @@
 }
 
 - (NSString *) hexFromColor {
-    return [self hexFromColor:upColor];
+    return [self hexFromColor:self.upColor];
 }
 
 - (NSString *) hexFromColor:(CGColorRef)color {
@@ -145,13 +145,13 @@
  //   DLog(@"technicalList is now %@", self.technicalList);
 }
 
-- (Series *) init {
+- (Stock *) init {
     self = [super init];
-    self->id = 0;
-    self->comparisonSeriesId = 0;
-    self->hasFundamentals = 0;
-    self->daysAgo = 0;
-    self->chartType = 2; // Candle
+    self.id = 0;
+    self.comparisonStockId = 0;
+    self.hasFundamentals = 0;
+    self.daysAgo = 0;
+    self.chartType = 2; // Candle
     [self setFundamentalList:@""];
     [self setTechnicalList:@""];
     return self;
@@ -164,8 +164,9 @@
    [self setStartDate:[dateFromString laterDate:[NSDate dateWithTimeIntervalSinceReferenceDate:23328000]]];
 }
 
-// returns an NSMutableArray of NSMutableArrays containing 1 stock each
-+ (NSMutableArray *) findSymbol:(NSString *)search inDB:(sqlite3 *)db {
+/// Find stock name or symbol containing search string in DB.
+/// findStock wraps this method in order to split the user's search text into words if no exact matches occur
++ (NSArray<Stock *> *) findSymbol:(NSString *)search inDB:(sqlite3 *)db {
     
    // DLog(@"running findSymbol %@", search);
     
@@ -193,7 +194,7 @@
     
     NSMutableArray *list = [NSMutableArray arrayWithCapacity:10];	
     
-    NSInteger retVal = sqlite3_prepare_v2(db, "SELECT rowid,symbol,name,startDate,hasFundamentals,offsets(series) FROM series WHERE series MATCH ? ORDER BY offsets(series) ASC LIMIT 50", -1, &statement, NULL);
+    NSInteger retVal = sqlite3_prepare_v2(db, "SELECT rowid,symbol,name,startDate,hasFundamentals,offsets(stock) FROM stock WHERE stock MATCH ? ORDER BY offsets(stock) ASC LIMIT 50", -1, &statement, NULL);
 	
     if (retVal == SQLITE_OK) {
             
@@ -201,39 +202,38 @@
             
         while(sqlite3_step(statement) == SQLITE_ROW) {
                 
-            Series *newSeries = [[self alloc] init];
+            Stock *stock = [[self alloc] init];
             
-            newSeries->id = sqlite3_column_int(statement, 0);
-            [newSeries setSymbol:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 1)]];
-            [newSeries setName:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 2)]];
-            
-            // DLog(@"%@ has matchinfo %@", newSeries.symbol,[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 5)] );
+            stock.id = sqlite3_column_int(statement, 0);
+            stock.symbol = [NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 1)];
+            stock.name = [NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 2)];
             
             // Faster search results UI if string to date conversion happens after user selects the stock
-            [newSeries setStartDateString:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 3)]];
-            newSeries->chartType = chartTypeDefault;
-            newSeries->hasFundamentals = sqlite3_column_int(statement, 4);
+            [stock setStartDateString:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, 3)]];
+            stock.chartType = chartTypeDefault;
+            stock.hasFundamentals = sqlite3_column_int(statement, 4);
             
-            if (newSeries->hasFundamentals == 2) {
-                    [newSeries setFundamentalList:fundamentalDefaults];
-            } else if (newSeries->hasFundamentals == 1) {
+            if (stock.hasFundamentals == 2) {
+                    [stock setFundamentalList:fundamentalDefaults];
+            } else if (stock.hasFundamentals == 1) {
                     // Bank fundamentals (loans, etc.) are not supported by chartinsight.com
             }
             
-            [newSeries setTechnicalList:technicalDefaults];
+            [stock setTechnicalList:technicalDefaults];
                 
-            [list addObject:[NSMutableArray arrayWithObject:newSeries]];
-            [newSeries release];
+            [list addObject:stock];
+            [stock release];
         }            
 
     } else {
-     //   DLog(@"DB findSeries error %s", sqlite3_errmsg(db));
+     //   DLog(@"DB findStock error %s", sqlite3_errmsg(db));
     }
     sqlite3_finalize(statement);
     return list;
 }
 
-+ (NSMutableArray *) findSeries:(NSString *)str {
+/// Split the user's search text into words and calls findSymbol:inDB: to query for matches
++ (NSArray<Stock *> *) findStock:(NSString *)str {
     
     NSMutableArray *list = [NSMutableArray arrayWithCapacity:50];
     NSMutableArray *exactMatches = [NSMutableArray arrayWithCapacity:3];
@@ -241,7 +241,7 @@
     sqlite3 *db;
     sqlite3_open_v2([[NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()] UTF8String], &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, NULL);
     
-    [list addObjectsFromArray:[Series findSymbol:str inDB:db]];
+    [list addObjectsFromArray:[Stock findSymbol:str inDB:db]];
     
     if (list.count == 0) {  // split into separate searches
         for (NSString *term in [str componentsSeparatedByString:@" "]) {
@@ -255,13 +255,13 @@
                 middleTerm = YES;
             }
             
-            NSMutableArray *found = [NSMutableArray arrayWithArray:[Series findSymbol:term inDB:db]];
+            NSMutableArray *found = [NSMutableArray arrayWithArray:[Stock findSymbol:term inDB:db]];
             
             [list removeAllObjects];
             [list addObjectsFromArray:found];
             
             if (found.count > 0) {
-                Series *s = [[found objectAtIndex:0] objectAtIndex:0]; 
+                Stock *s = [[found objectAtIndex:0] objectAtIndex:0]; 
                 
                 if (found.count == 1 || middleTerm) {    // save this exact match for the next term                
 
@@ -271,8 +271,8 @@
                 if (exactMatches.count > 0) {
                     for (NSMutableArray *array in list) {
                         for (NSInteger i = 0; i < exactMatches.count; i++) {
-                            Series *match = [exactMatches objectAtIndex:i];
-                            if (match->id != s->id) {
+                            Stock *match = [exactMatches objectAtIndex:i];
+                            if (match.id != s.id) {
                                 [array insertObject:match atIndex:i];      // insert best matches at front
                             }
                         }                       
@@ -287,11 +287,10 @@
     sqlite3_close(db);
       
     if (list.count == 0) {            
-        Series *newSeries = [[self alloc] init];
-        [newSeries setSymbol:@""];
-        [newSeries setName:@"No matches with supported fundamentals"];
-        [list addObject:[NSMutableArray arrayWithObject:newSeries]];
-        [newSeries release]; 
+        Stock *stock = [[self alloc] init];
+        stock.symbol = @"";
+        stock.name = @"No matches with supported fundamentals";
+        [list addObject:stock];
     }
     return list;
 }

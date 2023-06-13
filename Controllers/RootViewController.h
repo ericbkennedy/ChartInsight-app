@@ -13,21 +13,21 @@ NS_ASSUME_NONNULL_BEGIN
 // so this controller can reload the tableView when the user switches back to this tab
 - (void) reloadWhenVisible;
 
-- (void) reloadWithSeries:(Series *)series;
+- (void) reloadWithStock:(Stock *)stock;
 
 // called by ChartOptionsController when chart color or type changes
-- (void) redrawWithSeries:(Series *)series;
+- (void) redrawWithStock:(Stock *)stock;
 
 // remove the topmost iPhone UIViewController or iPad UIPopoverController
 - (void) popContainer;
 
-- (void) deleteSeries:(NSInteger)sender;
+- (void) deleteStock:(NSInteger)sender;
 
 // callback after the db is moved from the bundle or upgraded
 - (void) dbMoved:(NSString *)newPath;
 
-// called by FindSeriesController when a new stock is added
-- (void) insertSeries:(NSMutableArray *)newSeriesList;
+/// called by AddStockController when a new stock is added
+- (void) insertStock:(Stock *)stock;
 
 NS_ASSUME_NONNULL_END
 @end

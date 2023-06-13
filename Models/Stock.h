@@ -1,21 +1,20 @@
 
-@class Series;
+@class Stock;
 
-@interface Series : NSObject {
-    @public
-    NSInteger id;
-    NSInteger chartType;
-    NSInteger daysAgo;
-    NSInteger comparisonSeriesId;
-    NSInteger hasFundamentals;
-    CGColorRef color;
-    CGColorRef colorHalfAlpha;
-    CGColorRef colorInverse;
-    CGColorRef colorInverseHalfAlpha;
-    CGColorRef upColor;
-    CGColorRef upColorDarkHalfAlpha;
-    CGColorRef upColorHalfAlpha;
-}
+@interface Stock : NSObject
+
+@property (nonatomic) NSInteger id;
+@property (nonatomic) NSInteger chartType;
+@property (nonatomic) NSInteger daysAgo;
+@property (nonatomic) NSInteger comparisonStockId;
+@property (nonatomic) NSInteger hasFundamentals;
+@property (nonatomic) CGColorRef color;
+@property (nonatomic) CGColorRef colorHalfAlpha;
+@property (nonatomic) CGColorRef colorInverse;
+@property (nonatomic) CGColorRef colorInverseHalfAlpha;
+@property (nonatomic) CGColorRef upColor;
+@property (nonatomic) CGColorRef upColorDarkHalfAlpha;
+@property (nonatomic) CGColorRef upColorHalfAlpha;
 @property (nonatomic, copy) NSString *symbol;
 @property (nonatomic, copy) NSString *name;
 @property (nonatomic, copy) NSString *fundamentalList;
@@ -24,7 +23,7 @@
 @property (nonatomic, copy) NSDate *startDate;
 
 
- + (NSMutableArray *) findSeries:(NSString *)search;
++ (NSArray<Stock *> *) findStock:(NSString *)search;
 
 - (void) addToFundamentals:(NSString *)type;
 - (void) addToTechnicals:(NSString *)type;

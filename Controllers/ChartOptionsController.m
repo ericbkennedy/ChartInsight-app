@@ -242,9 +242,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     for (NSInteger i = 0; i < colorList.count; i++) {
         thisUpColor = [colorList objectAtIndex:i];
         
-        [self.colorSegmentedControl insertSegmentWithImage:[self imageForChartType:self.series->chartType andColor:i showLabel:NO] atIndex:i animated:NO];
+        [self.colorSegmentedControl insertSegmentWithImage:[self imageForChartType:self.stock.chartType andColor:i showLabel:NO] atIndex:i animated:NO];
 
-        if ([self.series matchesColor:thisUpColor]) {
+        if ([self.stock matchesColor:thisUpColor]) {
             [self.colorSegmentedControl setSelectedSegmentIndex: i];
         }
     }
@@ -270,7 +270,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             if ([self.listedMetricKeyString rangeOfString:key].length > 0) {
                 [self.listedMetricKeys addObject:key];
                 
-                if ([self.series.fundamentalList rangeOfString:key].length > 0) {
+                if ([self.stock.fundamentalList rangeOfString:key].length > 0) {
                     [self.listedMetricValues addObject:[NSDecimalNumber one]];
                 } else {
                     [self.listedMetricValues addObject:[NSDecimalNumber zero]];
@@ -283,8 +283,8 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    [self setColor:[UIColor colorWithCGColor:self.series->color]];
-    [self setUpColor:[UIColor colorWithCGColor:self.series->upColor]];
+    [self setColor:[UIColor colorWithCGColor:self.stock.color]];
+    [self setUpColor:[UIColor colorWithCGColor:self.stock.upColor]];
     
     if (@available(iOS 13, *)) {
         self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
@@ -294,19 +294,19 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         self.tableView.backgroundColor = self.view.backgroundColor;
     }
     
-    // Add metrics from other chart in the series
+    // Add metrics from other chart in the comparison set
     for (NSString *key in self.sparklineKeys) {
         [self setListedMetricKeyString:[self.listedMetricKeyString stringByAppendingFormat:@"%@,", key]];
     }
     
-    [self setListedMetricKeyString:[self.listedMetricKeyString stringByAppendingString:self.series.fundamentalList]];
+    [self setListedMetricKeyString:[self.listedMetricKeyString stringByAppendingString:self.stock.fundamentalList]];
     
     [self updateListedMetrics];
 
     [self setTapWhenFinished:[[UIButton alloc] init]];
     [self.tapWhenFinished setHidden:YES];
     
-    self.title = [NSString stringWithFormat:@"%@ Chart Options", self.series.symbol];
+    self.title = [NSString stringWithFormat:@"%@ Chart Options", self.stock.symbol];
     
 	[self setSections:@[@"", @"Color", @"Financials", @"Technicals", @""]];
     
@@ -334,7 +334,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         [self.colorSegmentedControl setTintColor:[UIColor lightGrayColor]];
     }
     
-    [self.typeSegmentedControl setSelectedSegmentIndex:self.series->chartType];
+    [self.typeSegmentedControl setSelectedSegmentIndex:self.stock.chartType];
     [self.typeSegmentedControl setNeedsDisplay]; // fixes initial issue with incorrect divider image
     
     [self.colorSegmentedControl addTarget:self action:@selector(chartColorChanged:) forControlEvents:UIControlEventValueChanged];
@@ -350,13 +350,13 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 
 - (void) deleteStock {
 
-    [self.delegate performSelector:@selector(deleteSeries:) withObject:self.series];
+    [self.delegate performSelector:@selector(deleteStock:) withObject:self.stock];
 }
 
 - (void) saveAndClose {
     
     if (self.tapWhenFinished.hidden == NO) {
-         [[self delegate] performSelector:@selector(reloadWithSeries:) withObject:self.series]; 
+         [self.delegate performSelector:@selector(reloadWithStock:) withObject:self.stock];
     }
     [self.delegate performSelector:@selector(popContainer)];
 }
@@ -373,7 +373,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         
     switch (section) {
         case 2: 
-            if (self.series->hasFundamentals > 0) {
+            if (self.stock.hasFundamentals > 0) {
                 NSInteger fundamentalRows = [self.listedMetricKeys count];    // should be a count
                 //  && UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad
                 if (10 > fundamentalRows) {
@@ -409,16 +409,16 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             type = @"bollingerBand220";    break;
     }
 
-    if ([[self.series technicalList] rangeOfString:type].length > 0) {
+    if ([[self.stock technicalList] rangeOfString:type].length > 0) {
         onOff.on = NO;
-        [self.series removeFromTechnicals:type];
+        [self.stock removeFromTechnicals:type];
     } else {
         onOff.on = YES;
-        [self.series addToTechnicals:type];
+        [self.stock addToTechnicals:type];
     }
     
     [self.tableView reloadData];    
-    [[self delegate] performSelector:@selector(redrawWithSeries:) withObject:self.series];
+    [self.delegate performSelector:@selector(redrawWithStock:) withObject:self.stock];
 }
 
 - (void) fundamentalToggled:(id)sender {
@@ -432,23 +432,23 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
     NSString *key = [self.listedMetricKeys objectAtIndex:tag];
         
-    if ([[self.series fundamentalList] rangeOfString:key].length > 0) {
+    if ([[self.stock fundamentalList] rangeOfString:key].length > 0) {
         [self.listedMetricValues replaceObjectAtIndex:tag withObject:[NSDecimalNumber zero]];
         onOff.on = NO;
-        [self.series removeFromFundamentals:key];           // remove has immediate impact
+        [self.stock removeFromFundamentals:key];           // remove has immediate impact
 
     } else {    // add requires call to server
         onOff.on = YES;
         [self.listedMetricValues replaceObjectAtIndex:tag withObject:[NSDecimalNumber one]];
-        [self.series addToFundamentals:key];
+        [self.stock addToFundamentals:key];
     }
     [self.tableView reloadData];
-    [[self delegate] performSelector:@selector(reloadWithSeries:) withObject:self.series];    
+    [self.delegate performSelector:@selector(reloadWithStock:) withObject:self.stock];
 }
 
 - (void) addedFundamental:(NSString *)key {
 
-    [self.series addToFundamentals:key];
+    [self.stock addToFundamentals:key];
     [self.listedMetricKeys removeAllObjects];
     [self.listedMetricValues removeAllObjects];
     
@@ -456,7 +456,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     [self updateListedMetrics];
 
     [[self tableView] reloadData];
-    [[self delegate] performSelector:@selector(reloadWithSeries:) withObject:self.series];
+    [self.delegate performSelector:@selector(reloadWithStock:) withObject:self.stock];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)table cellForRowAtIndexPath:(NSIndexPath *)rawIndexPath {
@@ -486,7 +486,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 
     } else if (section == 2) {
         
-        if (self.series->hasFundamentals > 0) {
+        if (self.stock.hasFundamentals > 0) {
             
             if (fundamentalControlRow > 0) {
                 if (fundamentalControlRow == row) {
@@ -511,16 +511,16 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
                 NSString *key = [self.listedMetricKeys objectAtIndex:row];
             
                 if ([key isEqualToString:@"BookValuePerShare"]) {
-                    [[cell imageView] setImage:[self imageForOverlayType:BOOK_OVERLAY andColor:self.series->upColorHalfAlpha]];
+                    [[cell imageView] setImage:[self imageForOverlayType:BOOK_OVERLAY andColor:self.stock.upColorHalfAlpha]];
                 } else {
-                    [[cell imageView] setImage:[self imageForOverlayType:SAWTOOTH andColor:self.series->upColorHalfAlpha]];
+                    [[cell imageView] setImage:[self imageForOverlayType:SAWTOOTH andColor:self.stock.upColorHalfAlpha]];
                 }
             
                 cell.textLabel.text = [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
                 
                 if ([[self.listedMetricValues objectAtIndex:row] isEqualToNumber:[NSDecimalNumber one]]) {
                     onOff.on = YES;
-                    cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.series->upColor];
+                    cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.stock.upColor];
                 }
             } else {
                 cell.textLabel.text = @"        Add Financial Metric";
@@ -531,7 +531,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             }
 
         } else {
-            cell.textLabel.text = [NSString stringWithFormat:@"None available for %@", self.series.symbol];
+            cell.textLabel.text = [NSString stringWithFormat:@"None available for %@", self.stock.symbol];
         }
         
     } else if (section == 3) {
@@ -545,30 +545,30 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         if (row == 0) {            
             cell.textLabel.text = @"50 Simple Moving Avg";
             
-            [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.series->colorInverseHalfAlpha]];
+            [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.stock.colorInverseHalfAlpha]];
             
-            if ([[self.series technicalList] rangeOfString:@"sma50"].length > 0) {
+            if ([[self.stock technicalList] rangeOfString:@"sma50"].length > 0) {
                 onOff.on = YES;
-                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.series->upColor];
+                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.stock.upColor];
             }
         } else if (row == 1) {
             
-            [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.series->upColorHalfAlpha]];
+            [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.stock.upColorHalfAlpha]];
             
             cell.textLabel.text = @"200 Simple Moving Avg";
             
-            if ([[self.series technicalList] rangeOfString:@"sma200"].length > 0) {
+            if ([[self.stock technicalList] rangeOfString:@"sma200"].length > 0) {
                 onOff.on = YES;
-                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.series->upColor];
+                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.stock.upColor];
             }
         } else if (row == 2) {
-            [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.series->upColorHalfAlpha]];
+            [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.stock.upColorHalfAlpha]];
             
             cell.textLabel.text = @"Bollinger Bands 2, 20";
             
-            if ([[self.series technicalList] rangeOfString:@"bollingerBand220"].length > 0) {
+            if ([[self.stock technicalList] rangeOfString:@"bollingerBand220"].length > 0) {
                 onOff.on = YES;
-                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.series->upColor];
+                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.stock.upColor];
             }
         }
         
@@ -593,9 +593,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 
 - (void) updateDefaults {
 
-    [[NSUserDefaults standardUserDefaults] setInteger:self.series->chartType forKey:@"chartTypeDefault"];
-    [[NSUserDefaults standardUserDefaults] setValue:self.series.technicalList forKey:@"technicalDefaults"];
-    [[NSUserDefaults standardUserDefaults] setValue:self.series.fundamentalList forKey:@"fundamentalDefaults"];
+    [[NSUserDefaults standardUserDefaults] setInteger:self.stock.chartType forKey:@"chartTypeDefault"];
+    [[NSUserDefaults standardUserDefaults] setValue:self.stock.technicalList forKey:@"technicalDefaults"];
+    [[NSUserDefaults standardUserDefaults] setValue:self.stock.fundamentalList forKey:@"fundamentalDefaults"];
     
     [self.defaultsButton setTitleColor:[UIColor darkTextColor] forState:UIControlStateNormal];
     [self.defaultsButton setTitle:@"Default Chart Settings Saved" forState:UIControlStateNormal];
@@ -603,10 +603,10 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 
 - (void) chartTypeChanged:(id) sender {
     
-    self.series->chartType = [self.typeSegmentedControl selectedSegmentIndex];
+    self.stock.chartType = [self.typeSegmentedControl selectedSegmentIndex];
     [self renderColorSegments];
     [self.tableView reloadData]; 
-    [[self delegate] performSelector:@selector(redrawWithSeries:) withObject:self.series];
+    [self.delegate performSelector:@selector(redrawWithStock:) withObject:self.stock];
 }
 
 - (void) chartColorChanged:(id) sender {
@@ -623,11 +623,11 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         [self setColor:[colorList objectAtIndex:selectedIndex]];
     }
     
-    [self.series setColor:[self.color CGColor]];
-    [self.series setUpColor:[self.upColor CGColor]];
+    [self.stock setColor:[self.color CGColor]];
+    [self.stock setUpColor:[self.upColor CGColor]];
     [self.tableView reloadData];    // changes color for fundamental overlay
     
-    [[self delegate] performSelector:@selector(redrawWithSeries:) withObject:self.series]; 
+    [self.delegate performSelector:@selector(redrawWithStock:) withObject:self.stock];
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -642,7 +642,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     [self.tapWhenFinished removeFromSuperview];
     self.tapWhenFinished.hidden = YES;
     self.tableView.scrollEnabled = YES;
-    [[self delegate] performSelector:@selector(reloadWithSeries:) withObject:self.series];
+    [self.delegate performSelector:@selector(reloadWithStock:) withObject:self.stock];
 }
 
 - (void)tableView:(UITableView *)table didSelectRowAtIndexPath:(NSIndexPath *)rawIndexPath {
@@ -719,7 +719,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             NSString *key = [type objectAtIndex:0];
             if ([self.listedMetricKeyString rangeOfString:key].length == 0) {      // skip already listed ones
                 
-                if (self.series->hasFundamentals == 2 || ([key isEqualToString:@"CostOfSales"] == NO 
+                if (self.stock.hasFundamentals == 2 || ([key isEqualToString:@"CostOfSales"] == NO
                         && [key isEqualToString:@"ResearchAndDevelopmentExpenses"] == NO 
                         && [key isEqualToString:@"SellingGeneralAndAdministrativeExpenses"] == NO
                         && [key isEqualToString:@"TangibleBookValuePerShare"] == NO)) {

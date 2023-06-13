@@ -1,12 +1,12 @@
 NS_ASSUME_NONNULL_BEGIN
 
-@class Series; // forward declare to avoid circular header inclusion
+@class Stock; // forward declare to avoid circular header inclusion
 
 @class Comparison;
 
 @interface Comparison : NSObject
 @property (nonatomic) NSInteger id;
-@property (strong, nonatomic) NSMutableArray<Series *> *seriesList;
+@property (strong, nonatomic) NSMutableArray<Stock *> *stockList;
 @property (strong, nonatomic) NSString *title;
 @property (strong, nonatomic) NSMutableDictionary<NSString *, NSDecimalNumber *> *minForKey;
 @property (strong, nonatomic) NSMutableDictionary<NSString *, NSDecimalNumber *> *maxForKey;
@@ -15,11 +15,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void) saveToDb;
 
-- (void) deleteFromDb;      // deletes comparison row and all comparisonSeries rows
+- (void) deleteFromDb;      // deletes comparison row and all comparisonStock rows
 
-- (void) deleteSeries:(Series *)s;
+- (void) deleteStock:(Stock *)s;
 
-- (void) deleteComparisonSeriesAtIndex:(NSInteger)index;
+// EK: unused? - (void) deleteComparisonStockAtIndex:(NSInteger)index;
 
 - (NSArray *) chartTypes; // array referenced from CIAppDelegate but this makes lookups cleaner
 

@@ -1,13 +1,13 @@
 #import "CIAppDelegate.h"
 #import "Comparison.h"
-#import "Series.h"
+#import "Stock.h"
 #import "sqlite3.h"
 
 @implementation Comparison
 
 - (instancetype) init {
     self = [super init];
-    [self setSeriesList:[NSMutableArray arrayWithCapacity:4]];
+    [self setStockList:[NSMutableArray arrayWithCapacity:4]];
     return self;
 }
 
@@ -15,8 +15,8 @@
         
     typedef NS_ENUM(NSInteger, ListAllColumnIndex) {
         ListAllColumnComparisonId,
-        ListAllColumnComparisonSeriesId,
-        ListAllColumnSeriesId,
+        ListAllColumnComparisonStockId,
+        ListAllColumnStockId,
         ListAllColumnSymbol,
         ListAllColumnStartDate,
         ListAllColumnHasFundamentals,
@@ -34,13 +34,13 @@
         
 	sqlite3_stmt *statement;
     
-    if (sqlite3_prepare_v2(db, "SELECT K.rowid, CS.rowid, seriesId, symbol, startDate, hasFundamentals, chartType, daysAgo, color, fundamentals, technicals FROM comparison K JOIN comparisonSeries CS on K.rowid = CS.comparisonId JOIN series ON series.rowid = seriesId ORDER BY K.rowid, CS.rowId", -1, &statement, NULL) != SQLITE_OK)
+    if (sqlite3_prepare_v2(db, "SELECT K.rowid, CS.rowid, stockId, symbol, startDate, hasFundamentals, chartType, daysAgo, color, fundamentals, technicals FROM comparison K JOIN comparisonStock CS on K.rowid = CS.comparisonId JOIN stock ON stock.rowid = stockId ORDER BY K.rowid, CS.rowId", -1, &statement, NULL) != SQLITE_OK)
     {
         DLog(@"new SQL failed");
     }
 	
     NSMutableArray *list = [NSMutableArray arrayWithCapacity:25];	
-    Series *series;
+    Stock *stock;
     Comparison *comparison;
     NSInteger lastComparisonId = 0;
     NSString *title = @"";
@@ -59,43 +59,43 @@
            // DLog(@"allocating existing series id %d", lastComparisonId);
         }
         
-        series = [[Series alloc] init];         
-        series->comparisonSeriesId = sqlite3_column_int(statement, ListAllColumnComparisonSeriesId);
-        series->id = sqlite3_column_int(statement, ListAllColumnSeriesId);
+        stock = [[Stock alloc] init];
+        stock.comparisonStockId = sqlite3_column_int(statement, ListAllColumnComparisonStockId);
+        stock.id = sqlite3_column_int(statement, ListAllColumnStockId);
                               
-        [series setSymbol:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, ListAllColumnSymbol)]];
+        [stock setSymbol:[NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, ListAllColumnSymbol)]];
         
-       // DLog(@"symbol is %@", [series symbol]);
+       // DLog(@"symbol is %@", [stock symbol]);
         
-        title = [title stringByAppendingFormat:@"%@ ", series.symbol];
+        title = [title stringByAppendingFormat:@"%@ ", stock.symbol];
 
-        series.startDateString = [NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, ListAllColumnStartDate)];
+        stock.startDateString = [NSString stringWithUTF8String:(const char *) sqlite3_column_text(statement, ListAllColumnStartDate)];
         // startDateString will be converted to NSDate by [StockData init] as price data is loaded
         
-        series->hasFundamentals = sqlite3_column_int(statement, ListAllColumnHasFundamentals);
+        stock.hasFundamentals = sqlite3_column_int(statement, ListAllColumnHasFundamentals);
         
-        series->chartType = sqlite3_column_int(statement, ListAllColumnChartType);
-        series->daysAgo = sqlite3_column_int(statement, ListAllColumnDaysAgo);
+        stock.chartType = sqlite3_column_int(statement, ListAllColumnChartType);
+        stock.daysAgo = sqlite3_column_int(statement, ListAllColumnDaysAgo);
         
         if (sqlite3_column_bytes(statement, ListAllColumnColor) > 2) {
-            [series setColorWithHexString:[NSString stringWithUTF8String:(const char *)sqlite3_column_text(statement, ListAllColumnColor)]];
+            [stock setColorWithHexString:[NSString stringWithUTF8String:(const char *)sqlite3_column_text(statement, ListAllColumnColor)]];
         } else {
-            [series setColorWithHexString:@"009900"];   // green (and by convention, red)
+            [stock setColorWithHexString:@"009900"];   // green (and by convention, red)
         }
                 
         if (sqlite3_column_bytes(statement, ListAllColumnFundamentalList) > 2) {
             const char *fundamentals = (const char *)sqlite3_column_text(statement, ListAllColumnFundamentalList);
-            [series setFundamentalList:[NSString stringWithUTF8String:fundamentals]];
+            [stock setFundamentalList:[NSString stringWithUTF8String:fundamentals]];
         }
         
         if (sqlite3_column_bytes(statement, ListAllColumnTechnicalList) > 2) {
             const char *technicals = (const char *)sqlite3_column_text(statement, ListAllColumnTechnicalList);
-            [series setTechnicalList:[NSString stringWithUTF8String:technicals]];
+            [stock setTechnicalList:[NSString stringWithUTF8String:technicals]];
         }
         
-        [[comparison seriesList] addObject:series];
+        [comparison.stockList addObject:stock];
         [comparison setTitle:title];
-        [series release];
+        [stock release];
 
     }
     sqlite3_finalize(statement);	
@@ -114,7 +114,7 @@
     }
     
     if (self.id == 0) {
-       // DLog(@"comparisonId is %d so insertSQL to get an id for each comparisonSeries", id);
+       // DLog(@"comparisonId is %d so insertSQL to get an id for each comparisonStock", id);
         sqlite3_prepare_v2(db, "INSERT INTO comparison (sort) VALUES (0)", -1, &statement, NULL);
         sqlite3_step(statement);
         sqlite3_finalize(statement);
@@ -122,41 +122,41 @@
         [self setId:insertedRowid];
     }
         
-    for (NSInteger i = 0; i < self.seriesList.count; i++) {
-        Series *series = [self.seriesList objectAtIndex:i];
+    for (NSInteger i = 0; i < self.stockList.count; i++) {
+        Stock *stock = [self.stockList objectAtIndex:i];
 
-        if (series->comparisonSeriesId > 0) {
-            sqlite3_prepare(db, "UPDATE comparisonSeries SET daysAgo = ?, chartType = ?, color = ?, fundamentals = ?, technicals = ? WHERE rowid = ?", -1, &statement, NULL);
+        if (stock.comparisonStockId > 0) {
+            sqlite3_prepare(db, "UPDATE comparisonStock SET daysAgo = ?, chartType = ?, color = ?, fundamentals = ?, technicals = ? WHERE rowid = ?", -1, &statement, NULL);
    
-            sqlite3_bind_int64(statement, 1, series->daysAgo);
-            sqlite3_bind_int64(statement, 2, series->chartType);
-            sqlite3_bind_text(statement, 3, [[series hexFromColor] UTF8String], 6, SQLITE_STATIC); // STATIC = don't free space
-            sqlite3_bind_text(statement, 4, [[series fundamentalList] UTF8String], (int)[series fundamentalList].length, SQLITE_STATIC);
-            sqlite3_bind_text(statement, 5, [[series technicalList] UTF8String], (int)[series technicalList].length, SQLITE_STATIC);
-            sqlite3_bind_int64(statement, 6, series->comparisonSeriesId);
+            sqlite3_bind_int64(statement, 1, stock.daysAgo);
+            sqlite3_bind_int64(statement, 2, stock.chartType);
+            sqlite3_bind_text(statement, 3, [[stock hexFromColor] UTF8String], 6, SQLITE_STATIC); // STATIC = don't free space
+            sqlite3_bind_text(statement, 4, [[stock fundamentalList] UTF8String], (int)[stock fundamentalList].length, SQLITE_STATIC);
+            sqlite3_bind_text(statement, 5, [[stock technicalList] UTF8String], (int)[stock technicalList].length, SQLITE_STATIC);
+            sqlite3_bind_int64(statement, 6, stock.comparisonStockId);
 
             if(sqlite3_step(statement)==SQLITE_DONE){
-          //      // DLog(@"updated %d to DB for comparison id %d", series->comparisonSeriesId, [self id]);
+          //      // DLog(@"updated %d to DB for comparison id %d", stock.comparisonStockId, [self id]);
             } else {
           //      // DLog(@"DB ERROR '%s'.", sqlite3_errmsg(db));
             }
             sqlite3_finalize(statement);
-        } else if (series->comparisonSeriesId == 0) {
+        } else if (stock.comparisonStockId == 0) {
             
-            sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO comparisonSeries (comparisonId, seriesId, daysAgo, chartType, color, fundamentals, technicals) VALUES (?, ?, ?, ?, ?, ?, ?)", -1, &statement, NULL);
+            sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO comparisonStock (comparisonId, stockId, daysAgo, chartType, color, fundamentals, technicals) VALUES (?, ?, ?, ?, ?, ?, ?)", -1, &statement, NULL);
             
             sqlite3_bind_int64(statement, 1, [self id]);
-            sqlite3_bind_int64(statement, 2, series->id);
-            sqlite3_bind_int64(statement, 3, series->daysAgo);
-            sqlite3_bind_int64(statement, 4, series->chartType);
-            sqlite3_bind_text(statement, 5, [[series hexFromColor] UTF8String], 6, SQLITE_STATIC); // STATIC = don't free space
-            sqlite3_bind_text(statement, 6, [[series fundamentalList] UTF8String], (int)[series fundamentalList].length, SQLITE_STATIC);
-            sqlite3_bind_text(statement, 7, [[series technicalList] UTF8String], (int)[series technicalList].length, SQLITE_STATIC);
+            sqlite3_bind_int64(statement, 2, stock.id);
+            sqlite3_bind_int64(statement, 3, stock.daysAgo);
+            sqlite3_bind_int64(statement, 4, stock.chartType);
+            sqlite3_bind_text(statement, 5, [[stock hexFromColor] UTF8String], 6, SQLITE_STATIC); // STATIC = don't free space
+            sqlite3_bind_text(statement, 6, [[stock fundamentalList] UTF8String], (int)[stock fundamentalList].length, SQLITE_STATIC);
+            sqlite3_bind_text(statement, 7, [[stock technicalList] UTF8String], (int)[stock technicalList].length, SQLITE_STATIC);
 
             if(sqlite3_step(statement)==SQLITE_DONE){
-                series->comparisonSeriesId = (NSInteger) sqlite3_last_insert_rowid(db);
+                stock.comparisonStockId = (NSInteger) sqlite3_last_insert_rowid(db);
 
-             //   DLog(@"inserted into DB as CSID %d for comparison id %d", series->comparisonSeriesId, [self id]);
+             //   DLog(@"inserted into DB as CSID %d for comparison id %d", stock.comparisonStockId, [self id]);
             } else {
               //  DLog(@"DB ERROR '%s'.", sqlite3_errmsg(db));
             }
@@ -177,11 +177,11 @@
     }
     sqlite3_stmt *statement;
     
-    if (sqlite3_prepare_v2(db, "DELETE FROM comparisonSeries WHERE comparisonId =  ?", -1, &statement, NULL) == SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, "DELETE FROM comparisonStock WHERE comparisonId =  ?", -1, &statement, NULL) == SQLITE_OK) {
         
         sqlite3_bind_int64(statement, 1, self.id);
         if(sqlite3_step(statement) != SQLITE_DONE){;
-            DLog(@"Delete ComparisonSeries DB ERROR '%s'.", sqlite3_errmsg(db));
+            DLog(@"Delete comparisonStock DB ERROR '%s'.", sqlite3_errmsg(db));
         }
     }
     
@@ -199,18 +199,18 @@
 }
 
 
-- (void) deleteComparisonSeriesAtIndex:(NSInteger)index {
-    
-    if (index >= [self.seriesList count]) { // index out of bounds
-        return;
-    }
-    
-    Series *s = [self.seriesList objectAtIndex:index];
-    
-    [self deleteSeries:s]; 
-}
+//- (void) deleteComparisonStockAtIndex:(NSInteger)index {
+//
+//    if (index >= [self.stockList count]) { // index out of bounds
+//        return;
+//    }
+//
+//    Stock *s = [self.stockList objectAtIndex:index];
+//
+//    [self deleteStock:s];
+//}
 
-- (void) deleteSeries:(Series *)s {
+- (void) deleteStock:(Stock *)s {
     
     sqlite3 *db;
     if (sqlite3_open_v2([[NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()] UTF8String], &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
@@ -219,12 +219,12 @@
     
     sqlite3_stmt *statement;
     
-    if (sqlite3_prepare_v2(db, "DELETE FROM comparisonSeries WHERE rowid=?", -1, &statement, NULL) == SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, "DELETE FROM comparisonStock WHERE stockId=?", -1, &statement, NULL) == SQLITE_OK) {
         
-        sqlite3_bind_int64(statement, 1, s->comparisonSeriesId);    // for comparisonSeries table
+        sqlite3_bind_int64(statement, 1, s.id);    // for comparisonStock table
         
         if(sqlite3_step(statement) == SQLITE_DONE){;
-            [self.seriesList removeObject:s];
+            [self.stockList removeObject:s];
         } else {
             DLog(@"DB ERROR '%s'.", sqlite3_errmsg(db));
         }
@@ -247,8 +247,8 @@
 
     NSString *keyStrings = @"";
     
-    for (Series *series in self.seriesList) {
-        keyStrings = [keyStrings stringByAppendingString:series.fundamentalList];
+    for (Stock *stock in self.stockList) {
+        keyStrings = [keyStrings stringByAppendingString:stock.fundamentalList];
     }
  
     keyStrings = [keyStrings stringByReplacingOccurrencesOfString:@"BookValuePerShare," withString:@""];

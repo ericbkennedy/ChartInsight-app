@@ -4,14 +4,12 @@
 
 @class ScrollChartView;
 
-@interface ScrollChartView : UIView {
-    @public
-    CGFloat         xFactor, svWidth, pxWidth, barUnit, svHeight, maxWidth, scaledWidth, pxHeight;
-    BOOL            showDotGrips;
-    
-    @private
-    CGFloat         pt2px, gripOffset, scaleShift, sparklineHeight;
-}
+@interface ScrollChartView : UIView
+
+@property (nonatomic) CGFloat barUnit;
+@property (nonatomic) CGFloat pxWidth;
+@property (nonatomic) CGFloat svWidth;
+@property (nonatomic) CGFloat xFactor;
 
 @property (strong, nonatomic) Comparison *comparison;
 @property (strong, nonatomic) NSCalendar *gregorian;
@@ -35,13 +33,11 @@
 
 - (void) loadChart;
 
-- (UIImage *) screenshot;
-
+/// Enlarged screenshot of chart under user's finger with a bar highlighted if coordinates match
 - (UIImage *) magnifyBarAtX:(CGFloat)x y:(CGFloat)y;
 
+/// Clear prior pressedBar after user starts a long press gesture
 - (void) resetPressedBar;
-
-- (NSDictionary *) infoForPressedBar;
 
 - (void) resize;       // used when WebView is shown and when RVC rotates
 - (void) resizeChart:(CGFloat)newScale;

@@ -11,13 +11,12 @@
 		0B1BD55B183C351A00EE97D1 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B1BD55A183C351A00EE97D1 /* libsqlite3.dylib */; };
 		0B42BC001C420B2700139C33 /* AddFundamentalController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */; };
 		0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC011C420BE400139C33 /* ChartOptionsController.m */; };
-		0B42BC0B1C420BE500139C33 /* FindSeriesController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC041C420BE500139C33 /* FindSeriesController.m */; };
 		0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC111C420C1A00139C33 /* RootViewController.m */; };
 		0B42BC221C420C2F00139C33 /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC141C420C2F00139C33 /* StockData.m */; };
 		0B42BC231C420C2F00139C33 /* DataAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC151C420C2F00139C33 /* DataAPI.m */; };
 		0B42BC241C420C2F00139C33 /* Comparison.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC161C420C2F00139C33 /* Comparison.m */; };
 		0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC191C420C2F00139C33 /* FundamentalAPI.m */; };
-		0B42BC261C420C2F00139C33 /* Series.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC1D1C420C2F00139C33 /* Series.m */; };
+		0B42BC261C420C2F00139C33 /* Stock.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC1D1C420C2F00139C33 /* Stock.m */; };
 		0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC281C420C4700139C33 /* CIAppDelegate.m */; };
 		0B42BC331C420C8100139C33 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */; };
 		0B42BC351C420C8100139C33 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC2F1C420C8100139C33 /* main.m */; };
@@ -31,6 +30,7 @@
 		803399BF2A2A9C4300C81714 /* DBUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DBUpdater.swift */; };
 		809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F72A2A8FF600766030 /* ScrollChartView.m */; };
 		809576FA2A2A8FF600766030 /* ProgressIndicator.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F82A2A8FF600766030 /* ProgressIndicator.m */; };
+		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
 		80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */; };
 		80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */; };
 		80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */; };
@@ -52,9 +52,7 @@
 		0B42BBFE1C420B2700139C33 /* AddFundamentalController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AddFundamentalController.h; path = Controllers/AddFundamentalController.h; sourceTree = SOURCE_ROOT; };
 		0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AddFundamentalController.m; path = Controllers/AddFundamentalController.m; sourceTree = SOURCE_ROOT; };
 		0B42BC011C420BE400139C33 /* ChartOptionsController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ChartOptionsController.m; path = Controllers/ChartOptionsController.m; sourceTree = SOURCE_ROOT; };
-		0B42BC041C420BE500139C33 /* FindSeriesController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FindSeriesController.m; path = Controllers/FindSeriesController.m; sourceTree = SOURCE_ROOT; };
 		0B42BC061C420BE500139C33 /* ChartOptionsController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ChartOptionsController.h; path = Controllers/ChartOptionsController.h; sourceTree = SOURCE_ROOT; };
-		0B42BC081C420BE500139C33 /* FindSeriesController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FindSeriesController.h; path = Controllers/FindSeriesController.h; sourceTree = SOURCE_ROOT; };
 		0B42BC101C420C1A00139C33 /* RootViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RootViewController.h; path = Controllers/RootViewController.h; sourceTree = SOURCE_ROOT; };
 		0B42BC111C420C1A00139C33 /* RootViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RootViewController.m; path = Controllers/RootViewController.m; sourceTree = SOURCE_ROOT; };
 		0B42BC141C420C2F00139C33 /* StockData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StockData.m; path = Models/StockData.m; sourceTree = SOURCE_ROOT; };
@@ -65,8 +63,8 @@
 		0B42BC191C420C2F00139C33 /* FundamentalAPI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FundamentalAPI.m; path = Models/FundamentalAPI.m; sourceTree = SOURCE_ROOT; };
 		0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FundamentalAPI.h; path = Models/FundamentalAPI.h; sourceTree = SOURCE_ROOT; };
 		0B42BC1B1C420C2F00139C33 /* DataAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DataAPI.h; path = Models/DataAPI.h; sourceTree = SOURCE_ROOT; };
-		0B42BC1C1C420C2F00139C33 /* Series.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Series.h; path = Models/Series.h; sourceTree = SOURCE_ROOT; };
-		0B42BC1D1C420C2F00139C33 /* Series.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Series.m; path = Models/Series.m; sourceTree = SOURCE_ROOT; };
+		0B42BC1C1C420C2F00139C33 /* Stock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Stock.h; path = Models/Stock.h; sourceTree = SOURCE_ROOT; };
+		0B42BC1D1C420C2F00139C33 /* Stock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Stock.m; path = Models/Stock.m; sourceTree = SOURCE_ROOT; };
 		0B42BC281C420C4700139C33 /* CIAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CIAppDelegate.m; sourceTree = SOURCE_ROOT; };
 		0B42BC291C420C4700139C33 /* CIAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CIAppDelegate.h; sourceTree = SOURCE_ROOT; };
 		0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
@@ -88,6 +86,7 @@
 		809576F62A2A8FF600766030 /* ScrollChartView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollChartView.h; sourceTree = "<group>"; };
 		809576F72A2A8FF600766030 /* ScrollChartView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ScrollChartView.m; sourceTree = "<group>"; };
 		809576F82A2A8FF600766030 /* ProgressIndicator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProgressIndicator.m; sourceTree = "<group>"; };
+		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
 		80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Bridging-Header.h"; sourceTree = "<group>"; };
 		80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BigNumberFormatter.swift; path = "/Users/erickennedy/Library/CloudStorage/Dropbox/ChartInsight/iOS app/Models/BigNumberFormatter.swift"; sourceTree = "<absolute>"; };
 		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -138,8 +137,7 @@
 				0B56776B1CE90E70009F02D4 /* SettingsViewController.m */,
 				0B42BC061C420BE500139C33 /* ChartOptionsController.h */,
 				0B42BC011C420BE400139C33 /* ChartOptionsController.m */,
-				0B42BC081C420BE500139C33 /* FindSeriesController.h */,
-				0B42BC041C420BE500139C33 /* FindSeriesController.m */,
+				809F32342A36C7430018526F /* AddStockController.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -155,8 +153,8 @@
 				0B42BC161C420C2F00139C33 /* Comparison.m */,
 				0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */,
 				0B42BC191C420C2F00139C33 /* FundamentalAPI.m */,
-				0B42BC1C1C420C2F00139C33 /* Series.h */,
-				0B42BC1D1C420C2F00139C33 /* Series.m */,
+				0B42BC1C1C420C2F00139C33 /* Stock.h */,
+				0B42BC1D1C420C2F00139C33 /* Stock.m */,
 				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
 				803399BE2A2A9C4200C81714 /* DBUpdater.swift */,
 			);
@@ -333,12 +331,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				809576FA2A2A8FF600766030 /* ProgressIndicator.m in Sources */,
+				809F32352A36C7430018526F /* AddStockController.swift in Sources */,
 				0B42BC001C420B2700139C33 /* AddFundamentalController.m in Sources */,
-				0B42BC261C420C2F00139C33 /* Series.m in Sources */,
+				0B42BC261C420C2F00139C33 /* Stock.m in Sources */,
 				809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */,
 				0B42BC221C420C2F00139C33 /* StockData.m in Sources */,
 				0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */,
-				0B42BC0B1C420BE500139C33 /* FindSeriesController.m in Sources */,
 				80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */,
 				0B42BC241C420C2F00139C33 /* Comparison.m in Sources */,
 				0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */,

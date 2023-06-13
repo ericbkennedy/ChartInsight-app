@@ -7,18 +7,20 @@ typedef struct CBarData {
 @class DataAPI;
 
 @interface DataAPI : NSObject {
-    double maxHigh, minLow, maxVolume;
-    
+    // public BarStruct iVars so StockData can memcpy values from this DataAPI
     @public
     BarStruct *cArray;
     BarStruct intradayBar;
-    NSInteger existingBars;
-    NSInteger countBars, dataOffset;
 }
 
+@property (nonatomic) double maxHigh;
+@property (nonatomic) double minLow;
+@property (nonatomic) NSInteger existingBars;
+@property (nonatomic) NSInteger countBars;
+@property (nonatomic) NSInteger dataOffset;
 @property (nonatomic, assign) id delegate;
 @property (nonatomic, copy) NSString *symbol;
-@property (nonatomic) NSInteger seriesId;
+@property (nonatomic) NSInteger stockId;
 @property (strong, nonatomic) NSDate *nextClose;
 @property (strong, nonatomic) NSDate *requestOldestDate;
 @property (strong, nonatomic) NSDate *requestNewestDate;
@@ -54,6 +56,6 @@ typedef struct CBarData {
 // called by StockData when a stock is removed or the chart is cleared before switching stocks
 - (void) invalidateAndCancel;
 
-- (NSString *)URLEncode:(NSString *)string;     // called by stock data for infoForPressedBar
+- (NSString *)URLEncode:(NSString *)string;
 
 @end

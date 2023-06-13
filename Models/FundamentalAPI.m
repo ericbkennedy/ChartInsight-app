@@ -1,6 +1,6 @@
 #import "DataAPI.h"     // for date category parsing
 #import "FundamentalAPI.h"
-#import "Series.h"
+#import "Stock.h"
 #import "StockData.h"
 
 @interface FundamentalAPI ()
@@ -98,9 +98,9 @@
     return nil;
 }
 
-- (void) getFundamentalsForSeries:(Series *)series withDelegate:(id)caller {
+- (void) getFundamentalsForStock:(Stock *)stock withDelegate:(id)caller {
     
-    self.symbol = series.symbol;
+    self.symbol = stock.symbol;
     self.delegate = caller;
     
     [self setYear:[NSMutableArray arrayWithCapacity:50]];
@@ -109,7 +109,7 @@
     [self setQuarter:[NSMutableArray arrayWithCapacity:50]];
     [self setBarAlignments:[NSMutableArray arrayWithCapacity:50]];
         
-    NSURL *URL = [self formatRequestWithKeys:series.fundamentalList];
+    NSURL *URL = [self formatRequestWithKeys:stock.fundamentalList];
     
     NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithURL:URL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         

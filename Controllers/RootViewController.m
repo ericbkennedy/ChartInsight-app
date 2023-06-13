@@ -2,7 +2,6 @@
 #import "RootViewController.h"
 #import "ScrollChartView.h"
 #import "ChartOptionsController.h"
-#import "FindSeriesController.h"
 #import "ChartInsight-Swift.h" // for DBUpdater
 
 @interface RootViewController ()
@@ -80,7 +79,7 @@
     [self presentViewController:self.popOverNav animated:YES completion:nil];
 }
 
-- (void) addSeries:(id)sender {        
+- (void) addStock:(id)sender {
     
     UIBarButtonItem *button = (UIBarButtonItem *)sender;
         
@@ -93,27 +92,26 @@
         self.newComparison = NO;
     }
     
-    FindSeriesController *fcc = [[FindSeriesController alloc] initWithStyle:UITableViewStylePlain];
-    [fcc setDelegate:self];
-    
-    [self popoverPush:fcc fromButton:sender];
+    AddStockController *addStockController = [[AddStockController alloc] init];
+    addStockController.delegate = self;
+    [self popoverPush:addStockController fromButton:sender];
 }
 
-- (void) editSeries:(id)sender {
+- (void) editStock:(id)sender {
         
     UIBarButtonItem *button = (UIBarButtonItem *)sender;
     
-    Series *series = (Series *)button.tag;
+    Stock *stock = (Stock *)button.tag;
     
     ChartOptionsController *ctc = [[ChartOptionsController alloc] initWithStyle:UITableViewStyleGrouped];
-    [ctc setSparklineKeys:[self.scc.comparison sparklineKeys]];
-    [ctc setSeries:series];
-    [ctc setDelegate:self];
+    ctc.sparklineKeys = [self.scc.comparison sparklineKeys];
+    ctc.stock = stock;
+    ctc.delegate = self;
   
     [self popoverPush:ctc fromButton:sender];
 }
 
-- (void) reloadWithSeries:(Series *)series {
+- (void) reloadWithStock:(Stock *)stock {
     
     if (self.scc != nil) {
         [self.scc.comparison saveToDb];
@@ -125,12 +123,12 @@
 }
 
 /* called by ChartOptionsController when chart color or type changes */ 
-- (void) redrawWithSeries:(Series *)series {
+- (void) redrawWithStock:(Stock *)stock {
     if (self.scc != nil) {
         [self.scc.comparison saveToDb];
         for (UIBarButtonItem *button in self.customNavigationToolbar.items) {
-            if (button.tag == (NSInteger)series) {
-                [button setTintColor:[UIColor colorWithCGColor:series->upColorDarkHalfAlpha]];
+            if (button.tag == (NSInteger)stock) {
+                [button setTintColor:[UIColor colorWithCGColor:stock.upColorDarkHalfAlpha]];
             }
         }
         [self.scc redrawCharts];
@@ -140,7 +138,7 @@
 - (void) resetToolbarWithSearch:(BOOL)showSearch {
 
     if (showSearch) {
-        self.minimizeButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(addSeries:)];
+        self.minimizeButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(addStock:)];
     } else {
         self.minimizeButton = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"hideWebview"] style:UIBarButtonItemStylePlain target:self action:@selector(minimizeChart)];
     }
@@ -154,16 +152,16 @@
         [buttons addObject:[[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease]];
         
         UIBarButtonItem *button;
-        Series *s;
-        NSArray *stockList = self.scc.comparison.seriesList;
+        Stock *s;
+        NSArray *stockList = self.scc.comparison.stockList;
         for (NSInteger i = 0; i < [stockList count]; i++) {
             
             s = [stockList objectAtIndex:i];
 
-            UIBarButtonItem *button = [[UIBarButtonItem alloc] initWithTitle:s.symbol style:UIBarButtonItemStylePlain target:self action:@selector(editSeries:)];    
+            UIBarButtonItem *button = [[UIBarButtonItem alloc] initWithTitle:s.symbol style:UIBarButtonItemStylePlain target:self action:@selector(editStock:)];
             [button setTag:(NSInteger)s];     
                         
-            [button setTintColor:[UIColor colorWithCGColor:s->upColorDarkHalfAlpha]];
+            [button setTintColor:[UIColor colorWithCGColor:s.upColorDarkHalfAlpha]];
             
             [buttons addObject:button];
             [button release];
@@ -171,10 +169,12 @@
         
         if ([stockList count] < 3 || UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
             
-            button = [[UIBarButtonItem alloc] initWithTitle:@"compare" style:UIBarButtonItemStylePlain target:self action:@selector(addSeries:)];
+            button = [[UIBarButtonItem alloc] initWithTitle:@"compare" style:UIBarButtonItemStylePlain target:self action:@selector(addStock:)];
+                        
+            NSDictionary *smallFont = [NSDictionary dictionaryWithObjectsAndKeys:[UIFont systemFontOfSize:10], NSFontAttributeName,nil];
+            [button setTitleTextAttributes:smallFont forState:UIControlStateNormal];
+            [button setTitleTextAttributes:smallFont forState:UIControlStateHighlighted];
             
-            [button setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:[UIFont systemFontOfSize:10], NSFontAttributeName,nil] forState:UIControlStateNormal];
-
             [button setTag:(NSInteger)self.scc.comparison];
             [buttons addObject:button];
         }
@@ -293,7 +293,7 @@
     [self.tableView reloadData];
     
     CGFloat delta = self.scc.bounds.size.width - newSize.width;
-    NSInteger shiftBars = floor(self.scc.layer.contentsScale* delta/(self.scc->xFactor * self.scc->barUnit));
+    NSInteger shiftBars = floor(self.scc.layer.contentsScale* delta/(self.scc.xFactor * self.scc.barUnit));
     
     [self.scc updateMaxPercentChangeWithBarsShifted: -shiftBars];  // shiftBars are positive when delta is negative
 
@@ -313,48 +313,48 @@
     }
 }
 
-// called by FindSeriesController when a new stock is added
-- (void) insertSeries:(NSMutableArray *)newSeriesList {
-
+/// called by AddStockController when a new stock is added
+- (void) insertStock:(Stock *)stock {
+    DLog(@"Inserted %@ %@", stock.symbol, stock.name);
+    
     if (self.newComparison || self.scc.comparison == nil) {
         [self.scc setComparison:[[Comparison alloc] init]];
         [self.scc.comparison setId: 0];  // new unsaved comparison
-        [self.scc.comparison setSeriesList:[NSMutableArray arrayWithCapacity:3]];
+        [self.scc.comparison setStockList:[NSMutableArray arrayWithCapacity:3]];
     }
     
     NSMutableArray *otherColors = [NSMutableArray arrayWithArray:[ChartOptionsController chartColors]];
     
-    for (NSInteger i = 0; i < [[self.scc.comparison seriesList] count]; i++) {
-        for (NSInteger c = 0; c < [otherColors count]; c++) {
-            
-            Series *s = [self.scc.comparison.seriesList objectAtIndex:i];
+    for (NSInteger i = 0; i < self.scc.comparison.stockList.count; i++) {
+        NSInteger grayIndex = otherColors.count - 1;
+        
+        // Stop comparing before grayIndex so gray is used by default for multiple stocks
+        for (NSInteger c = 0; c < grayIndex; c++) {
+
+            Stock *s = self.scc.comparison.stockList[i];
             if ([s matchesColor:[otherColors objectAtIndex:c]]) {
                 [otherColors removeObjectAtIndex:c];
                 // can't just break because the color could be used by the 2nd stock of 3
             }
         }
     }
-    
-    UIColor *green = [[ChartOptionsController chartColors] objectAtIndex:0];
-    
-    for (NSInteger i = 0; i < newSeriesList.count; i++) {
-        Series *s = [newSeriesList objectAtIndex:i];
         
-        // don't alter chart type because it is set as a default
-        [s setUpColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
+    // don't alter chart type because it is set as a default
+    [stock setUpColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
 
-        if ([s matchesColor:green]) {
-        //    // DLog(@"matches green");
-            [s setColor: [UIColor redColor].CGColor ];
-        } else {
-            [s setColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
-        }
-        
-        if (otherColors.count > 1) {    
-            [otherColors removeObjectAtIndex:0];
-        }
-        [[self.scc.comparison seriesList] addObject:s];        
+    UIColor *green = [[ChartOptionsController chartColors] objectAtIndex:0];
+
+    if ([stock matchesColor:green]) {
+    //    // DLog(@"matches green");
+        [stock setColor: [UIColor redColor].CGColor ];
+    } else {
+        [stock setColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
     }
+    
+    if (otherColors.count > 1) {
+        [otherColors removeObjectAtIndex:0];
+    }
+    [[self.scc.comparison stockList] addObject:stock];
     [self.scc.comparison saveToDb];
     [self reloadList:self.scc.comparison];
     [self popContainer];
@@ -397,10 +397,10 @@
     return cell;
 }
 
-- (void) deleteSeries:(NSInteger)sender {
+- (void) deleteStock:(NSInteger)sender {
     
     if (self.scc != nil && sender > 0) {
-        Series *s = (Series *)sender;
+        Stock *s = (Stock *)sender;
 
         UIBarButtonItem *buttonToRemove = nil;
         
@@ -410,9 +410,9 @@
             }
         }
         
-        [self.scc.comparison deleteSeries:s];
+        [self.scc.comparison deleteStock:s];
         
-        if (self.scc.comparison.seriesList.count < 1) {
+        if (self.scc.comparison.stockList.count < 1) {
             [self.scc.comparison deleteFromDb];
          //   DLog(@"deleted all from DB");
             [self reloadList:nil];
@@ -491,12 +491,12 @@
         [self.minimizeButton setImage:[UIImage imageNamed:@"minimize"]]; 
     }
     
-    self.scc->svWidth   -= delta;
-    self.scc->pxWidth   = UIScreen.mainScreen.scale * self.scc->svWidth;
+    self.scc.svWidth   -= delta;
+    self.scc.pxWidth   = UIScreen.mainScreen.scale * self.scc.svWidth;
 
     self.scc.layer.position = CGPointMake(self.scc.layer.position.x + delta, self.scc.layer.position.y);
     
-    NSInteger shiftBars = round(self.scc.layer.contentsScale* delta/(self.scc->xFactor * self.scc->barUnit));       // don't use floor; it drops bars
+    NSInteger shiftBars = round(self.scc.layer.contentsScale* delta/(self.scc.xFactor * self.scc.barUnit));       // don't use floor; it drops bars
     [self.scc updateMaxPercentChangeWithBarsShifted: - shiftBars];  // shiftBars are positive when delta is negative
 }
 
@@ -516,14 +516,14 @@
         self.netDelta += delta;
     }
         
-    self.scc->svWidth -= delta;
-    self.scc->pxWidth = UIScreen.mainScreen.scale * self.scc->svWidth;
+    self.scc.svWidth -= delta;
+    self.scc.pxWidth = UIScreen.mainScreen.scale * self.scc.svWidth;
     
     self.scc.layer.position = CGPointMake(self.scc.layer.position.x + delta, self.scc.layer.position.y);
     
     if (recognizer.enabled == NO || [recognizer state] == UIGestureRecognizerStateEnded) {
         
-        NSInteger shiftBars =  ceil(self.scc.layer.contentsScale* self.netDelta/(self.scc->xFactor * self.scc->barUnit));
+        NSInteger shiftBars =  ceil(self.scc.layer.contentsScale* self.netDelta/(self.scc.xFactor * self.scc.barUnit));
         
         [self.scc updateMaxPercentChangeWithBarsShifted:- shiftBars];  // shiftBars are positive when delta is negative
         
@@ -663,7 +663,7 @@
     
     DLog(@"pinchmidoint is %f vs scc position %f so pinchMidpoint is %f", [recognizer locationInView:self.view].x, self.scc.layer.position.x, pinchMidpoint);
     
-    if (self.scc->xFactor > 10) {
+    if (self.scc.xFactor > 10) {
         [self.scc resizeChartImage:0.5 withCenter:pinchMidpoint];
         [self.scc resizeChart:0.5];
     } else {
@@ -702,9 +702,9 @@
     NSInteger deltaBars;
     
     if (delta > 0) {
-        deltaBars = floor(delta/(self.scc->xFactor * self.scc->barUnit)); 
+        deltaBars = floor(delta/(self.scc.xFactor * self.scc.barUnit));
     } else {
-        deltaBars = ceil(delta/(self.scc->xFactor * self.scc->barUnit));
+        deltaBars = ceil(delta/(self.scc.xFactor * self.scc.barUnit));
     }
     
     if (deltaBars == 0)  {

@@ -10,17 +10,14 @@
 
 // Adding or removing a fundamental type simply means adding a new key-value pair to the dictionary of columns.
 
-// For cleaner code, the CBarStruct will have a pointer to an NSArray of NSDecimalNumbers.
-// That allows arbitrarily many fundamental series and improves the speed of computeChart since only the BarData needs to be incremented.
-
-@class Series; // forward declare to avoid circular header inclusion
+@class Stock; // forward declare to avoid circular header inclusion
 
 @interface FundamentalAPI : NSObject
 NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) NSInteger reportTypes;                        // width of reportValues multidimensional array
 @property (nonatomic, assign) NSInteger oldestReportInView;
 @property (nonatomic, assign) NSInteger newestReportInView;
-@property (nonatomic, assign) NSInteger seriesId;
+@property (nonatomic, assign) NSInteger stockId;
 @property (nonatomic, assign, nullable) id delegate;
 @property (strong, nonatomic) NSMutableArray<NSNumber *> *year;
 @property (strong, nonatomic) NSMutableArray<NSNumber *> *month;
@@ -29,11 +26,12 @@ NS_ASSUME_NONNULL_BEGIN
 @property (strong, nonatomic) NSMutableArray<NSNumber *> *barAlignments;
 @property (strong, nonatomic) NSMutableDictionary<NSString *, NSArray *> *columns;
 
-- (void) getFundamentalsForSeries:(Series *)series withDelegate:(id)caller;
+- (void) getFundamentalsForStock:(Stock *)stock withDelegate:(id)caller;
 
 /* Returns nil if no reports for this key */
 - (nullable NSDecimalNumber *) valueForReport:(NSInteger)r withKey:(NSString *)key;
 
+/// Sets the mapping between the bars on the stock chart and the quarterly report bars above it
 - (void) setBarAlignment:(NSInteger)b forReport:(NSInteger)r;
 
 - (NSInteger) barAlignmentForReport:(NSInteger)r;

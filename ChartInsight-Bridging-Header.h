@@ -6,3 +6,4 @@
 #import <UIKit/UIKit.h>
 
 #import "RootViewController.h"
+#import "Stock.h"

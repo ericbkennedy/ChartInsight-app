@@ -4,11 +4,9 @@
 
 const char *API_KEY = "placeholderToken";
 
-@interface DataAPI () {
-@private
-    NSInteger barsFromDB;
-}
+@interface DataAPI ()
 
+@property (nonatomic) NSInteger barsFromDB;
 @property (nonatomic, copy) NSString *csvString;
 @property (strong, nonatomic) NSURLSession *ephemeralSession;   // skip web cache since sqlite caches price data
 @property (nonatomic, assign) BOOL loadingData;
@@ -164,7 +162,7 @@ const char *API_KEY = "placeholderToken";
 }
 
 - (void) fetchOlderDataFrom:(NSDate *)requestStart untilDate:(NSDate *)currentOldest {
-    countBars = 0;
+    self.countBars = 0;
     
     [self setRequestNewestDate:[currentOldest dateByAddingTimeInterval:-86400]];   // avoid overlap
     
@@ -188,7 +186,7 @@ const char *API_KEY = "placeholderToken";
     [self setLastNoNewDataError:[NSDate distantPast]];
     [self setNextClose:[NSDate distantPast]];
     
-    countBars = 0;
+    self.countBars = 0;
 
     [self fetch];
 }
@@ -313,16 +311,16 @@ const char *API_KEY = "placeholderToken";
 }
 
 -(void) historicalDataLoaded {
-    if (countBars == 0) { // Server doesn't have newer data due to delayed fetch from source API
+    if (self.countBars == 0) { // Server doesn't have newer data due to delayed fetch from source API
         [self.delegate performSelector:@selector(APILoadedHistoricalData:) withObject:self];
     }
-    [self setOldestDate:[self dateFromBar:cArray[MAX(0,countBars-1)]]];
+    [self setOldestDate:[self dateFromBar:cArray[MAX(0, self.countBars-1)]]];
     
     [self setNewestDate:[self dateFromBar:cArray[0]]];
 
     if (self.oldestDate == NULL) {
-        DLog(@"oldestdate is null after %ld bars added to %ld existing", barsFromDB, countBars);
-        for (NSInteger i = 0; i < countBars; i++) {
+        DLog(@"oldestdate is null after %ld bars added to %ld existing", self.barsFromDB, self.countBars);
+        for (NSInteger i = 0; i < self.countBars; i++) {
            // DLog(@" datefromBar %d is %@", i, [self dateFromBar:cArray[i]]);
         }
     }
@@ -368,7 +366,7 @@ const char *API_KEY = "placeholderToken";
     iNewestRequested = [self getIntegerFormatForDate:self.requestNewestDate];
     iOldestRequested = [self getIntegerFormatForDate:self.requestOldestDate];
     
-    NSString *sqlOldest = [NSString stringWithFormat:@"SELECT MAX(CASE WHEN oldest = 1 THEN date ELSE 0 END), MAX(date), count(*) from history WHERE series = %ld AND date >= %ld AND date <= %ld", self.seriesId, iOldestRequested, iNewestRequested];
+    NSString *sqlOldest = [NSString stringWithFormat:@"SELECT MAX(CASE WHEN oldest = 1 THEN date ELSE 0 END), MAX(date), count(*) from history WHERE stockId = %ld AND date >= %ld AND date <= %ld", self.stockId, iOldestRequested, iNewestRequested];
 
     sqlite3 *db;
     if (sqlite3_open_v2([[NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()] UTF8String], &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
@@ -402,10 +400,10 @@ const char *API_KEY = "placeholderToken";
     
  //   DLog(@"barsInDB %d for request from %d to %d", barsInDB, iOldestRequested, iNewestRequested);
              
-    retVal = sqlite3_prepare_v2(db, "SELECT SUBSTR(date,1,4), SUBSTR(date,5,2), SUBSTR(date,7,2), open, high, low, close, adjClose, volume from history where series = ? and date >= ? AND date <= ? ORDER BY date DESC", -1, &statement, NULL);
+    retVal = sqlite3_prepare_v2(db, "SELECT SUBSTR(date,1,4), SUBSTR(date,5,2), SUBSTR(date,7,2), open, high, low, close, adjClose, volume from history WHERE stockId = ? and date >= ? AND date <= ? ORDER BY date DESC", -1, &statement, NULL);
     
     if (retVal == SQLITE_OK) {
-        sqlite3_bind_int64(statement, 1, self.seriesId);
+        sqlite3_bind_int64(statement, 1, self.stockId);
         
         sqlite3_bind_int64(statement, 2, iOldestRequested);
         sqlite3_bind_int64(statement, 3, iNewestRequested);
@@ -439,7 +437,7 @@ const char *API_KEY = "placeholderToken";
     sqlite3_finalize(statement);
     sqlite3_close(db);
     
-   // DLog(@"after running checkSavedData, barsFromDB %d", barsInDB);
+   // DLog(@"after running checkSavedData, barsFromDB %d", self.barsFromDB);
     
     if (barsInDB > 0) {
         return barsInDB;
@@ -450,8 +448,8 @@ const char *API_KEY = "placeholderToken";
 -(void)fetch {
     if ( self.loadingData ) return;
     
-    self->barsFromDB = 0;
-    self->countBars = 0;
+    self.barsFromDB = 0;
+    self.countBars = 0;
     
     __block NSInteger barsFound = 0;
   
@@ -461,11 +459,11 @@ const char *API_KEY = "placeholderToken";
     
     DLog(@"%@ bars in db %ld", self.symbol, barsFound);
     
-    self->barsFromDB = barsFound;
+    self.barsFromDB = barsFound;
     
-    if ( barsFromDB > 0 ) {     // no gap before, but maybe a gap afterwards
+    if (self.barsFromDB > 0 ) {     // no gap before, but maybe a gap afterwards
         
-        countBars = barsFromDB;
+        self.countBars = self.barsFromDB;
             
         NSDate *newestDateSaved = [self dateFromBar:cArray[0]];
         NSDate *nextTradingDate = [self getNextTradingDateAfterDate:newestDateSaved];
@@ -485,7 +483,7 @@ const char *API_KEY = "placeholderToken";
             
             // DLog(@"%@ is close enough to %@", newestDateSaved, self.requestNewestDate);
             
-            [self setOldestDate:[self dateFromBar:cArray[ barsFromDB - 1] ]];
+            [self setOldestDate:[self dateFromBar:cArray[ self.barsFromDB - 1] ]];
             
             [self historicalDataLoaded];
             return;
@@ -537,11 +535,11 @@ const char *API_KEY = "placeholderToken";
         [self setLastOfflineError:[NSDate date]];
     }
     
-    if (barsFromDB > 0) {   // use what we have
+    if (self.barsFromDB > 0) {   // use what we have
         
         DLog(@"%@ didFailWithError for request from %@ to %@", self.symbol, self.requestOldestDate, self.requestNewestDate);
          
-        countBars = barsFromDB;
+        self.countBars = self.barsFromDB;
 
         [self historicalDataLoaded];
     }
@@ -569,11 +567,11 @@ const char *API_KEY = "placeholderToken";
         return [self historicalDataLoaded];  // countBars = zero indicates no new data available
     }
     
-    NSInteger lastBar = barsFromDB + barsFromWeb - 1;
+    NSInteger lastBar = self.barsFromDB + barsFromWeb - 1;
 
     BarStruct *webBars = cArray;
 
-    if (barsFromDB > 0) {   // parse into separate memory in case of duplicate bars
+    if (self.barsFromDB > 0) {   // parse into separate memory in case of duplicate bars
         webBars = (BarStruct *)malloc(sizeof(BarStruct)*[self maxBars]);
     }
     
@@ -588,7 +586,7 @@ const char *API_KEY = "placeholderToken";
     
     sqlite3_stmt *statement;
     
-    char *saveHistory = "INSERT OR IGNORE INTO history (series, date, open, high, low, close, adjClose, volume, oldest) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    char *saveHistory = "INSERT OR IGNORE INTO history (stockId, date, open, high, low, close, adjClose, volume, oldest) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     sqlite3_prepare_v2(db, saveHistory, -1, &statement, NULL);
    
     // Split CSV using regex (which won't match header "date,open,high,low,close,volume"
@@ -617,7 +615,7 @@ const char *API_KEY = "placeholderToken";
         
         // Save data to DB for offline access
         if (i >= 0) { // often only the first bar with index = 0 needs to be saved to the DB
-            sqlite3_bind_int64(statement, 1, self.seriesId);
+            sqlite3_bind_int64(statement, 1, self.stockId);
             sqlite3_bind_int64(statement, 2, [self dateIntFromBar:webBars[i]]);        
             sqlite3_bind_text(statement, 3, [[self.csvString substringWithRange:[match rangeAtIndex:4]] UTF8String], -1, SQLITE_TRANSIENT);
             sqlite3_bind_text(statement, 4, [[self.csvString substringWithRange:[match rangeAtIndex:5]] UTF8String], -1, SQLITE_TRANSIENT);            
@@ -645,10 +643,10 @@ const char *API_KEY = "placeholderToken";
     sqlite3_finalize(statement);
     sqlite3_exec(db, "COMMIT", 0, 0, 0);
     
-    if (barsFromDB > 0) {
+    if (self.barsFromDB > 0) {
        // DLog(@"%@ copying %d older barsFromDB to end of %d barsFromWeb", symbol, barsFromDB, barsFromWeb);
         
-        memcpy(&webBars[barsFromWeb], cArray, barsFromDB * sizeof(BarStruct));
+        memcpy(&webBars[barsFromWeb], cArray, self.barsFromDB * sizeof(BarStruct));
         free(cArray);
         cArray = webBars;
     }
@@ -664,9 +662,9 @@ const char *API_KEY = "placeholderToken";
     NSInteger sqloldestDate = [self dateIntFromBar:cArray[lastBar]];
         
     // now update any existing bars beween 0 and blockOffset-1 that have start = 1
-    if (sqlite3_prepare_v2(db, "UPDATE history SET oldest = 0 WHERE series = ? AND date > ? AND date <= ?", -1, &statement, NULL) == SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, "UPDATE history SET oldest = 0 WHERE stockId = ? AND date > ? AND date <= ?", -1, &statement, NULL) == SQLITE_OK) {
         
-        sqlite3_bind_int64(statement, 1, self.seriesId);
+        sqlite3_bind_int64(statement, 1, self.stockId);
         sqlite3_bind_int64(statement, 2, sqloldestDate);
         sqlite3_bind_int64(statement, 3, sqlnewestDate);
     
@@ -681,7 +679,7 @@ const char *API_KEY = "placeholderToken";
     sqlite3_finalize(statement);
     sqlite3_close(db);
     
-    countBars = barsFromDB + barsFromWeb;
+    self.countBars = self.barsFromDB + barsFromWeb;
     
     [self historicalDataLoaded];
 }
