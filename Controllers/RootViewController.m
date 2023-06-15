@@ -42,22 +42,6 @@
 @property (strong, nonatomic) UITableView *tableView;
 
 @property (strong, nonatomic) UIBarButtonItem *barTitle;
-
-- (void) singleTap:(UITapGestureRecognizer *)recognizer;
-
-- (void) doubleTap:(UITapGestureRecognizer *)recognizer;
-
-- (void) trendline:(UILongPressGestureRecognizer *) recognizer;
-
-- (void) magnify:(UILongPressGestureRecognizer *) recognizer;
-
-- (void) handlePan:(UIPanGestureRecognizer *)recognizer;
-
-- (void) handlePinch:(UIPinchGestureRecognizer *)recognizer;
-
-- (NSString *) defaultDbPath;
-
-- (NSString *) bestDbPath;
 @end
 
 @implementation RootViewController
@@ -128,7 +112,7 @@
         [self.scc.comparison saveToDb];
         for (UIBarButtonItem *button in self.customNavigationToolbar.items) {
             if (button.tag == (NSInteger)stock) {
-                [button setTintColor:[UIColor colorWithCGColor:stock.upColorDarkHalfAlpha]];
+                [button setTintColor:[UIColor colorWithCGColor:stock.upColor]];
             }
         }
         [self.scc redrawCharts];
@@ -161,7 +145,7 @@
             UIBarButtonItem *button = [[UIBarButtonItem alloc] initWithTitle:s.symbol style:UIBarButtonItemStylePlain target:self action:@selector(editStock:)];
             [button setTag:(NSInteger)s];     
                         
-            [button setTintColor:[UIColor colorWithCGColor:s.upColorDarkHalfAlpha]];
+            [button setTintColor:[UIColor colorWithCGColor:s.upColor]];
             
             [buttons addObject:button];
             [button release];
@@ -655,21 +639,15 @@
     }
 }
 
+// 2x zoom on the tapped locationInView if current zoom is less than max (scc.xFactor = 50)
 - (void)doubleTap:(UITapGestureRecognizer *)recognizer {
     
     recognizer.cancelsTouchesInView = YES;
     
     CGFloat pinchMidpoint = [recognizer locationInView:self.view].x - self.scc.layer.position.x - 5;
     
-    DLog(@"pinchmidoint is %f vs scc position %f so pinchMidpoint is %f", [recognizer locationInView:self.view].x, self.scc.layer.position.x, pinchMidpoint);
-    
-    if (self.scc.xFactor > 10) {
-        [self.scc resizeChartImage:0.5 withCenter:pinchMidpoint];
-        [self.scc resizeChart:0.5];
-    } else {
-        [self.scc resizeChartImage:2.0 withCenter:pinchMidpoint];
-        [self.scc resizeChart:2.0];
-    }
+    [self.scc resizeChartImage:2.0 withCenter:pinchMidpoint];
+    [self.scc resizeChart:2.0];
 }
 
 - (void) handlePan:(UIPanGestureRecognizer *)recognizer {

@@ -5,7 +5,6 @@
 
 @property (nonatomic) NSInteger id;
 @property (nonatomic) NSInteger chartType;
-@property (nonatomic) NSInteger daysAgo;
 @property (nonatomic) NSInteger comparisonStockId;
 @property (nonatomic) NSInteger hasFundamentals;
 @property (nonatomic) CGColorRef color;
@@ -13,7 +12,6 @@
 @property (nonatomic) CGColorRef colorInverse;
 @property (nonatomic) CGColorRef colorInverseHalfAlpha;
 @property (nonatomic) CGColorRef upColor;
-@property (nonatomic) CGColorRef upColorDarkHalfAlpha;
 @property (nonatomic) CGColorRef upColorHalfAlpha;
 @property (nonatomic, copy) NSString *symbol;
 @property (nonatomic, copy) NSString *name;

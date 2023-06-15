@@ -28,6 +28,7 @@
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
 		803399BF2A2A9C4300C81714 /* DBUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DBUpdater.swift */; };
+		804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804D975C2A38D0CF00F61FF7 /* BarData.swift */; };
 		809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F72A2A8FF600766030 /* ScrollChartView.m */; };
 		809576FA2A2A8FF600766030 /* ProgressIndicator.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F82A2A8FF600766030 /* ProgressIndicator.m */; };
 		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
@@ -82,6 +83,7 @@
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		803399BE2A2A9C4200C81714 /* DBUpdater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DBUpdater.swift; path = Models/DBUpdater.swift; sourceTree = SOURCE_ROOT; };
+		804D975C2A38D0CF00F61FF7 /* BarData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
 		809576F52A2A8FF600766030 /* ProgressIndicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressIndicator.h; sourceTree = "<group>"; };
 		809576F62A2A8FF600766030 /* ScrollChartView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollChartView.h; sourceTree = "<group>"; };
 		809576F72A2A8FF600766030 /* ScrollChartView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ScrollChartView.m; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 				0B42BC191C420C2F00139C33 /* FundamentalAPI.m */,
 				0B42BC1C1C420C2F00139C33 /* Stock.h */,
 				0B42BC1D1C420C2F00139C33 /* Stock.m */,
+				804D975C2A38D0CF00F61FF7 /* BarData.swift */,
 				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
 				803399BE2A2A9C4200C81714 /* DBUpdater.swift */,
 			);
@@ -331,6 +334,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				809576FA2A2A8FF600766030 /* ProgressIndicator.m in Sources */,
+				804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */,
 				809F32352A36C7430018526F /* AddStockController.swift in Sources */,
 				0B42BC001C420B2700139C33 /* AddFundamentalController.m in Sources */,
 				0B42BC261C420C2F00139C33 /* Stock.m in Sources */,

@@ -1,4 +1,5 @@
 #include <dispatch/dispatch.h>
+#import "ChartInsight-Swift.h" // for BarData *
 #import <CoreGraphics/CoreGraphics.h>
 #import "FundamentalAPI.h"
 #import "StockData.h"
@@ -7,33 +8,38 @@
 
 
 @interface StockData () {
-    
 @private
-    BarStruct   *dailyData;     // for parallelism, dataAPI writes to a separate block of memory
-    BarStruct   *barData;       // points to dailyData except for monthly or weekly
     BOOL sma50, sma200, bb20;
     double pxHeight, sparklineHeight, volumeBase, volumeHeight;
     dispatch_queue_t concurrentQueue;
     NSInteger _newestBarShown;
 }
+@property (nonatomic, strong) NSMutableArray<BarData *> *dailyData;
+@property (nonatomic, strong) NSMutableArray<BarData *> *periodData;   // points to dailyData except for monthly or weekly
 @end
 
 @implementation StockData
 
-- (BarStruct *) barAtIndex:(NSInteger)index setUpClose:(BOOL *)upClose {
-    if (index > self.bars) {
+/// Get barData for period (month, week or day) at index with inout param indicating if close was up from prior day
+- (BarData *) barAtIndex:(NSInteger)index setUpClose:(BOOL *)upClose {
+    if (index >= self.periodCount) {
         return nil;
     }
-   *upClose = YES;
+    *upClose = YES;
+    BarData *bar = self.periodData[index];
     
-    if (index < self.bars - 1) { // check for up/down close
-        if (barData[index].close < barData[index + 1].close) {
+    if (index < self.periodCount - 2) { // check for up/down close
+        if (bar.close < self.periodData[index + 1].close) {
             *upClose = NO;
         }
-    } else if (barData[index].close < barData[index].open) {
+    } else if (self.periodData[index].close < self.periodData[index].open) {
         *upClose = NO;
     }
-    return &barData[index];
+    return bar;
+}
+
+- (NSInteger) periodCount {
+    return self.periodData.count;
 }
 
 - (NSInteger) newestBarShown { return _newestBarShown; }
@@ -74,12 +80,6 @@
     self.delegate = nil;
     // don't release memory I didn't alloc in StockData, like the gregorian calendar
     
-    if (barData != dailyData) {
-        // DLog(@"Dealloc: barData has a different address than dailyData");
-        free(barData);
-    }
-    free(dailyData);
-    
     free(_blackVolume);
     free(_filledGreenBars);
     free(_fundamentalAlignments);
@@ -98,13 +98,12 @@
     free(_ubb);
 
     dispatch_release(concurrentQueue);
-    [self.days release];
     [super dealloc];
 }
 
-- (void) initWithDaysAgo:(NSInteger)daysAgo {
-
-    _bars = _dailyBars = _newestBarShown = _oldestReport = _newestReport = _movingAvg1Count = _movingAvg2Count = 0;
+- (instancetype) init {
+    [super init];
+    _newestBarShown = _oldestReport = _newestReport = _movingAvg1Count = _movingAvg2Count = 0;
     self.api = NULL;
     _busy = _ready = NO;
     [self setPercentChange:[NSDecimalNumber one]];
@@ -112,11 +111,11 @@
     
     [self setMaxHigh:[NSDecimalNumber zero]];
     [self setMinLow:[NSDecimalNumber zero]];
-    [self setBookValue:[NSDecimalNumber notANumber]]; 
+    [self setBookValue:[NSDecimalNumber notANumber]];
     
     self.api = [[DataAPI alloc] init];
-    dailyData = (BarStruct *)malloc(sizeof(BarStruct)*[self.api maxBars]);
-    barData = dailyData;
+    self.dailyData = [NSMutableArray array];
+    self.periodData = self.dailyData;
     
     [self setMonthLabels:[NSMutableArray arrayWithCapacity:50]];
     
@@ -139,22 +138,19 @@
     _redVolume = (CGRect *)malloc(sizeof(CGRect) * maxBars);
     _ubb = (CGPoint *)malloc(sizeof(CGRect) * maxBars);
     
-    self.days = [[NSDateComponents alloc] init];
     [self setLastPrice:[NSDecimalNumber zero]];
-    
+    return self;
+}
+
+- (void) fetchStockData {
     NSDate *desiredDate = [NSDate date];
-    if (daysAgo > 0) {
-        [self.days setDay:-daysAgo];
-       // [self setNewest:[self.gregorian dateByAddingComponents:self.days toDate:[NSDate date] options:0]];
-        desiredDate = [self.gregorian dateByAddingComponents:self.days toDate:[NSDate date] options:0];
-    }
     
     [self updateBools];
     [self.api setRequestNewestDate:desiredDate];
     
     [self.stock convertDateStringToDateWithFormatter:self.api.dateFormatter];
     
-    self.api.requestOldestDate = [self.stock.startDate laterDate:[NSDate dateWithTimeInterval:(200+self.oldestBarShown * self.barUnit)*-240000 sinceDate:desiredDate]];
+    self.api.requestOldestDate = self.stock.startDate; // laterDate:[NSDate dateWithTimeInterval:(200+self.oldestBarShown * self.barUnit)*-240000 sinceDate:desiredDate]];
 
     [self setNewest:self.api.requestOldestDate];    // better than oldestPast
     
@@ -163,7 +159,7 @@
     self.api.gregorian = self.gregorian;
     self.api.delegate = self;
         
-    NSString *concurrentName = [NSString stringWithFormat:@"com.chartinsight.%ld.%ld", self.stock.id, daysAgo];
+    NSString *concurrentName = [NSString stringWithFormat:@"com.chartinsight.%ld", self.stock.id];
     
     concurrentQueue = dispatch_queue_create([concurrentName UTF8String], DISPATCH_QUEUE_CONCURRENT);
     
@@ -183,7 +179,7 @@
 - (void) APILoadedFundamentalData:(FundamentalAPI *)fundamental {
     
     // DLog(@"%d fundamental values loaded", [[fundamental year] count]);
-    if (self.busy == NO && self.bars > 1) {
+    if (self.busy == NO && self.periodCount > 1) {
         dispatch_barrier_sync(concurrentQueue, ^{ [self updateFundamentalAlignment];
                                                                             [self computeChart];    });
         [self.delegate performSelectorOnMainThread:@selector(requestFinished:) withObject:self.percentChange waitUntilDone:NO];
@@ -194,45 +190,45 @@
 
 
 // When calculating the simple moving average, there are 3 possible cases:
-// 1. all self.bars are new
+// 1. all values in self.periodData are new
 //        Start with bar 0 and continue until the end
 // 
-// 2. adding self.bars to the front
+// 2. adding self.barCount to the front
 //        Start with bar 0 and continue until the first old bar
 // 
-// 3. adding self.bars to the end
+// 3. adding self.barCount to the end
 //        Start with the oldest bar and walk towards the start of the array to find the first empty moving average
 // 
 // For example, div LINE the ratio of the adjusted close varies slightly
 - (void) calculateSMA {
     
     NSInteger oldest50available, oldest150available, oldest200available;
-    oldest50available = self.bars - 50;
-    oldest150available = self.bars - 150;
-    oldest200available = self.bars - 200;
+    oldest50available = self.periodCount - 50;
+    oldest150available = self.periodCount - 150;
+    oldest200available = self.periodCount - 200;
     
     if (oldest50available > 0) {
         double movingSum50 = 0.0f;
         double movingSum150 = 0.0f;
         
-        // add last n self.bars, then start subtracting i + n - 1 bar to compute average
+        // add last n self.barCount, then start subtracting i + n - 1 bar to compute average
     
-        for (NSInteger i = self.bars - 1; i >= 0; i--) {
-            movingSum50 += barData[i].close;
+        for (NSInteger i = self.periodCount - 1; i >= 0; i--) {
+            movingSum50 += self.periodData[i].close;
             
             if (i < oldest50available) { 
-                movingSum150 += barData[i + 50].close;                                    
-                movingSum50 -= barData[i + 50].close; 
+                movingSum150 += self.periodData[i + 50].close;
+                movingSum50 -= self.periodData[i + 50].close;
                 if (i < oldest200available) {
-                    movingSum150 -= barData[i + 200].close; // i + n - 1, so for bar zero it subtracks bar 199 (200th bar)                        
-                    barData[i].movingAvg2 = (movingSum50 + movingSum150) / 200;
+                    movingSum150 -= self.periodData[i + 200].close; // i + n - 1, so for bar zero it subtracks bar 199 (200th bar)
+                    self.periodData[i].movingAvg2 = (movingSum50 + movingSum150) / 200;
                 } else if (i == oldest200available) {
-                    barData[i].movingAvg2 = (movingSum50 + movingSum150) / 200;
+                    self.periodData[i].movingAvg2 = (movingSum50 + movingSum150) / 200;
                 }
-                barData[i].movingAvg1 = movingSum50 / 50;
+                self.periodData[i].movingAvg1 = movingSum50 / 50;
                 
-            } else if (i == oldest50available) {            // don't subtract any self.bars
-                barData[i].movingAvg1 = movingSum50 / 50;           
+            } else if (i == oldest50available) {            // already reached oldest available
+                self.periodData[i].movingAvg1 = movingSum50 / 50;
             }
         }
     }
@@ -245,38 +241,38 @@
     // use regular close instead of adjusted close or the bollinger bands will deviate from price for stocks or ETFs with dividends
     
     NSInteger period = 20;
-    NSInteger firstFullPeriod = self.bars - period;
+    NSInteger firstFullPeriod = self.periodCount - period;
     
     if (firstFullPeriod > 0) {
         double movingSum = 0.0f;
         double powerSumAvg = 0.0f;
         
-        // add last n self.bars, then start subtracting i + n - 1 bar to compute average
+        // add last n self.barCount, then start subtracting i + n - 1 bar to compute average
         
-        for (NSInteger i = self.bars - 1; i >= 0; i--) {
-            movingSum += barData[i].close;
+        for (NSInteger i = self.periodCount - 1; i >= 0; i--) {
+            movingSum += self.periodData[i].close;
             
             if (i < firstFullPeriod) {
-                movingSum -= barData[i + period].close;
+                movingSum -= self.periodData[i + period].close;
                 
-                barData[i].mbb = movingSum / period;
-                powerSumAvg += (barData[i].close * barData[i].close - barData[i + period].close * barData[i + period].close)/(period);
+                self.periodData[i].mbb = movingSum / period;
+                powerSumAvg += (self.periodData[i].close * self.periodData[i].close - self.periodData[i + period].close * self.periodData[i + period].close)/(period);
  
-                barData[i].stdev = sqrt(powerSumAvg - barData[i].mbb * barData[i].mbb);
+                self.periodData[i].stdev = sqrt(powerSumAvg - self.periodData[i].mbb * self.periodData[i].mbb);
                                  
             } else if (i >= firstFullPeriod) {
-                powerSumAvg += (barData[i].close * barData[i].close - powerSumAvg)/(self.bars - i);
+                powerSumAvg += (self.periodData[i].close * self.periodData[i].close - powerSumAvg)/(self.periodCount - i);
                  
-                if (i == firstFullPeriod) {            // don't subtract any self.bars
-                    barData[i].mbb = movingSum / period;
-                    barData[i].stdev = sqrt(powerSumAvg - barData[i].mbb * barData[i].mbb);
+                if (i == firstFullPeriod) {            // already reached oldest available
+                    self.periodData[i].mbb = movingSum / period;
+                    self.periodData[i].stdev = sqrt(powerSumAvg - self.periodData[i].mbb * self.periodData[i].mbb);
                  }
             }
         }
     }
 }
 
-// Align the array of fundamental data points to an offset into the barData struct
+// Align the array of fundamental data points to an offset into the self.periodData array
 - (void) updateFundamentalAlignment {
     if (self.fundamentalAPI != nil && self.fundamentalAPI.columns.count > 0) {
         
@@ -286,10 +282,10 @@
             NSInteger lastReportYear = [[[self.fundamentalAPI year] objectAtIndex:r] intValue];
             NSInteger lastReportMonth = [[[self.fundamentalAPI month] objectAtIndex:r] intValue];
             
-            while (i < self.bars && (barData[i].year > lastReportYear ||  barData[i].month > lastReportMonth)) {
+            while (i < self.periodCount && (self.periodData[i].year > lastReportYear ||  self.periodData[i].month > lastReportMonth)) {
                 i++;
             }
-            if (i < self.bars && barData[i].year == lastReportYear && barData[i].month == lastReportMonth) {
+            if (i < self.periodCount && self.periodData[i].year == lastReportYear && self.periodData[i].month == lastReportMonth) {
                 
                 [self.fundamentalAPI setBarAlignment:i forReport:r];
             }
@@ -300,28 +296,36 @@
 // Called after shiftRedraw shifts self.oldestBarShown and newestBarShown during scrolling
 - (void) updateHighLow {
     
-    if (self.oldestBarShown <= 0) {
+    if (self.periodCount == 0) {
+        DLog(@"No bars so exiting");
         return;
+    }
+      
+    if (self.oldestBarShown <= 0) {
+        DLog(@"resetting oldestBarShown %ld to MIN(50, %ld)", self.oldestBarShown, self.periodCount);
+        self.oldestBarShown = MIN(50, self.periodCount);
+    } else if (self.oldestBarShown >= self.periodCount) {
+        self.oldestBarShown = self.periodCount -1;
     }
     
     double max = 0.0, min = 0.0;
     self.maxVolume = 0.0;
         
     for (NSInteger a = self.oldestBarShown; a >= _newestBarShown ; a--) {
-        if (barData[a].volume > self.maxVolume) {
-            self.maxVolume = barData[a].volume;
+        if (self.periodData[a].volume > self.maxVolume) {
+            self.maxVolume = self.periodData[a].volume;
         }
         
-        if (barData[a].low > 0.0f) {
+        if (self.periodData[a].low > 0.0f) {
             if (min == 0.0f) {
-                min = barData[a].low;
-            } else if (min > barData[a].low) { 
-                min = barData[a].low;
+                min = self.periodData[a].low;
+            } else if (min > self.periodData[a].low) {
+                min = self.periodData[a].low;
             }
         }
         
-        if (max < barData[a].high) { 
-            max = barData[a].high;
+        if (max < self.periodData[a].high) {
+            max = self.periodData[a].high;
         }
     }
     
@@ -344,9 +348,8 @@
 
 - (NSDecimalNumber *) shiftRedraw:(NSInteger)barsShifted withBars:(NSInteger)screenBarWidth {
     
-    if (self.oldestBarShown + barsShifted >= [self.api maxBars]) {
-        DLog(@"Early return because self.oldestBarShown %ld + self.barsShifted %ld > maxBars", self.oldestBarShown, barsShifted);
-        // Simplify fetch logic by returning to prevent scrolling to older dates instead of calling removeNewerBars
+    if (self.oldestBarShown + barsShifted >= self.periodCount) {
+        DLog(@"early return because oldestBarShown %ld + barsShifted %ld > %ld barCount", self.oldestBarShown, barsShifted, self.periodCount);
         return self.percentChange;
     }
     self.oldestBarShown += barsShifted;
@@ -355,8 +358,8 @@
     
     // DLog(@"self.oldestBarShown %d and newestBarShown in shiftREdraw is %d", self.oldestBarShown, newestBarShown);
         
-    if (self.oldestBarShown <= 0) {  // no self.bars to show yet
-        // DLog(@"%@ self.oldestBarShown is less than zero at %d", self.stock.symbol, self.oldestBarShown);
+    if (self.oldestBarShown <= 0) {  // nothing to show yet
+        DLog(@"%@ self.oldestBarShown is less than zero at %ld", self.stock.symbol, self.oldestBarShown);
         [self clearChart];
 
     } else if (self.busy) {
@@ -366,28 +369,18 @@
         dispatch_sync(concurrentQueue,  ^{    [self updateHighLow];     });
         return self.percentChange;
     }
-            
-    BOOL oldestNotYetLoaded = fabs([self.stock.startDate timeIntervalSinceDate:self.oldest]) > 90000 ? YES : NO;
-    
-    if (oldestNotYetLoaded && self.oldestBarShown > self.bars - 201) {      // load older dates or moving average will break
 
-        self.busy = YES;
-        [self.delegate performSelectorOnMainThread:@selector(showProgressIndicator) withObject:nil waitUntilDone:NO];
-            
-   //     NSDate *requestStart = [[self.stock startDate] laterDate:[self.oldest dateByAddingTimeInterval:MAX(365,screenBarWidth)* barUnit *-86400]];
-                                    
-        [self.api fetchOlderDataFrom:self.stock.startDate untilDate:self.oldest];
-
-    } else if (0 == self.newestBarShown) {
+    if (0 == self.newestBarShown) {
         
         if ([self.api shouldFetchIntradayQuote]) {
             self.busy = YES;
             [self.api fetchIntradayQuote];
 
         } else if ([self.api.nextClose compare:[NSDate date]] == NSOrderedAscending) { // next close is in the past
+            DLog(@"api.nextClose %@ vs now %@", self.api.nextClose, [NSDate date]);
             self.busy = YES;
             [self.delegate performSelectorOnMainThread:@selector(showProgressIndicator) withObject:nil waitUntilDone:NO];
-            [self.api fetchNewerThanDate:[self newest] screenBarWidth:screenBarWidth];
+            [self.api fetchNewerThanDate:self.newest];
         }
     }
     
@@ -458,20 +451,7 @@
     [self.delegate performSelectorOnMainThread:@selector(requestFailedWithMessage:) withObject:message waitUntilDone:NO];
 }
 
-// memove won't throw away self.bars to avoid a buffer overrun, so we have to do it ourselves with memcpy
-- (void) createNewBarDataWithShift:(NSInteger)shift fromIndex:(NSInteger)fromIndex {
-    
-    BarStruct *newDailyData = (BarStruct *)malloc(sizeof(BarStruct)*[self.api maxBars]);
-
-    if (self. self.dailyBars + shift > [self.api maxBars]) {     // avoid buffer overrun
-        self. self.dailyBars -= shift;
-    }
-    memcpy(&newDailyData[shift], &dailyData[fromIndex], self. self.dailyBars * sizeof(BarStruct));
-    free(dailyData);
-    dailyData = newDailyData;
-}
-
--(void) APILoadedIntraday:(DataAPI *)dp {
+-(void) APILoadedIntradayBar:(BarData *)intradayBar {
     
     // Avoid deadlock by limiting concurrentQueue to updateHighLow and APILoaded*    
 
@@ -479,34 +459,31 @@
             
         double oldMovingAvg1, oldMovingAvg2;
         
-        NSDate *apiNewest = [self.api dateFromBar:dp->intradayBar];
+        NSDate *apiNewest = [self.api dateFromBar:intradayBar];
         
         CGFloat dateDiff = [apiNewest timeIntervalSinceDate:[self newest]];
        // DLog(@"intrday datediff is %f when comparing %@ to %@", dateDiff, [self newest], apiNewest);
         
         if (dateDiff > 84600) {
-          //  DLog(@"intraday moving %d self.bars by 1", self.bars);
-            [self createNewBarDataWithShift:1 fromIndex:0];
-            self. self.dailyBars += 1;
-            // self.bars may or may not increase; let summarizeByDate figure that out
+            DLog(@"intraday moving %ld self.bars by 1", self.periodCount);
+            [self.dailyData insertObject:intradayBar atIndex:0];
+            // self.barCount may or may not increase; let summarizeByDate figure that out
             oldMovingAvg1 = oldMovingAvg2 = .0f;
 
-        } else { // save before overwriting with memcpy
-            oldMovingAvg1 = dailyData[0].movingAvg1;
-            oldMovingAvg2 = dailyData[0].movingAvg2;
+        } else {
+            oldMovingAvg1 = self.dailyData[0].movingAvg1;
+            oldMovingAvg2 = self.dailyData[0].movingAvg2;
+            [self.dailyData replaceObjectAtIndex:0 withObject:intradayBar];
         }
         
-        // copy intraday data to barData
-        memcpy( dailyData, &dp->intradayBar, sizeof(BarStruct));
-        
-        [self setLastPrice:[[[NSDecimalNumber alloc] initWithDouble:dailyData[0].close] autorelease]];
+        [self setLastPrice:[[[NSDecimalNumber alloc] initWithDouble:self.dailyData[0].close] autorelease]];
         
         [self setNewest:apiNewest];
 
         // For intraday update to weekly or monthly chart, decrement self.oldestBarShown only if
         //    the intraday bar is for a different period (week or month) than the existing newest bar
         
-        [self summarizeByDateFrom:0 oldBars:0];
+        [self updatePeriodDataByDayWeekOrMonth];
         [self updateHighLow]; // must be a separate call to handle daysAgo shifting
 
         self.busy = NO;
@@ -518,14 +495,16 @@
 - (void) groupByWeek:(NSDate *)startDate dailyIndex:(NSInteger)iNewest weeklyIndex:(NSInteger)wi {
     
     // Note, we are going backwards, so the most recent daily close is the close of the week
-    barData[wi].close = dailyData[iNewest].close;
-    barData[wi].adjClose = dailyData[iNewest].adjClose;
-    barData[wi].high = dailyData[iNewest].high;
-    barData[wi].low  = dailyData[iNewest].low;
-    barData[wi].volume = dailyData[iNewest].volume;
-    barData[wi].movingAvg1 = barData[wi].movingAvg2 = barData[wi].mbb = barData[wi].stdev = 0.;
+    BarData *weeklyBar = [[BarData alloc] init];
+    [self.periodData insertObject:weeklyBar atIndex:wi];
+    weeklyBar.close = self.dailyData[iNewest].close;
+    weeklyBar.adjClose = self.dailyData[iNewest].adjClose;
+    weeklyBar.high = self.dailyData[iNewest].high;
+    weeklyBar.low  = self.dailyData[iNewest].low;
+    weeklyBar.volume = self.dailyData[iNewest].volume;
+    weeklyBar.movingAvg1 = weeklyBar.movingAvg2 = weeklyBar.mbb = weeklyBar.stdev = 0.;
     
-    NSInteger i = iNewest + 1;    // iNewest values already saved to barData
+    NSInteger i = iNewest + 1;    // iNewest values already saved to self.periodData
 
     NSDateComponents *componentsToSubtract = [[NSDateComponents alloc] init];
     NSDateComponents *weekdayComponents = [self.gregorian components:NSCalendarUnitWeekday fromDate:startDate];
@@ -539,98 +518,81 @@
     NSUInteger unitFlags = NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitYear;
     NSDateComponents *friday = [self.gregorian components:unitFlags fromDate:lastFriday];
     
-    while (i < self. self.dailyBars && 0 < 20000 * (dailyData[i].year - friday.year) + 100 * (dailyData[i].month - friday.month) + dailyData[i].day - friday.day) {
+    while (i < self.dailyData.count && 0 < 20000 * (self.dailyData[i].year - friday.year) + 100 * (self.dailyData[i].month - friday.month) + self.dailyData[i].day - friday.day) {
         
-        if (dailyData[i].high > barData[wi].high) {
-            barData[wi].high = dailyData[i].high;
+        if (self.dailyData[i].high > weeklyBar.high) {
+            weeklyBar.high = self.dailyData[i].high;
         }
-        if (dailyData[i].low < barData[wi].low) {
-            barData[wi].low = dailyData[i].low;
+        if (self.dailyData[i].low < weeklyBar.low) {
+            weeklyBar.low = self.dailyData[i].low;
         }
-        barData[wi].volume += dailyData[i].volume;
+        weeklyBar.volume += self.dailyData[i].volume;
         i++;
     }
     
-    barData[wi].year = dailyData[i - 1].year;
-    barData[wi].month = dailyData[i - 1].month;
-    barData[wi].day = dailyData[i - 1].day;
-    barData[wi].open = dailyData[i - 1].open;
+    weeklyBar.year = self.dailyData[i - 1].year;
+    weeklyBar.month = self.dailyData[i - 1].month;
+    weeklyBar.day = self.dailyData[i - 1].day;
+    weeklyBar.open = self.dailyData[i - 1].open;
     
-    if (i < self. self.dailyBars) {
-        self.bars = wi;
+    if (i < self.dailyData.count) {
         wi++;
         [self groupByWeek:lastFriday dailyIndex:i weeklyIndex:wi];
-    } else {
-        self.bars = wi + 1;  // self.bars is a count not a zero index
     }
 }
 
 - (void) groupByMonthFromDailyIndex:(NSInteger)iNewest monthlyIndex:(NSInteger)mi {
     
-    // Note, we are going backwards, so the most recent daily close is the close of the week
-    barData[mi].close = dailyData[iNewest].close;
-    barData[mi].adjClose = dailyData[iNewest].adjClose;
-    barData[mi].high = dailyData[iNewest].high;
-    barData[mi].low  = dailyData[iNewest].low;
-    barData[mi].volume = dailyData[iNewest].volume;
-    barData[mi].year = dailyData[iNewest].year;
-    barData[mi].month = dailyData[iNewest].month;
-    barData[mi].movingAvg1 = barData[mi].movingAvg2 = barData[mi].mbb = barData[mi].stdev = 0.;
+    BarData *monthlyBar = [[BarData alloc] init];
+    [self.periodData insertObject:monthlyBar atIndex:mi];
     
-    NSInteger i = iNewest + 1;    // iNewest values already saved to barData
+    // Note, we are going backwards, so the most recent daily close is the close of the week
+    monthlyBar.close = self.dailyData[iNewest].close;
+    monthlyBar.adjClose = self.dailyData[iNewest].adjClose;
+    monthlyBar.high = self.dailyData[iNewest].high;
+    monthlyBar.low  = self.dailyData[iNewest].low;
+    monthlyBar.volume = self.dailyData[iNewest].volume;
+    monthlyBar.year = self.dailyData[iNewest].year;
+    monthlyBar.month = self.dailyData[iNewest].month;
+    monthlyBar.movingAvg1 = monthlyBar.movingAvg2 = monthlyBar.mbb = monthlyBar.stdev = 0.;
+    
+    NSInteger i = iNewest + 1;    // iNewest values already saved to self.periodData
         
-    while (i <  self.dailyBars && dailyData[i].month == barData[mi].month) {
+    while (i <  self.dailyData.count && self.dailyData[i].month == monthlyBar.month) {
         
-        if (dailyData[i].high > barData[mi].high) {
-            barData[mi].high = dailyData[i].high;
+        if (self.dailyData[i].high > monthlyBar.high) {
+            monthlyBar.high = self.dailyData[i].high;
         }
-        if (dailyData[i].low < barData[mi].low) {
-            barData[mi].low = dailyData[i].low;
+        if (self.dailyData[i].low < monthlyBar.low) {
+            monthlyBar.low = self.dailyData[i].low;
         }
-        barData[mi].volume += dailyData[i].volume;
+        monthlyBar.volume += self.dailyData[i].volume;
         i++;
     }
     
-    barData[mi].open = dailyData[i - 1].open;
-    barData[mi].day = dailyData[i - 1].day;
+    monthlyBar.open = self.dailyData[i - 1].open;
+    monthlyBar.day = self.dailyData[i - 1].day;
     
-    if (i <  self.dailyBars) {
-        self.bars = mi;
+    if (i <  self.dailyData.count) {
         mi++;
         [self groupByMonthFromDailyIndex:i monthlyIndex:mi];
-    } else {
-        self.bars = mi + 1;  // self.bars is a count not a zero index
-   //     // DLog(@"final self.bars value %d", self.bars);
     }
 }
 
-- (void) summarizeByDateFrom:(NSInteger)oldDailyBars oldBars:(NSInteger)oldBars {
+- (void) updatePeriodDataByDayWeekOrMonth {
 
-    // on average there are about 4.6 trading days in a week. Dividing by 4 provides sufficient room
-    
     if (self.barUnit == 1.) {
-        barData = dailyData;
-        self.bars =  self.dailyBars;
-    } else if (self.barUnit > 3 && barData == dailyData) {
-         barData = (BarStruct *)malloc(sizeof(BarStruct)*([self.api maxBars] / 4));
+        self.periodData = self.dailyData;
+    } else if (self.barUnit > 3 && self.periodData == self.dailyData) {
+        self.periodData = [NSMutableArray array];
+    } else if (self.periodData != self.dailyData){ // switching between monthly and weekly
+        [self.periodData removeAllObjects];
     }
     
     if (self.barUnit > 5) {
-         [self groupByMonthFromDailyIndex:oldDailyBars monthlyIndex:oldBars];
+        [self groupByMonthFromDailyIndex:0 monthlyIndex:0];
     } else if (self.barUnit > 3) {
-        if (oldDailyBars == 0) {
-             [self groupByWeek:self.newest dailyIndex:0 weeklyIndex:0];
-        } else if (oldBars > 0 && oldBars < oldDailyBars){
-            
-            oldBars--;   // to handle partial periods, start with 2nd to last bar.  Find the daily bar that matches the date
-            
-            do {
-                oldDailyBars--;
-                 
-            } while (oldDailyBars > 0 && ((dailyData[oldDailyBars].month != barData[oldBars].month) || (dailyData[oldDailyBars].day != barData[oldBars].day)));
-            
-             [self groupByWeek:[self.api dateFromBar:dailyData[oldDailyBars]] dailyIndex:oldDailyBars weeklyIndex:oldBars];
-        }
+        [self groupByWeek:self.newest dailyIndex:0 weeklyIndex:0];
     }
     [self updateFundamentalAlignment];
     
@@ -645,83 +607,61 @@
     // don't call updateHighLow here because summarizeByDate doesn't consider daysAgo but updateHighLow must be called AFTER shifting newestBarShown
 }
 
--(void) APILoadedHistoricalData:(DataAPI *)dp {
+-(void) APILoadedHistoricalData:(NSArray<BarData*> *)loadedData {
 
     /* Three cases since intraday updates are a separate callback:
-     1. First request, so copy to dailyData[bars]
-     2. Newer dates (not intraday update), so shift dailyData by dp.countBars and copy from dp->cArray to barData[0]
-     3. Older dates, so copy to dailyData[bars]
+     1. First request: [self.dailyData addObjectsFromArray:dataAPI.dailyData];
+     2. Insert newer dates (not intraday update): [self.dailyData insertObjects:dataAPI.dailyData atIndexes:indexSet];
+     3. Append older dates: [self.dailyData addObjectsFromArray:dataAPI.dailyData];
      */
     
-    dispatch_barrier_sync(concurrentQueue, ^{
-        NSInteger startCopy = 0;             // copy to start of dailyData.  If  self.dailyBars > 0, move existing data first
-        BOOL checkPrefetch = NO, shiftBarsShown = NO;
-        NSDate *desiredDate;
-        NSDate *apiNewest = [self.api dateFromBar:dp->cArray[0]];
+    if (loadedData == nil || loadedData.count == 0) {
+        return;
+    }
     
-        //DLog(@"%@  self.dailyBars %ld self.newest %@ and api.newest %@ and api.oldest %@", dp.symbol,  self.dailyBars, self.newest, apiNewest, self.api.oldestDate);
-  
-        if ( self.dailyBars == 0) { // case 1. First request
-            if (self.stock.daysAgo > 0) {
-                checkPrefetch = YES;
-                [self.days setDay: - self.stock.daysAgo];
-                // [self setNewest:[self.gregorian dateByAddingComponents:self.days toDate:[NSDate date] options:0]];
-                desiredDate = [self.gregorian dateByAddingComponents:self.days toDate:[NSDate date] options:0];
-             }
+    dispatch_barrier_sync(concurrentQueue, ^{
+        BarData *newestBar = loadedData[0];
+        NSDate *apiNewest = [self.api dateFromBar:newestBar];
+    
+        DLog(@"%@ dailyData.count %ld newest %@ and api.newest %@ and api.oldest %@", self.stock.symbol, self.dailyData.count, self.newest, apiNewest, self.api.oldestDate);
+        
+        if ( self.dailyData.count == 0) { // case 1. First request
             [self setNewest:apiNewest];
-            [self setLastPrice:[[[NSDecimalNumber alloc] initWithDouble:dp->cArray[0].close] autorelease]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
+            [self setLastPrice:[[NSDecimalNumber alloc] initWithDouble:newestBar.close]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
             [self setOldest:[self.api oldestDate]];
+
+            DLog(@"%@ added %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
+            
+            [self.dailyData addObjectsFromArray:loadedData];
             
         } else if ([self.newest compare:apiNewest] == NSOrderedAscending) {         // case 2. Newer dates
-            DLog(@"api is newer, so moving by %ld self.bars", dp.countBars);
-            checkPrefetch = YES;
-            shiftBarsShown = YES;   // because of the following createNewBarDataWithShift call
-            [self createNewBarDataWithShift:dp.countBars fromIndex:0];     // move current self.bars by dp.countBars
+            DLog(@"api is newer, so inserting %ld bars at start of dailyData", loadedData.count);
+        
+            for (NSInteger i = 0; i < loadedData.count; i++) {
+                [self.dailyData insertObject:loadedData[i] atIndex:i];
+            }
+
             [self setNewest:apiNewest];
-            desiredDate = self.newest;
-            [self setLastPrice:[[[NSDecimalNumber alloc] initWithDouble:dp->cArray[0].close] autorelease]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
+            [self setLastPrice:[[NSDecimalNumber alloc] initWithDouble:newestBar.close]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
             
         } else if ([self.oldest compare:[self.api oldestDate]] == NSOrderedDescending) {    // case 3. Older dates
-        
-            if (( self.dailyBars + dp.countBars) > [self.api maxBars]) {
-                DLog(@"removeNewerBars was needed to support historical charts back to the 1950s but is no longer supported");
-            }
-            startCopy =  self.dailyBars;      // copy to end of  self.dailyBars
+            
+            [self.dailyData addObjectsFromArray:loadedData];
+            
+            DLog(@"%@ older dates %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
             
             [self setOldest:[self.api oldestDate]];
         }
-        
-        if (dp.countBars > 0) {
-            memcpy(&dailyData[startCopy], dp->cArray, dp.countBars * sizeof(BarStruct));        // copy to start of barData the dp->cArray NEWER data
-       
-            DLog(@"%@ added %ld new self.bars to %ld exiting  self.dailyBars", self.stock.symbol, dp.countBars,  self.dailyBars);
+    
+        [self updatePeriodDataByDayWeekOrMonth];
             
-            NSInteger oldBars = self.bars;
-            NSInteger oldDailyBars =  self.dailyBars;
-             self.dailyBars += dp.countBars;
-            
-            [self summarizeByDateFrom:oldDailyBars oldBars:oldBars];
-            
-            if (shiftBarsShown) {
-                _newestBarShown += (self.bars - oldBars);
-                self.oldestBarShown += (self.bars - oldBars);
-            }
-            
-            if (checkPrefetch) {
-                 
-                while ([desiredDate timeIntervalSinceDate:[self.api dateFromBar:barData[_newestBarShown]]] < 0) {        // prefetched dates newer than those requested, so shift newestBarShown
-                    
-                    self.newestBarShown += 1;
-                    self.oldestBarShown += 1;
-                }
-            }
-             [self updateHighLow];
-        }
+        [self updateHighLow];
+
         self.busy = NO;
         [self.delegate performSelectorOnMainThread:@selector(stopProgressIndicator) withObject:nil waitUntilDone:NO];
       });
     
-    DLog(@"after %ld self.bars (%ld new), newest %@ and oldest %@", self.bars, dp.countBars, self.newest, self.oldest);
+    DLog(@"after %ld self.bars (%ld new), newest %@ and oldest %@", self.periodCount, loadedData.count, self.newest, self.oldest);
 
     [self.delegate performSelectorOnMainThread:@selector(requestFinished:) withObject:self.percentChange waitUntilDone:NO];
 }
@@ -786,18 +726,22 @@
     
     [self clearChart];
     
-    if (self.oldestBarShown < 1 || self.bars == 0) {
+    if (self.oldestBarShown < 1 || self.periodCount == 0) {
         self.ready = YES;
         return; // No self.bars to draw
         
-    } else if (self.oldestBarShown < self.bars) {
+    } else if (self.oldestBarShown < self.periodCount) {
         oldestValidBar = self.oldestBarShown;
-        oldestClose = barData[oldestValidBar + 1].open;
+        if (oldestValidBar < self.periodCount - 1) {
+            oldestClose = self.periodData[oldestValidBar + 1].close;
+        } else {
+            oldestClose = self.periodData[oldestValidBar].open; // No older data so use open in lieu of prior close
+        }
         
-    } else if (self.oldestBarShown >= self.bars) {    // don't load garbage data
-        oldestValidBar = self.bars - 1;
+    } else if (self.oldestBarShown >= self.periodCount) {    // user scrolled older than dates available
+        oldestValidBar = self.periodCount - 1;
         xRaw += self.xFactor * (self.oldestBarShown - oldestValidBar);
-        oldestClose = barData[oldestValidBar].open;
+        oldestClose = self.periodData[oldestValidBar].open; // No older data so use open in lieu of prior close
     }
     
     if (self.fundamentalAPI.columns.count > 0) {
@@ -917,24 +861,23 @@
     
     NSString *label;
     
-    self.lastMonth = barData[oldestValidBar].month;
+    self.lastMonth = self.periodData[oldestValidBar].month;
 
     for (NSInteger a = oldestValidBar; a >= _newestBarShown; a--) {
-        
         barCenter = [self pxAlign:xRaw alignTo:0.5]; // pixel context
         
-        if (barData[a].month != self.lastMonth) {
-            label = [self monthName:barData[a].month];
-            if (barData[a].month == 1) {
-                if (self.bars <  self.dailyBars || self.xFactor < 4) { // not enough room
-                    label = [[NSString stringWithFormat:@"%ld", (long)barData[a].year] substringFromIndex:2];
+        if (self.periodData[a].month != self.lastMonth) {
+            label = [self monthName:self.periodData[a].month];
+            if (self.periodData[a].month == 1) {
+                if (self.periodCount <  self.dailyData.count || self.xFactor < 4) { // not enough room
+                    label = [[NSString stringWithFormat:@"%ld", (long)self.periodData[a].year] substringFromIndex:2];
                 } else {
-                    label = [label stringByAppendingString:[[NSString stringWithFormat:@"%ld", (long)barData[a].year] substringFromIndex:2]];
+                    label = [label stringByAppendingString:[[NSString stringWithFormat:@"%ld", (long)self.periodData[a].year] substringFromIndex:2]];
                 }
                 
             } else if (self.barUnit > 5) {   // only year markets
                 label = @"";
-            } else if (self.bars <  self.dailyBars || self.xFactor < 2) { // shorten months
+            } else if (self.periodCount <  self.dailyData.count || self.xFactor < 2) { // shorten months
                 label = [label substringToIndex:1];
             }
 
@@ -945,38 +888,38 @@
             }
             
         }
-        self.lastMonth = barData[a].month;
+        self.lastMonth = self.periodData[a].month;
         
         if (self.stock.chartType < 2) {      //OHLC or HLC
             
-            if (oldestClose > barData[a].close) { // green bar
+            if (oldestClose > self.periodData[a].close) { // green bar
                 if (self.stock.chartType == 0) { // include open
-                    _redPoints[_redPointCount++] = CGPointMake(barCenter - _xFactor/2, _yFloor - _yFactor * barData[a].open);
-                    _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].open);
+                    _redPoints[_redPointCount++] = CGPointMake(barCenter - _xFactor/2, _yFloor - _yFactor * self.periodData[a].open);
+                    _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open);
                 }
                 
-                _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].high);
-                _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].low);
+                _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high);
+                _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low);
                 
-                _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].close);
-                _redPoints[_redPointCount++] = CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * barData[a].close);
+                _redPoints[_redPointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close);
+                _redPoints[_redPointCount++] = CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * self.periodData[a].close);
                 
             } else {    // red bar
                 if (self.stock.chartType == 0) { // include open
-                    _points[_pointCount++] = CGPointMake(barCenter - self.xFactor/2, _yFloor - _yFactor * barData[a].open);
-                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].open);
+                    _points[_pointCount++] = CGPointMake(barCenter - self.xFactor/2, _yFloor - _yFactor * self.periodData[a].open);
+                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open);
                 }
                 
-                _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].high);
-                _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].low);
+                _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high);
+                _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low);
                 
-                _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].close);
-                _points[_pointCount++] = CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * barData[a].close);
+                _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close);
+                _points[_pointCount++] = CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * self.periodData[a].close);
             }
             
         } else if (self.stock.chartType == 2 ) { // candlestick
             
-            barHeight = _yFactor * (barData[a].open - barData[a].close);
+            barHeight = _yFactor * (self.periodData[a].open - self.periodData[a].close);
             
             if (fabs(barHeight) < 1) {
                 barHeight = barHeight > 0 ? 1 : -1;
@@ -984,47 +927,47 @@
             
             // Filled up closes or hollow down closes are rare, so draw those points directly to avoid an extra array
             
-            if (barData[a].open >= barData[a].close) {  // filled bar (StockCharts colors closes higher > lastClose && close < open as filled black self.bars)
+            if (self.periodData[a].open >= self.periodData[a].close) {  // filled bar (StockCharts colors closes higher > lastClose && close < open as filled black barData.count)
                 
-                if (oldestClose < barData[a].close) { // filled green bar
+                if (oldestClose < self.periodData[a].close) { // filled green bar
                     
-                    _filledGreenBars[_filledGreenCount++] = CGRectMake(barCenter - _xFactor * 0.4, _yFloor - _yFactor * barData[a].open, 0.8 * self.xFactor, barHeight);
+                    _filledGreenBars[_filledGreenCount++] = CGRectMake(barCenter - _xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight);
                     
-                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].high);
-                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].low);
+                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high);
+                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low);
                     
                 } else {
-                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * barData[a].high);
-                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * barData[a].low);
-                    _redBars[_redBarCount++] = CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * barData[a].open, 0.8 * self.xFactor, barHeight);
+                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high);
+                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low);
+                    _redBars[_redBarCount++] = CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight);
                 }
                 
             } else {
                 
-                if (oldestClose > barData[a].close) { // red hollow bar
+                if (oldestClose > self.periodData[a].close) { // red hollow bar
                     
-                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * barData[a].high);
-                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * barData[a].close);
+                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high);
+                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close);
                     
-                    _hollowRedBars[_hollowRedCount++] = CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * barData[a].open, 0.8 * self.xFactor, barHeight);
+                    _hollowRedBars[_hollowRedCount++] = CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight);
                     
-                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * barData[a].open);
-                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * barData[a].low);
+                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open);
+                    _redPoints[_redPointCount++] =  CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low);
                     
                 } else {
                     
-                    _greenBars[_whiteBarCount++] = CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * barData[a].open, 0.8 * _xFactor, barHeight);
+                    _greenBars[_whiteBarCount++] = CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * _xFactor, barHeight);
                     
-                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].high);
-                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].close);
+                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high);
+                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close);
                     
-                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].open);
-                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].low);
+                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open);
+                    _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low);
                 }
             }
             
         } else if (self.stock.chartType == 3 ) { // Close
-            _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].close);
+            _points[_pointCount++] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close);
         }
 
         // It may seem inefficient to check the BOOL and the CGFloat value, but this is optimal
@@ -1032,35 +975,35 @@
         // that's why the counts must be reset after each redraw instead of when recalculating the indicators
         NSInteger offset = a - _newestBarShown;
         
-        if (sma50 && barData[a].movingAvg1 > 0.) {
+        if (sma50 && self.periodData[a].movingAvg1 > 0.) {
             _movingAvg1Count++;
-            _movingAvg1[offset] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].movingAvg1);
+            _movingAvg1[offset] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].movingAvg1);
         }
         
-        if (sma200 && barData[a].movingAvg2 > 0.) {
+        if (sma200 && self.periodData[a].movingAvg2 > 0.) {
             _movingAvg2Count++;
-            _movingAvg2[offset] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].movingAvg2);
+            _movingAvg2[offset] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].movingAvg2);
         }
         
-        if (bb20 && barData[a].mbb > 0.) {
+        if (bb20 && self.periodData[a].mbb > 0.) {
             _bbCount++;
-            _ubb[offset] = CGPointMake(barCenter, _yFloor - _yFactor * (barData[a].mbb + 2*barData[a].stdev));
-            _mbb[offset] = CGPointMake(barCenter, _yFloor - _yFactor * barData[a].mbb);
-            _lbb[offset] = CGPointMake(barCenter, _yFloor - _yFactor * (barData[a].mbb - 2*barData[a].stdev));
+            _ubb[offset] = CGPointMake(barCenter, _yFloor - _yFactor * (self.periodData[a].mbb + 2*self.periodData[a].stdev));
+            _mbb[offset] = CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].mbb);
+            _lbb[offset] = CGPointMake(barCenter, _yFloor - _yFactor * (self.periodData[a].mbb - 2*self.periodData[a].stdev));
         }
         
-        if (barData[a].volume <= 0) {
+        if (self.periodData[a].volume <= 0) {
      //       DLog(@"volume shouldn't be zero but is for a=%ld", a);
         } else {
-            if (oldestClose > barData[a].close) {
-                    _redVolume[_redCount++] = CGRectMake(barCenter - _xFactor/2, volumeBase, _xFactor, -barData[a].volume/volumeFactor);
+            if (oldestClose > self.periodData[a].close) {
+                    _redVolume[_redCount++] = CGRectMake(barCenter - _xFactor/2, volumeBase, _xFactor, - self.periodData[a].volume/volumeFactor);
                     
             } else { 
-                    _blackVolume[_blackCount++] = CGRectMake(barCenter - _xFactor/2, volumeBase, _xFactor, -barData[a].volume/volumeFactor);
+                    _blackVolume[_blackCount++] = CGRectMake(barCenter - _xFactor/2, volumeBase, _xFactor, - self.periodData[a].volume/volumeFactor);
             }
         }
     
-        oldestClose = barData[a].close;
+        oldestClose = self.periodData[a].close;
         xRaw += _xFactor;            // keep track of the unaligned value or the chart will end too soon
     }
     self.ready = YES;

@@ -14,29 +14,14 @@
     _upColor = uc;
     _upColorHalfAlpha = CGColorCreateCopyWithAlpha(uc, .5);
     
-    CGFloat *components = malloc(sizeof(CGFloat) * 4);
-    CGFloat *darkComponents = malloc(sizeof(CGFloat) * 4);
-    
-    memcpy(components, CGColorGetComponents(_upColor), sizeof(CGFloat) * 4);
-    
-    for (NSInteger i = 0; i < 3; i++) {
+    const CGFloat *components = CGColorGetComponents(_upColor);
 
-  //     // DLog(@"component was %f so inverse %f", components[i], MAX(.0, 1. - components[i]));
-        darkComponents[i] = components[i] / 2 + 0.25;
-       // DLog(@"component was %f so darkComponent %f", components[i], darkComponents[i]);
-        
-        components[i] = MAX(.0, 1. - components[i]);
-    }
-    
-    CGColorSpaceRef deviceRGB = CGColorSpaceCreateDeviceRGB();
-    
-    _colorInverse = CGColorCreate(deviceRGB, components);
-
-    darkComponents[3] = 0.5;
-    _upColorDarkHalfAlpha = CGColorCreate(deviceRGB, darkComponents);
+    _colorInverse = [[UIColor alloc] initWithRed:(1.0 - components[0])
+                                               green:(1.0 - components[1])
+                                                blue:(1.0 - components[2])
+                                               alpha:components[3]].CGColor;
     
     _colorInverseHalfAlpha = CGColorCreateCopyWithAlpha(_colorInverse, .75);
-    CGColorSpaceRelease(deviceRGB);
 }
 
 - (void) setColorWithHexString:(NSString *) stringToConvert {
@@ -57,7 +42,6 @@
     CGColorRef colorRef = CGColorCreate(deviceRGB, components);
     [self setColor:colorRef];
     [self setUpColor:colorRef];
-    // don't release colorRef because it isn't a retainable object; only call CGColorRelease when stock is dealloc'ed
     CGColorSpaceRelease(deviceRGB);
     
     if (self.chartType < 3) {
@@ -150,7 +134,6 @@
     self.id = 0;
     self.comparisonStockId = 0;
     self.hasFundamentals = 0;
-    self.daysAgo = 0;
     self.chartType = 2; // Candle
     [self setFundamentalList:@""];
     [self setTechnicalList:@""];

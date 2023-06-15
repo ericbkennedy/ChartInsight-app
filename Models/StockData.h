@@ -1,4 +1,5 @@
 #import "DataAPI.h"
+#import "ChartInsight-Swift.h" // for BarData
 
  // forward declaration to avoid circular header inclusion
 @class FundamentalAPI;
@@ -8,7 +9,6 @@
 
 @interface StockData : NSObject 
 
-@property (nonatomic) NSInteger dailyBars;
 @property (nonatomic) NSInteger oldestBarShown;
 @property (nonatomic) NSInteger monthCount;
 @property (nonatomic) NSInteger movingAvg1Count;
@@ -24,7 +24,6 @@
 @property (nonatomic) CGPoint *monthLines;
 
 @property (nonatomic) double maxVolume;
-@property (nonatomic) NSInteger bars;
 @property (nonatomic) BOOL      ready;
 @property (nonatomic) BOOL      busy;
 @property (nonatomic) NSInteger pointCount;
@@ -80,7 +79,10 @@
 
 - (void) setPxHeight:(double)h withSparklineHeight:(double)s;
 
-- (BarStruct *) barAtIndex:(NSInteger)index setUpClose:(BOOL *)upClose;
+- (BarData *) barAtIndex:(NSInteger)index setUpClose:(BOOL *)upClose;
+
+/// Count of total bars (either monthly, weekly or daily) which determines the oldest date available for display
+- (NSInteger) periodCount;
 
 - (NSString *) monthName:(NSInteger)month;
 
@@ -88,9 +90,9 @@
 
 - (void) setNewestBarShown:(NSInteger)offsetBar;      // called after rotation
 
-- (void) initWithDaysAgo:(NSInteger)daysAgo;
+- (void) fetchStockData;
 
-- (void) summarizeByDateFrom:(NSInteger)startCalculation oldBars:(NSInteger)oldBars;
+- (void) updatePeriodDataByDayWeekOrMonth;
 
 - (NSDecimalNumber *) shiftRedraw:(NSInteger)barsShifted withBars:(NSInteger)maxBarOffset;
 
@@ -98,9 +100,9 @@
 
 - (void) updateLayer:(NSDecimalNumber *)maxPercentChange forceRecompute:(BOOL)force;
 
-- (void) APILoadedHistoricalData:(DataAPI *)dp;
+- (void) APILoadedHistoricalData:(NSArray<BarData*> *)loadedData;
 
-- (void) APILoadedIntraday:(DataAPI *)dp;
+- (void) APILoadedIntradayBar:(BarData *)intradayBar;
 
 - (void) APIFailed:(NSString *)message;
 

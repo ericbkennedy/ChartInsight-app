@@ -145,11 +145,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     _sparklineHeight = 100 * [self.sparklineKeys count];
     
     for (Stock *stock in self.comparison.stockList) {
-        StockData *stockData = [StockData alloc];
+        StockData *stockData = [[StockData alloc] init];
         [self.stocks addObject:stockData];
-        [stockData release];
         stockData.stock = stock;
-        // DLog(@"days Ago %d  for %@", stock.daysAgo, stock.symbol);
         
         stockData.oldestBarShown = [self maxBarOffset];
         // DLog(@"oldestBarShown %d", stockData.oldestBarShown);
@@ -160,8 +158,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         stockData.barUnit = _barUnit;
         stockData.xFactor = _xFactor * _barUnit;
         [stockData setPxHeight:_pxHeight withSparklineHeight:_sparklineHeight];
-    
-        [stockData initWithDaysAgo:stock.daysAgo];
+        [stockData fetchStockData];
     }
 }
 
@@ -184,7 +181,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     if (self.stocks.count > 0) {
         stockData = [self.stocks objectAtIndex:0];
         
-        dateShift = stockData.stock.daysAgo + stockData.oldestBarShown;
+        dateShift = stockData.oldestBarShown;
         
         CGContextSetStrokeColor(_layerContext, monthLineColor);        
         CGContextSetLineWidth(_layerContext, 1.0);   // pIXELs
@@ -245,9 +242,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColor);
         CGContextSetLineWidth(_layerContext, 1.0);   // pIXELs
         
-        if (s == 1 && dateShift != stockData.stock.daysAgo + stockData.oldestBarShown) { // 3rd chart must use same dates as 2nd
+        if (s == 1 && dateShift != stockData.oldestBarShown) { // 3rd chart must use same dates as 2nd
     
-            dateShift = stockData.stock.daysAgo + stockData.oldestBarShown;
+            dateShift = stockData.oldestBarShown;
             
             CGContextSetStrokeColor(_layerContext, monthLineColor);
             CGContextStrokeLineSegments(_layerContext, stockData.monthLines, stockData.monthCount);
@@ -691,10 +688,14 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
              
             [stockData setNewestBarShown:floor(stockData.newestBarShown * stockData.barUnit / _barUnit)];
             stockData.oldestBarShown = floor(stockData.oldestBarShown * stockData.barUnit / _barUnit);
-
             stockData.barUnit = _barUnit;
            
-            [stockData summarizeByDateFrom:0 oldBars:0];
+            [stockData updatePeriodDataByDayWeekOrMonth];
+            
+            if (stockData.oldestBarShown > stockData.periodCount) {
+                stockData.oldestBarShown = stockData.periodCount;
+            }
+
             [stockData updateHighLow];      // must be a separate call to handle shifting
         }
         
@@ -734,14 +735,15 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     NSDecimalNumber *percentChange;
 
     BOOL outOfBars = YES;
+    NSInteger MIN_BARS_SHOWN = 20;
     
     for(StockData *stock in self.stocks) {
         
         if (barsShifted == 0) {
             outOfBars = NO;
-        } else if (barsShifted > 0 && barsShifted < stock.bars - stock.newestBarShown) {
+        } else if (barsShifted > 0 && barsShifted < stock.periodCount - stock.newestBarShown) {
             outOfBars = NO;
-        } else if (barsShifted < 0 && stock.oldestBarShown > abs((int)barsShifted)) {
+        } else if (barsShifted < 0 && stock.oldestBarShown - barsShifted > MIN_BARS_SHOWN) {
             outOfBars = NO;
         }
     }
@@ -862,11 +864,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             _pressedBarIndex = stockData.oldestBarShown - roundf(centerX/(_xFactor * _barUnit));        // only overwrite pressedBarIndex if its valid
             
             BOOL upClose = YES;
-            BarStruct *pressedBar = [stockData barAtIndex:_pressedBarIndex setUpClose:&upClose];
+            BarData *bar = [stockData barAtIndex:_pressedBarIndex setUpClose:&upClose];
             
-            if (pressedBar != nil) {                
-                BarStruct bar = *pressedBar; // dereference pointer
-        
+            if (bar != nil) {
                 CGFloat barHigh = stockData.yFloor - stockData.yFactor * bar.high;
                 CGFloat barLow = stockData.yFloor - stockData.yFactor * bar.low;
                 
