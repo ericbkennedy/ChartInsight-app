@@ -643,8 +643,13 @@
             
         [self updateHighLow];
 
-        self.busy = NO;
-        [self.delegate performSelectorOnMainThread:@selector(stopProgressIndicator) withObject:nil waitUntilDone:NO];
+        if ([self.fetcher shouldFetchIntradayQuote]) {
+            self.busy = YES;
+            [self.fetcher fetchIntradayQuote];
+        } else {
+            self.busy = NO;
+            [self.delegate performSelectorOnMainThread:@selector(stopProgressIndicator) withObject:nil waitUntilDone:NO];
+        }
       });
     
     DLog(@"after %ld self.bars (%ld new), newest %@ and oldest %@", self.periodCount, loadedData.count, self.newest, self.oldest);

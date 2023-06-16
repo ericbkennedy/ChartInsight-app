@@ -74,14 +74,13 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
         if let searchText = searchBar.text {
             // Avoid blocking keyboard animations by dispatching to another thread
             DispatchQueue.global(qos: .userInteractive).async {
-                if let localList = Stock.find(searchText) {
-                    DispatchQueue.main.async { // update UI on main
-                        self.list.removeAll()
-                        if (localList.isEmpty == false) {
-                            self.list = localList
-                        }
-                        self.tableView.reloadData()
+                let localList = DB().findStock(search: searchText)
+                DispatchQueue.main.async { // update UI on main
+                    self.list.removeAll()
+                    if (localList.isEmpty == false) {
+                        self.list = localList
                     }
+                    self.tableView.reloadData()
                 }
             }
         }

@@ -56,8 +56,8 @@ class DataFetcher: NSObject {
         let BEFORE_OPEN: TimeInterval = 23000.0
         let AFTER_CLOSE: TimeInterval = -3600.0
         let secondsUntilClose = nextClose.timeIntervalSinceNow
-                
-        if isRecent(lastIntradayFetch) && secondsUntilClose < BEFORE_OPEN && secondsUntilClose > AFTER_CLOSE {
+        
+        if !isRecent(lastIntradayFetch) && secondsUntilClose < BEFORE_OPEN && secondsUntilClose > AFTER_CLOSE {
             // current time in NYC is between 9:30am and 5pm of nextClose so only intraday data is available
             return true
         }
@@ -160,7 +160,7 @@ class DataFetcher: NSObject {
     func fetchNewerThanDate(currentNewest: Date) {
         
         if currentNewest.compare(.distantPast) == .orderedDescending {
-            requestOldest = currentNewest
+            requestOldest = getNextTradingDateAfter(date: currentNewest)
         }
         
         requestNewest = Date()

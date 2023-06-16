@@ -20,9 +20,6 @@
 @property (nonatomic, copy) NSString *startDateString; // searches return a string to convert to date later
 @property (nonatomic, copy) NSDate *startDate;
 
-
-+ (NSArray<Stock *> *) findStock:(NSString *)search;
-
 - (void) addToFundamentals:(NSString *)type;
 - (void) addToTechnicals:(NSString *)type;
 - (void) removeFromFundamentals:(NSString *)type;
