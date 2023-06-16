@@ -27,9 +27,8 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
     [self setList:[Comparison listAll:dbPath]];
 
-    if (@available(iOS 13, *)) {
-        self.view.backgroundColor = [UIColor systemBackgroundColor];
-    }
+    self.view.backgroundColor = [UIColor systemBackgroundColor];
+    
     self.tableView.editing = YES;
 
     UIBarButtonItem *barButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismiss)];
@@ -56,9 +55,7 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
         [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightModeOn:YES];
     }
     
-    if (@available(iOS 13, *)) {
-        self.view.backgroundColor = [UIColor systemBackgroundColor];
-    }
+    self.view.backgroundColor = [UIColor systemBackgroundColor];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -67,11 +64,7 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
 - (NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     if (section == NIGHT_MODE_SECTION) {
-        if (@available(iOS 13, *)) {
-            return 1;
-        } else {
-            return 0;
-        }
+        return 1;
     }
     return [self.list count];
 }

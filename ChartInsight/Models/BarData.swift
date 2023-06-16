@@ -20,12 +20,11 @@ import Foundation
     var low: Double = 0.0
     var close: Double = 0.0
     var adjClose: Double = 0.0
-    var volume: Double = 0.0
-    var movingAvg1: Double = 0.0
-    var movingAvg2: Double = 0.0
-    var mbb: Double = 0.0
-    var stdev: Double = 0.0
-    var splitRatio: Double = 0.0
+    var volume: Double = 0.0 // Converted from int to simplify graphics code
+    var movingAvg1: Double = -1.0
+    var movingAvg2: Double = -1.0
+    var mbb: Double = -1.0
+    var stdev: Double = -1.0
     
     static func == (lhs: BarData, rhs: BarData) -> Bool {
         
@@ -38,5 +37,32 @@ import Foundation
     func dateIntFromBar() -> Int {
 
         return year * 10000 + month * 100 + day;
+    }
+    
+    /// If CSV line contains yyyy-mm-dd,open,high,low,close,volume then a new BarData object will be returned
+    /// date,open,high,low,close,volume
+    /// 2023-06-15,179.9650,180.1200,177.4300,179.2100,64848374
+    static func parse(from line: String) -> BarData? {
+        if line.count > 0 {
+            let cols = line.components(separatedBy: ",")
+            if cols.count == 6 {
+                let dateParts = cols[0].components(separatedBy: "-")
+                if dateParts.count == 3 {
+                    let barData = BarData() // note this is a class so properties can be mutated
+                    barData.year   = Int(dateParts[0]) ?? 0
+                    barData.month  = Int(dateParts[1]) ?? 0
+                    barData.day    = Int(dateParts[2]) ?? 0
+                    barData.open   = Double(cols[1]) ?? 0.0
+                    barData.high   = Double(cols[2]) ?? 0.0
+                    barData.low    = Double(cols[3]) ?? 0.0
+                    barData.close  = Double(cols[4]) ?? 0.0
+                    barData.volume = Double(Int(cols[5]) ?? 0)
+                    if (barData.year > 1990) {
+                        return barData
+                    }
+                }
+            }
+        }
+        return nil
     }
 }

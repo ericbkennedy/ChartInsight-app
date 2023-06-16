@@ -5,5 +5,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+#import "DataFetcherDelegate.h"
 #import "RootViewController.h"
 #import "Stock.h"
+#import "sqlite3.h"

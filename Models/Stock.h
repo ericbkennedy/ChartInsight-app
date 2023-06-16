@@ -28,8 +28,6 @@
 - (void) removeFromFundamentals:(NSString *)type;
 - (void) removeFromTechnicals:(NSString *)type;
 
-- (void) convertDateStringToDateWithFormatter:(NSDateFormatter *)formatter;
-
 - (void) setColorWithHexString:(NSString *) stringToConvert;
 
 - (void) setColor:(CGColorRef)c;

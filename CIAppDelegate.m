@@ -28,13 +28,10 @@
         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"nightBackground"];
     }
     
-    if (@available(iOS 13, *)) {    // Override system light or dark setting based on nightModeOn toggle
+    // Override system light or dark setting based on nightModeOn toggle
         _window.overrideUserInterfaceStyle = on ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
         self.tabBarController.tabBar.backgroundColor = UIColor.systemBackgroundColor;
         self.window.backgroundColor = UIColor.systemBackgroundColor;
-    } else {
-        // night mode not supported for iOS older than 13 which lacked native support
-    }
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {

@@ -1,13 +1,11 @@
-#import "DataAPI.h"
-#import "ChartInsight-Swift.h" // for BarData
+#import "DataFetcherDelegate.h"
+#import "ChartInsight-Swift.h" // for BarData and DataFetcher
 
  // forward declaration to avoid circular header inclusion
 @class FundamentalAPI;
 @class Stock;
 
-// when comparing against the present, we want to refresh the current
-
-@interface StockData : NSObject 
+@interface StockData : NSObject<DataFetcherDelegate>
 
 @property (nonatomic) NSInteger oldestBarShown;
 @property (nonatomic) NSInteger monthCount;
@@ -64,10 +62,9 @@
 @property (strong, nonatomic) NSDecimalNumber *lastPrice;
 @property (strong, nonatomic) NSDecimalNumber *bookValue;
 
-@property (strong, nonatomic) DataAPI *api;
+
 @property (nonatomic) CGContextRef offscreenContext;
 @property (strong, nonatomic) NSDateComponents *days;
-@property (strong, nonatomic) NSDecimalNumber *lastSplitRatio;
 @property (strong, nonatomic) NSDecimalNumber *chartBase;
 @property (strong, nonatomic) NSMutableArray *reportBarIndex;
 
@@ -99,14 +96,6 @@
 - (void) updateHighLow;
 
 - (void) updateLayer:(NSDecimalNumber *)maxPercentChange forceRecompute:(BOOL)force;
-
-- (void) APILoadedHistoricalData:(NSArray<BarData*> *)loadedData;
-
-- (void) APILoadedIntradayBar:(BarData *)intradayBar;
-
-- (void) APIFailed:(NSString *)message;
-
-- (void) APICanceled:(DataAPI *) dp;
 
 // Note this takes doubles even on 32 bit platforms because a double modulo function is used
 - (double) pxAlign:(double)raw alignTo:(double)alignTo;

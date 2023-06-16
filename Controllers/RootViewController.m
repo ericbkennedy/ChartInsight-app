@@ -170,7 +170,7 @@
 }
 
 - (void)viewDidLoad {
-    DBUpdater *updater = [[DBUpdater alloc] init];
+    DB *updater = [[DB alloc] init];
     [updater moveDBToDocumentsForDelegate:self];                      // copy db to documents and/or update existing db
     
     [super viewDidLoad];
@@ -198,12 +198,7 @@
                                                                     205, self.height) // set by resizeFrameToSize:
                                                    style:UITableViewStylePlain] autorelease];
         
-    if (@available(iOS 13, *)) {
-        self.view.backgroundColor = UIColor.secondarySystemBackgroundColor;
-    } else {
-        self.view.backgroundColor = [UIColor colorWithWhite:0.964705882 alpha:1.];
-        self.tableView.backgroundColor = UIColor.clearColor;
-    }
+    // EK this is also set in viewDidAppear:  self.view.backgroundColor = UIColor.secondarySystemBackgroundColor;
     
     [self.tableView setClipsToBounds:NO];      // YES would create rounded corners, which doesn't matter when the background is all the same
 	[self.tableView setDelegate:self];
@@ -409,10 +404,23 @@
     [self popContainer];
 }
 
+/// Find the keyWindow and get the safeAreaInsets for the notch and other unsafe areas
+- (UIEdgeInsets) getSafeAreaInsets {
+    UIEdgeInsets noInsets = UIEdgeInsetsMake(0, 0, 0, 0);
+    for (UIWindowScene *scene in [[[UIApplication sharedApplication] connectedScenes] allObjects]) {
+        if (scene.keyWindow != nil) { // can be nil for iPadOS apps which support multiple windows
+            UIWindow *keyWindow = scene.keyWindow;
+            if ([keyWindow respondsToSelector:@selector(safeAreaInsets)]) {
+                return keyWindow.safeAreaInsets;
+            }
+        }
+    }
+    return noInsets;
+}
 
 - (BOOL) resizeFrameToSize:(CGSize)newSize {
 	CGFloat newWidth, newHeight;
-    UIEdgeInsets safeAreaInsets = [UIApplication.sharedApplication.keyWindow safeAreaInsets];
+    UIEdgeInsets safeAreaInsets = [self getSafeAreaInsets]; // replace deprecated method
     
     self.toolbarHeight = 44;
     self.statusBarHeight = 20;
@@ -443,11 +451,7 @@
         [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
     }
     
-    if (@available(iOS 13, *)) {
-        self.view.backgroundColor = [UIColor secondarySystemBackgroundColor];
-    } else {
-        self.view.backgroundColor = [UIColor colorWithWhite:0.9 alpha:1.0];
-    }
+    self.view.backgroundColor = [UIColor secondarySystemBackgroundColor];
     
     [super viewWillAppear:animated];
 }

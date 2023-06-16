@@ -140,13 +140,6 @@
     return self;
 }
 
-- (void) convertDateStringToDateWithFormatter:(NSDateFormatter *)formatter {
-    
-   NSDate *dateFromString = [formatter dateFromString:[self.startDateString stringByAppendingString:@"T20:00:00Z"]];
-       
-   [self setStartDate:[dateFromString laterDate:[NSDate dateWithTimeIntervalSinceReferenceDate:23328000]]];
-}
-
 /// Find stock name or symbol containing search string in DB.
 /// findStock wraps this method in order to split the user's search text into words if no exact matches occur
 + (NSArray<Stock *> *) findSymbol:(NSString *)search inDB:(sqlite3 *)db {

@@ -286,14 +286,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     [self setColor:[UIColor colorWithCGColor:self.stock.color]];
     [self setUpColor:[UIColor colorWithCGColor:self.stock.upColor]];
     
-    if (@available(iOS 13, *)) {
-        self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
-        self.tableView.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
-    } else {
-        self.view.backgroundColor = [UIColor colorWithRed:.85 green:.86 blue:.88 alpha:1.0];
-        self.tableView.backgroundColor = self.view.backgroundColor;
-    }
-    
+    self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
+    self.tableView.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
+
     // Add metrics from other chart in the comparison set
     for (NSString *key in self.sparklineKeys) {
         [self setListedMetricKeyString:[self.listedMetricKeyString stringByAppendingFormat:@"%@,", key]];
@@ -474,7 +469,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     cell.textLabel.textColor = [UIColor lightGrayColor];
     cell.textLabel.font = [UIFont systemFontOfSize:16];
     
-    CGFloat segmentWidth = [self segmentWidthForOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+    CGFloat segmentWidth = [self segmentWidthForOrientation:self.view.window.windowScene.interfaceOrientation];
     
     if (section == 0) {
         self.typeSegmentedControl.frame = CGRectMake(9.0, .0, segmentWidth, 45.);

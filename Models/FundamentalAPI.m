@@ -1,4 +1,3 @@
-#import "DataAPI.h"     // for date category parsing
 #import "FundamentalAPI.h"
 #import "Stock.h"
 #import "StockData.h"
@@ -72,7 +71,7 @@
             }
         }
     }  
-    [self.delegate performSelector:@selector(APILoadedFundamentalData:) withObject:self];
+    [self.delegate performSelector:@selector(fetcherLoadedFundamentalData:) withObject:self];
 }
 
 - (void) setBarAlignment:(NSInteger)b forReport:(NSInteger)r {

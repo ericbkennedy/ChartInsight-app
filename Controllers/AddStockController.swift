@@ -15,13 +15,13 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
     var searchBar : UISearchBar
     
     required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) is not supported since no storyboard of nib is used")
+        fatalError("init(coder:) is not supported since no storyboard or nib is used")
     }
     
     override init(style: UITableView.Style) {
         searchBar = UISearchBar()
         list = []
-        delegate = nil // must be set later rvcDelegate
+        delegate = nil // will be set later to RootViewController
         super.init(style: style)
     }
         
@@ -105,7 +105,6 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
             let selected = list[indexPath.row]
             
             if (selected.isKind(of: Stock.self) && selected.symbol.count > 0) {
-                print(selected.symbol!)
                 delegate?.insert(selected)
             } else { // user selected placeholder for no matches so reset search
                 searchBar.text = ""

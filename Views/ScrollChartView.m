@@ -599,7 +599,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
 - (void) drawRect:(CGRect)rect {
     CGContextRef ctx = UIGraphicsGetCurrentContext();
-    CGContextSetFillColorWithColor(ctx, self.chartBackground.CGColor);
+    CGContextSetFillColorWithColor(ctx, UIColor.systemBackgroundColor.CGColor);
     
     CGContextFillRect(ctx, CGRectMake(0, 0, self.layer.contentsScale * _maxWidth, _pxHeight + 5));    // labels and moving averages extend outside _pxHeight and leave artifacts
     
@@ -984,15 +984,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         [self.layer setOpacity:1.0];
         [self renderCharts];
         [self.progressIndicator stopAnimating];        
-    }
-}
-
-// Use system color for iOS >= 13 and off-white for iOS 12
-- (UIColor *) chartBackground {
-    if (@available(iOS 13, *)) {
-        return UIColor.systemBackgroundColor;
-    } else {
-        return [UIColor colorWithWhite:0.964705882 alpha:1.];
     }
 }
 

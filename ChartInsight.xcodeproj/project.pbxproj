@@ -13,7 +13,6 @@
 		0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC011C420BE400139C33 /* ChartOptionsController.m */; };
 		0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC111C420C1A00139C33 /* RootViewController.m */; };
 		0B42BC221C420C2F00139C33 /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC141C420C2F00139C33 /* StockData.m */; };
-		0B42BC231C420C2F00139C33 /* DataAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC151C420C2F00139C33 /* DataAPI.m */; };
 		0B42BC241C420C2F00139C33 /* Comparison.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC161C420C2F00139C33 /* Comparison.m */; };
 		0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC191C420C2F00139C33 /* FundamentalAPI.m */; };
 		0B42BC261C420C2F00139C33 /* Stock.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC1D1C420C2F00139C33 /* Stock.m */; };
@@ -27,11 +26,13 @@
 		0BB7F521183C31B90040F1C6 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F520183C31B90040F1C6 /* Foundation.framework */; };
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
-		803399BF2A2A9C4300C81714 /* DBUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DBUpdater.swift */; };
+		803399BF2A2A9C4300C81714 /* DB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DB.swift */; };
 		804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804D975C2A38D0CF00F61FF7 /* BarData.swift */; };
 		809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F72A2A8FF600766030 /* ScrollChartView.m */; };
 		809576FA2A2A8FF600766030 /* ProgressIndicator.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F82A2A8FF600766030 /* ProgressIndicator.m */; };
 		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
+		80B0E4D92A3B649F003072DA /* DataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B0E4D82A3B649F003072DA /* DataFetcher.swift */; };
+		80B0E4DA2A3B649F003072DA /* DataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B0E4D82A3B649F003072DA /* DataFetcher.swift */; };
 		80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */; };
 		80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */; };
 		80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */; };
@@ -57,13 +58,11 @@
 		0B42BC101C420C1A00139C33 /* RootViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RootViewController.h; path = Controllers/RootViewController.h; sourceTree = SOURCE_ROOT; };
 		0B42BC111C420C1A00139C33 /* RootViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RootViewController.m; path = Controllers/RootViewController.m; sourceTree = SOURCE_ROOT; };
 		0B42BC141C420C2F00139C33 /* StockData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StockData.m; path = Models/StockData.m; sourceTree = SOURCE_ROOT; };
-		0B42BC151C420C2F00139C33 /* DataAPI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DataAPI.m; path = Models/DataAPI.m; sourceTree = SOURCE_ROOT; };
 		0B42BC161C420C2F00139C33 /* Comparison.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Comparison.m; path = Models/Comparison.m; sourceTree = SOURCE_ROOT; };
 		0B42BC171C420C2F00139C33 /* Comparison.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Comparison.h; path = Models/Comparison.h; sourceTree = SOURCE_ROOT; };
 		0B42BC181C420C2F00139C33 /* StockData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StockData.h; path = Models/StockData.h; sourceTree = SOURCE_ROOT; };
 		0B42BC191C420C2F00139C33 /* FundamentalAPI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FundamentalAPI.m; path = Models/FundamentalAPI.m; sourceTree = SOURCE_ROOT; };
 		0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FundamentalAPI.h; path = Models/FundamentalAPI.h; sourceTree = SOURCE_ROOT; };
-		0B42BC1B1C420C2F00139C33 /* DataAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DataAPI.h; path = Models/DataAPI.h; sourceTree = SOURCE_ROOT; };
 		0B42BC1C1C420C2F00139C33 /* Stock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Stock.h; path = Models/Stock.h; sourceTree = SOURCE_ROOT; };
 		0B42BC1D1C420C2F00139C33 /* Stock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Stock.m; path = Models/Stock.m; sourceTree = SOURCE_ROOT; };
 		0B42BC281C420C4700139C33 /* CIAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CIAppDelegate.m; sourceTree = SOURCE_ROOT; };
@@ -82,13 +81,15 @@
 		0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		803399BE2A2A9C4200C81714 /* DBUpdater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DBUpdater.swift; path = Models/DBUpdater.swift; sourceTree = SOURCE_ROOT; };
+		803399BE2A2A9C4200C81714 /* DB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DB.swift; path = Models/DB.swift; sourceTree = SOURCE_ROOT; };
 		804D975C2A38D0CF00F61FF7 /* BarData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
 		809576F52A2A8FF600766030 /* ProgressIndicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressIndicator.h; sourceTree = "<group>"; };
 		809576F62A2A8FF600766030 /* ScrollChartView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollChartView.h; sourceTree = "<group>"; };
 		809576F72A2A8FF600766030 /* ScrollChartView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ScrollChartView.m; sourceTree = "<group>"; };
 		809576F82A2A8FF600766030 /* ProgressIndicator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProgressIndicator.m; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
+		80B0E4D82A3B649F003072DA /* DataFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataFetcher.swift; sourceTree = "<group>"; };
+		80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DataFetcherDelegate.h; sourceTree = "<group>"; };
 		80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Bridging-Header.h"; sourceTree = "<group>"; };
 		80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BigNumberFormatter.swift; path = "/Users/erickennedy/Library/CloudStorage/Dropbox/ChartInsight/iOS app/Models/BigNumberFormatter.swift"; sourceTree = "<absolute>"; };
 		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -149,8 +150,8 @@
 			children = (
 				0B42BC181C420C2F00139C33 /* StockData.h */,
 				0B42BC141C420C2F00139C33 /* StockData.m */,
-				0B42BC1B1C420C2F00139C33 /* DataAPI.h */,
-				0B42BC151C420C2F00139C33 /* DataAPI.m */,
+				80B0E4D82A3B649F003072DA /* DataFetcher.swift */,
+				80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */,
 				0B42BC171C420C2F00139C33 /* Comparison.h */,
 				0B42BC161C420C2F00139C33 /* Comparison.m */,
 				0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */,
@@ -159,7 +160,7 @@
 				0B42BC1D1C420C2F00139C33 /* Stock.m */,
 				804D975C2A38D0CF00F61FF7 /* BarData.swift */,
 				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
-				803399BE2A2A9C4200C81714 /* DBUpdater.swift */,
+				803399BE2A2A9C4200C81714 /* DB.swift */,
 			);
 			name = Models;
 			path = ChartInsight/Models;
@@ -346,9 +347,9 @@
 				0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */,
 				0B56776C1CE90E70009F02D4 /* SettingsViewController.m in Sources */,
 				0B42BC351C420C8100139C33 /* main.m in Sources */,
-				803399BF2A2A9C4300C81714 /* DBUpdater.swift in Sources */,
+				803399BF2A2A9C4300C81714 /* DB.swift in Sources */,
 				0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */,
-				0B42BC231C420C2F00139C33 /* DataAPI.m in Sources */,
+				80B0E4D92A3B649F003072DA /* DataFetcher.swift in Sources */,
 				0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -357,6 +358,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				80B0E4DA2A3B649F003072DA /* DataFetcher.swift in Sources */,
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
 				80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */,
 			);
@@ -484,7 +486,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ChartInsight-Prefix.pch";
 				INFOPLIST_FILE = "ChartInsight-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -510,7 +512,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ChartInsight-Prefix.pch";
 				INFOPLIST_FILE = "ChartInsight-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

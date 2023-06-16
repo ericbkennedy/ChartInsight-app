@@ -16,6 +16,7 @@
 }
 @property (nonatomic, strong) NSMutableArray<BarData *> *dailyData;
 @property (nonatomic, strong) NSMutableArray<BarData *> *periodData;   // points to dailyData except for monthly or weekly
+@property (nonatomic, strong) DataFetcher *fetcher;
 @end
 
 @implementation StockData
@@ -67,12 +68,10 @@
 - (void)invalidateAndCancel {
     // fundamentalAPI uses the sharedSession so don't invalidate it
     [self.fundamentalAPI setDelegate:nil];
-    [self.fundamentalAPI release];
     self.fundamentalAPI = nil; // will trigger dealloc on fundamentalAPI
-    [self.api invalidateAndCancel];
-    [self.api setDelegate:nil];
-    [self.api release];
-    self.api = nil;
+    [self.fetcher invalidateAndCancel];
+    [self.fetcher setDelegate:nil];
+    self.fetcher = nil;
 }
 
 - (void)dealloc {
@@ -104,7 +103,6 @@
 - (instancetype) init {
     [super init];
     _newestBarShown = _oldestReport = _newestReport = _movingAvg1Count = _movingAvg2Count = 0;
-    self.api = NULL;
     _busy = _ready = NO;
     [self setPercentChange:[NSDecimalNumber one]];
     [self setChartPercentChange:[NSDecimalNumber one]];
@@ -113,7 +111,7 @@
     [self setMinLow:[NSDecimalNumber zero]];
     [self setBookValue:[NSDecimalNumber notANumber]];
     
-    self.api = [[DataAPI alloc] init];
+    self.fetcher = [[DataFetcher alloc] init];
     self.dailyData = [NSMutableArray array];
     self.periodData = self.dailyData;
     
@@ -146,18 +144,14 @@
     NSDate *desiredDate = [NSDate date];
     
     [self updateBools];
-    [self.api setRequestNewestDate:desiredDate];
+    self.fetcher.requestNewest = desiredDate;
+    [self.fetcher setRequestOldestWithStartString:self.stock.startDateString];
+    [self setNewest:self.fetcher.requestOldest];
     
-    [self.stock convertDateStringToDateWithFormatter:self.api.dateFormatter];
-    
-    self.api.requestOldestDate = self.stock.startDate; // laterDate:[NSDate dateWithTimeInterval:(200+self.oldestBarShown * self.barUnit)*-240000 sinceDate:desiredDate]];
-
-    [self setNewest:self.api.requestOldestDate];    // better than oldestPast
-    
-    self.api.symbol = self.stock.symbol;
-    self.api.stockId = self.stock.id;
-    self.api.gregorian = self.gregorian;
-    self.api.delegate = self;
+    self.fetcher.symbol = self.stock.symbol;
+    self.fetcher.stockId = self.stock.id;
+    self.fetcher.gregorian = self.gregorian;
+    self.fetcher.delegate = self;
         
     NSString *concurrentName = [NSString stringWithFormat:@"com.chartinsight.%ld", self.stock.id];
     
@@ -167,7 +161,7 @@
 
     [self setFundamentalAPI:nil];
 
-    [self.api fetchInitialData];
+    [self.fetcher fetchNewerThanDate:[NSDate distantPast]];
 
     if ([self.stock fundamentalList].length > 4) {
         [self.delegate performSelector:@selector(showProgressIndicator)];
@@ -176,7 +170,7 @@
     }
 }
 
-- (void) APILoadedFundamentalData:(FundamentalAPI *)fundamental {
+- (void) fetcherLoadedFundamentalData:(FundamentalAPI *)fundamental {
     
     // DLog(@"%d fundamental values loaded", [[fundamental year] count]);
     if (self.busy == NO && self.periodCount > 1) {
@@ -372,15 +366,15 @@
 
     if (0 == self.newestBarShown) {
         
-        if ([self.api shouldFetchIntradayQuote]) {
+        if ([self.fetcher shouldFetchIntradayQuote]) {
             self.busy = YES;
-            [self.api fetchIntradayQuote];
+            [self.fetcher fetchIntradayQuote];
 
-        } else if ([self.api.nextClose compare:[NSDate date]] == NSOrderedAscending) { // next close is in the past
-            DLog(@"api.nextClose %@ vs now %@", self.api.nextClose, [NSDate date]);
+        } else if ([self.fetcher.nextClose compare:[NSDate date]] == NSOrderedAscending) { // next close is in the past
+            DLog(@"api.nextClose %@ vs now %@", self.fetcher.nextClose, [NSDate date]);
             self.busy = YES;
             [self.delegate performSelectorOnMainThread:@selector(showProgressIndicator) withObject:nil waitUntilDone:NO];
-            [self.api fetchNewerThanDate:self.newest];
+            [self.fetcher fetchNewerThanDate:self.newest];
         }
     }
     
@@ -432,34 +426,27 @@
     }
 }
 
-- (void) APICanceled:(DataAPI *) dp {
+- (void) fetcherCanceled {
     self.busy = NO;
     NSString *message = @"Canceled request";
     [self.delegate performSelectorOnMainThread:@selector(requestFailedWithMessage:) withObject:message waitUntilDone:NO];
 }
 
-// If we were redirected, then the user must be on a wifi network that requires login. Show a UIWebView to allow login
-- (void) APIRedirected {
-    self.busy = NO;
-//    [self.delegate performSelectorOnMainThread:@selector(showWifiLogin) withObject:nil waitUntilDone:NO];
-}
-
-
--(void) APIFailed:(NSString *)message {
+-(void) fetcherFailed:(NSString *)message {
     self.busy = NO;
     DLog(@"%@", message);
     [self.delegate performSelectorOnMainThread:@selector(requestFailedWithMessage:) withObject:message waitUntilDone:NO];
 }
 
--(void) APILoadedIntradayBar:(BarData *)intradayBar {
+-(void) fetcherLoadedIntradayBar:(BarData *)intradayBar {
     
-    // Avoid deadlock by limiting concurrentQueue to updateHighLow and APILoaded*    
+    // Avoid deadlock by limiting concurrentQueue to updateHighLow and fetcherLoaded*    
 
     dispatch_barrier_sync(concurrentQueue, ^{
             
         double oldMovingAvg1, oldMovingAvg2;
         
-        NSDate *apiNewest = [self.api dateFromBar:intradayBar];
+        NSDate *apiNewest = [self.fetcher dateFromBar:intradayBar];
         
         CGFloat dateDiff = [apiNewest timeIntervalSinceDate:[self newest]];
        // DLog(@"intrday datediff is %f when comparing %@ to %@", dateDiff, [self newest], apiNewest);
@@ -513,7 +500,6 @@
     // Friday is weekday 6 in Gregorian calendar, so subtract current weekday and -1 to get previous Friday
     [componentsToSubtract setDay: -1 - [weekdayComponents weekday]];
     NSDate *lastFriday = [self.gregorian dateByAddingComponents:componentsToSubtract toDate:startDate options:0];
-    [componentsToSubtract release];
     
     NSUInteger unitFlags = NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitYear;
     NSDateComponents *friday = [self.gregorian components:unitFlags fromDate:lastFriday];
@@ -607,7 +593,7 @@
     // don't call updateHighLow here because summarizeByDate doesn't consider daysAgo but updateHighLow must be called AFTER shifting newestBarShown
 }
 
--(void) APILoadedHistoricalData:(NSArray<BarData*> *)loadedData {
+-(void) fetcherLoadedHistoricalData:(NSArray<BarData*> *)loadedData {
 
     /* Three cases since intraday updates are a separate callback:
      1. First request: [self.dailyData addObjectsFromArray:dataAPI.dailyData];
@@ -621,14 +607,14 @@
     
     dispatch_barrier_sync(concurrentQueue, ^{
         BarData *newestBar = loadedData[0];
-        NSDate *apiNewest = [self.api dateFromBar:newestBar];
+        NSDate *apiNewest = [self.fetcher dateFromBar:newestBar];
     
-        DLog(@"%@ dailyData.count %ld newest %@ and api.newest %@ and api.oldest %@", self.stock.symbol, self.dailyData.count, self.newest, apiNewest, self.api.oldestDate);
+        DLog(@"%@ dailyData.count %ld newest %@ and api.newest %@ and api.oldest %@", self.stock.symbol, self.dailyData.count, self.newest, apiNewest, self.fetcher.oldestDate);
         
         if ( self.dailyData.count == 0) { // case 1. First request
             [self setNewest:apiNewest];
             [self setLastPrice:[[NSDecimalNumber alloc] initWithDouble:newestBar.close]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
-            [self setOldest:[self.api oldestDate]];
+            [self setOldest:[self.fetcher oldestDate]];
 
             DLog(@"%@ added %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
             
@@ -644,13 +630,13 @@
             [self setNewest:apiNewest];
             [self setLastPrice:[[NSDecimalNumber alloc] initWithDouble:newestBar.close]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
             
-        } else if ([self.oldest compare:[self.api oldestDate]] == NSOrderedDescending) {    // case 3. Older dates
+        } else if ([self.oldest compare:[self.fetcher oldestDate]] == NSOrderedDescending) {    // case 3. Older dates
             
             [self.dailyData addObjectsFromArray:loadedData];
             
             DLog(@"%@ older dates %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
             
-            [self setOldest:[self.api oldestDate]];
+            [self setOldest:[self.fetcher oldestDate]];
         }
     
         [self updatePeriodDataByDayWeekOrMonth];
