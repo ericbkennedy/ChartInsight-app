@@ -60,18 +60,6 @@
     } else {
         [self nightModeOn:NO];
     }
-    
-    [self setChartTypes:@[@"OHLC", @"HLC", @"Candle", @"Close"]];
-    
-    NSMutableArray *colorList =[NSMutableArray arrayWithCapacity:20];
-    [colorList addObject: [UIColor colorWithRed:0. green:.6 blue:.0 alpha:1.0]];    // green (implies red)
-    [colorList addObject: [UIColor colorWithRed:.0 green:.6 blue:1. alpha:1.0]];    // light blue
-    [colorList addObject: [UIColor colorWithRed:.8 green:.6 blue:1. alpha:1.0]];    // light purple
-    [colorList addObject: [UIColor colorWithRed:1. green:.8 blue:.0 alpha:1.0]];    // ripe lemon
-    [colorList addObject: [UIColor colorWithRed:1. green:.6 blue:.0 alpha:1.0]];    // orange
-    [colorList addObject: [UIColor colorWithRed:.6 green:.6 blue:.6 alpha:1.0]];    // gray
-    
-    [self setColors:colorList];
    
     [self setMetrics:[NSMutableArray arrayWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"metrics.plist" ofType:nil]]];
     

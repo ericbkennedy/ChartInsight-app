@@ -13,9 +13,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (strong, nonatomic) UIWindow *window;
 
-@property (strong, nonatomic) NSArray<NSString *> *chartTypes;
-@property (strong, nonatomic) NSMutableArray<NSString *> *colors;
-
 - (nonnull NSArray *) metrics;
 
 - (nullable NSString *) titleForKey:(nonnull NSString *)key;

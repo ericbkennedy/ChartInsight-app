@@ -140,7 +140,7 @@ class DB: NSObject {
     }
     
     /// Split the user's search text into words and calls findSymbol(search:db:) to query for matches
-     func findStock(search: String) -> [Stock] {
+    func findStock(search: String) -> [Stock] {
          var list: [Stock] = []
          var exactMatches: [Stock] = []
          var db: sqlite3ptr = nil
@@ -205,8 +205,8 @@ class DB: NSObject {
             // Faster search results UI if string to date conversion happens after user selects the stock
             stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(3))))
             
-            stock.hasFundamentals = Int(sqlite3_column_int(statement, Int32(4)))
-            if (stock.hasFundamentals != 2) { // Banks aren't supported and ETFs don't report XML financials
+            stock.hasFundamentals = 0 < Int(sqlite3_column_int(statement, Int32(4)))
+            if (stock.hasFundamentals) { // Banks aren't supported and ETFs don't report XML financials
                 stock.fundamentalList = "";
             }
             list.append(stock)

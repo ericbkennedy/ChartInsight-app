@@ -1,5 +1,5 @@
 #import "FundamentalAPI.h"
-#import "Stock.h"
+#import "ChartInsight-Swift.h"
 #import "StockData.h"
 
 @interface FundamentalAPI ()

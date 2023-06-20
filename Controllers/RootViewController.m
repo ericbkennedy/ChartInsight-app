@@ -33,9 +33,9 @@
 
 @property (strong, nonatomic) ScrollChartView *scc;
 
-@property (strong, nonatomic) NSMutableArray *list;     // stocks from comparison table
+@property (strong, nonatomic) NSArray *list;     // stocks from comparison table
 
-@property (strong, nonatomic) NSString *dbPath;
+@property (strong, nonatomic) DB *db;
 
 @property (strong, nonatomic) NSDictionary *infoForPressedBar;
 
@@ -112,7 +112,7 @@
         [self.scc.comparison saveToDb];
         for (UIBarButtonItem *button in self.customNavigationToolbar.items) {
             if (button.tag == (NSInteger)stock) {
-                [button setTintColor:[UIColor colorWithCGColor:stock.upColor]];
+                [button setTintColor:stock.upColor];
             }
         }
         [self.scc redrawCharts];
@@ -145,7 +145,7 @@
             UIBarButtonItem *button = [[UIBarButtonItem alloc] initWithTitle:s.symbol style:UIBarButtonItemStylePlain target:self action:@selector(editStock:)];
             [button setTag:(NSInteger)s];     
                         
-            [button setTintColor:[UIColor colorWithCGColor:s.upColor]];
+            [button setTintColor:s.upColor];
             
             [buttons addObject:button];
             [button release];
@@ -170,8 +170,8 @@
 }
 
 - (void)viewDidLoad {
-    DB *updater = [[DB alloc] init];
-    [updater moveDBToDocumentsForDelegate:self];                      // copy db to documents and/or update existing db
+    self.db = [[DB alloc] init];
+    [self.db moveDBToDocumentsForDelegate:self];                      // copy db to documents and/or update existing db
     
     [super viewDidLoad];
     
@@ -190,8 +190,8 @@
     [self.view addSubview:self.customNavigationToolbar];
     
     [self setMinimizeButton:[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"maximize"] style:UIBarButtonItemStylePlain target:self action:@selector(minimizeChart)]];
-    
-    [self setList:[Comparison listAll:[self bestDbPath]]];
+   
+    // dbMoved callback will the comparisonList
     
     // There's a toolbar above the tableView and a tabBar below so reduce height by 2 * self.toolbarHeight
     self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, self.toolbarHeight + self.statusBarHeight,
@@ -302,8 +302,11 @@
         [self.scc.comparison setStockList:[NSMutableArray arrayWithCapacity:3]];
     }
     
-    NSMutableArray *otherColors = [NSMutableArray arrayWithArray:[ChartOptionsController chartColors]];
+    NSMutableArray *otherColors = [NSMutableArray arrayWithArray:Stock.chartColors];
+    UIColor *lightGreen = otherColors[0];
     
+    // If this stock is being compared to other stocks, make sure it uses a different color or gray
+    // But don't alter chart type because it is set as a default
     for (NSInteger i = 0; i < self.scc.comparison.stockList.count; i++) {
         NSInteger grayIndex = otherColors.count - 1;
         
@@ -311,30 +314,25 @@
         for (NSInteger c = 0; c < grayIndex; c++) {
 
             Stock *s = self.scc.comparison.stockList[i];
-            if ([s matchesColor:[otherColors objectAtIndex:c]]) {
+            if ([s hasUpColor:[otherColors objectAtIndex:c]]) {
                 [otherColors removeObjectAtIndex:c];
                 // can't just break because the color could be used by the 2nd stock of 3
             }
         }
     }
         
-    // don't alter chart type because it is set as a default
-    [stock setUpColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
+    [stock setUpColor:(UIColor *)[otherColors objectAtIndex:0]];
 
-    UIColor *green = [[ChartOptionsController chartColors] objectAtIndex:0];
-
-    if ([stock matchesColor:green]) {
-    //    // DLog(@"matches green");
-        [stock setColor: [UIColor redColor].CGColor ];
+    if ([stock hasUpColor:lightGreen]) {
+        stock.color = UIColor.redColor;
     } else {
-        [stock setColor:[(UIColor *)[otherColors objectAtIndex:0] CGColor]];
+        stock.color = (UIColor *)[otherColors objectAtIndex:0];
     }
     
     if (otherColors.count > 1) {
         [otherColors removeObjectAtIndex:0];
     }
-    [[self.scc.comparison stockList] addObject:stock];
-    [self.scc.comparison saveToDb];
+    [self.scc.comparison add:stock];
     [self reloadList:self.scc.comparison];
     [self popContainer];
 }
@@ -454,19 +452,6 @@
     self.view.backgroundColor = [UIColor secondarySystemBackgroundColor];
     
     [super viewWillAppear:animated];
-}
-
-- (NSString *) defaultDbPath {			// read only path in bundle
-	return [[NSBundle mainBundle] pathForResource:@"charts.db" ofType:nil];	
-}
-
-- (NSString *) bestDbPath {				// avoids opening the read-only DB if it has already been moved
-
-	if ([self.dbPath length] > 5) {
-		return self.dbPath;
-	} else {
-		return [self defaultDbPath];
-	}
 }
 
 - (void) minimizeChart {
@@ -745,8 +730,7 @@
 
 - (void) reloadList:(Comparison *)comparison {
         
-    [self.list removeAllObjects];
-    [self setList:[Comparison listAll:[self bestDbPath]]];
+    self.list = Comparison.listAll;
     [self.tableView reloadData];
 
     if (comparison == nil) {
@@ -776,7 +760,6 @@
 
 - (void) dbMoved:(NSString *)newPath {
     DLog(@"Moved to %@", newPath);
-	[self setDbPath:newPath];
     [self reloadList:nil];
 }
 

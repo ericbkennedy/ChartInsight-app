@@ -43,30 +43,22 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     return [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] metrics]; 
 }
 
-+ (NSArray *)chartTypes {
-    return [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] chartTypes];
-}
-
-+ (NSArray *)chartColors {
-    return [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] colors];
-}
-
 - (UIImage *)imageForChartType:(NSInteger)type andColor:(NSInteger)c showLabel:(BOOL)showLabel {
     
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(32, 32), NO, UIScreen.mainScreen.scale);
-    CGColorRef thisUpColor, thisDownColor;
+    CGColorRef upCGColor, downCGColor;
     
-    thisUpColor = thisDownColor = [[[ChartOptionsController chartColors] objectAtIndex:c] CGColor];
+    upCGColor = downCGColor = Stock.chartColors[c].CGColor;
     
     if (c == 0) {
-        thisDownColor = [UIColor colorWithRed:1. green:.0 blue:.0 alpha:1.0].CGColor;    // red
+        downCGColor = [UIColor colorWithRed:1. green:.0 blue:.0 alpha:1.0].CGColor;    // red
     }
     
     CGContextRef ctx = UIGraphicsGetCurrentContext();
         
     CGContextSetLineWidth(ctx, UIScreen.mainScreen.scale);
     
-    CGContextSetStrokeColorWithColor(ctx, thisUpColor);
+    CGContextSetStrokeColorWithColor(ctx, upCGColor);
     
     if (type < 3) {
 
@@ -109,7 +101,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
                 CGContextAddLineToPoint(ctx, 28.5, 11);
                 CGContextStrokePath(ctx);   
                 
-                CGContextSetStrokeColorWithColor(ctx, thisDownColor);
+                CGContextSetStrokeColorWithColor(ctx, downCGColor);
                 
                 CGContextBeginPath(ctx);
                 CGContextMoveToPoint(ctx, 0, 1);
@@ -122,7 +114,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
                 CGContextStrokePath(ctx);        
             }
             
-            CGContextSetStrokeColorWithColor(ctx, thisDownColor);
+            CGContextSetStrokeColorWithColor(ctx, downCGColor);
 
             CGContextBeginPath(ctx);
             CGContextMoveToPoint(ctx, 3, 0);
@@ -145,11 +137,11 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             
             CGContextStrokeRect(ctx, CGRectMake(26, 1, 5, 10));
             
-            CGContextSetFillColorWithColor(ctx, thisDownColor);
+            CGContextSetFillColorWithColor(ctx, downCGColor);
             CGContextFillRect(ctx, CGRectMake(0, 0, 6, 20));
             CGContextFillRect(ctx, CGRectMake(17, 5, 6, 7));            
         }
-        CGContextSetStrokeColorWithColor(ctx, thisDownColor);        
+        CGContextSetStrokeColorWithColor(ctx, downCGColor);        
         CGContextBeginPath(ctx);
         CGContextMoveToPoint(ctx, 20, 2);
         CGContextAddLineToPoint(ctx, 20, 19);        
@@ -168,7 +160,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     
     if (showLabel) {
         [[UIColor whiteColor] setFill];
-        NSString *label = [[ChartOptionsController chartTypes] objectAtIndex:type];
+        NSString *label = @[@"OHLC", @"HLC", @"Candle", @"Close"][type];
         NSDictionary *textAttributes = @{NSFontAttributeName: [UIFont systemFontOfSize:9.0]};
         [label drawAtPoint:CGPointMake(6. - label.length, 22.) withAttributes:textAttributes];
     }
@@ -180,7 +172,8 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     return [screenshot imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
 }
 
-- (UIImage *)imageForOverlayType:(NSInteger)type andColor:(CGColorRef)c {
+- (UIImage *)imageForOverlayType:(NSInteger)type andColor:(UIColor *)color {
+    CGColorRef c = color.CGColor;
     
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(40, 40), NO, UIScreen.mainScreen.scale);
     
@@ -235,7 +228,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 }
 
 - (void) renderColorSegments {
-    NSArray *colorList = [ChartOptionsController chartColors];
+    NSArray *colorList = Stock.chartColors;
     UIColor *thisUpColor;    
     [self.colorSegmentedControl removeAllSegments];
     
@@ -244,7 +237,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         
         [self.colorSegmentedControl insertSegmentWithImage:[self imageForChartType:self.stock.chartType andColor:i showLabel:NO] atIndex:i animated:NO];
 
-        if ([self.stock matchesColor:thisUpColor]) {
+        if ([self.stock hasUpColor:thisUpColor]) {
             [self.colorSegmentedControl setSelectedSegmentIndex: i];
         }
     }
@@ -283,8 +276,8 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    [self setColor:[UIColor colorWithCGColor:self.stock.color]];
-    [self setUpColor:[UIColor colorWithCGColor:self.stock.upColor]];
+    self.color = self.stock.color;
+    self.upColor = self.stock.upColor;
     
     self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
     self.tableView.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
@@ -310,7 +303,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     [self.doneButton setStyle:UIBarButtonItemStylePlain];
     
     NSMutableArray *segments = [NSMutableArray array];
-    for (NSInteger i = 0; i < [[ChartOptionsController chartTypes] count]; i++) {
+    for (NSInteger i = 0; i <= ChartTypeClose; i++) {
         segments[i] = [self imageForChartType:i andColor:0 showLabel:YES];
     }
     self.typeSegmentedControl = [[UISegmentedControl alloc] initWithItems:segments];
@@ -368,7 +361,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         
     switch (section) {
         case 2: 
-            if (self.stock.hasFundamentals > 0) {
+            if (self.stock.hasFundamentals) {
                 NSInteger fundamentalRows = [self.listedMetricKeys count];    // should be a count
                 //  && UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad
                 if (10 > fundamentalRows) {
@@ -382,7 +375,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             }
             return 1;   // no fundamentals
         
-        case 3: return 3;   // technical options (RSI removed 2023
+        case 3: return 3;   // technical options
             
         default: return 1;
     }
@@ -404,7 +397,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             type = @"bollingerBand220";    break;
     }
 
-    if ([[self.stock technicalList] rangeOfString:type].length > 0) {
+    if ([self.stock.technicalList containsString:type]) {
         onOff.on = NO;
         [self.stock removeFromTechnicals:type];
     } else {
@@ -481,7 +474,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 
     } else if (section == 2) {
         
-        if (self.stock.hasFundamentals > 0) {
+        if (self.stock.hasFundamentals) {
             
             if (fundamentalControlRow > 0) {
                 if (fundamentalControlRow == row) {
@@ -544,7 +537,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             
             if ([[self.stock technicalList] rangeOfString:@"sma50"].length > 0) {
                 onOff.on = YES;
-                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.stock.upColor];
+                cell.textLabel.textColor = [UIColor darkGrayColor];
             }
         } else if (row == 1) {
             
@@ -554,7 +547,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             
             if ([[self.stock technicalList] rangeOfString:@"sma200"].length > 0) {
                 onOff.on = YES;
-                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.stock.upColor];
+                cell.textLabel.textColor = [UIColor darkGrayColor];
             }
         } else if (row == 2) {
             [[cell imageView] setImage:[self imageForOverlayType:MOVING_AVERAGE andColor:self.stock.upColorHalfAlpha]];
@@ -563,7 +556,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             
             if ([[self.stock technicalList] rangeOfString:@"bollingerBand220"].length > 0) {
                 onOff.on = YES;
-                cell.textLabel.textColor = [UIColor darkGrayColor]; // [UIColor colorWithCGColor:self.stock.upColor];
+                cell.textLabel.textColor = [UIColor darkGrayColor];
             }
         }
         
@@ -605,7 +598,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 }
 
 - (void) chartColorChanged:(id) sender {
-    NSArray *colorList = [ChartOptionsController chartColors];
+    NSArray *colorList = Stock.chartColors;
     
     NSInteger selectedIndex = [self.colorSegmentedControl selectedSegmentIndex];
     
@@ -618,8 +611,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         [self setColor:[colorList objectAtIndex:selectedIndex]];
     }
     
-    [self.stock setColor:[self.color CGColor]];
-    [self.stock setUpColor:[self.upColor CGColor]];
+    self.stock.color = self.color;
+    self.stock.upColor = self.upColor;
+    
     [self.tableView reloadData];    // changes color for fundamental overlay
     
     [self.delegate performSelector:@selector(redrawWithStock:) withObject:self.stock];
@@ -714,7 +708,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             NSString *key = [type objectAtIndex:0];
             if ([self.listedMetricKeyString rangeOfString:key].length == 0) {      // skip already listed ones
                 
-                if (self.stock.hasFundamentals == 2 || ([key isEqualToString:@"CostOfSales"] == NO
+                if (self.stock.hasFundamentals || ([key isEqualToString:@"CostOfSales"] == NO
                         && [key isEqualToString:@"ResearchAndDevelopmentExpenses"] == NO 
                         && [key isEqualToString:@"SellingGeneralAndAdministrativeExpenses"] == NO
                         && [key isEqualToString:@"TangibleBookValuePerShare"] == NO)) {

@@ -1,5 +1,5 @@
 #import <QuartzCore/QuartzCore.h>
-#import "Comparison.h"
+#import "ChartInsight-Swift.h"
 #import "ProgressIndicator.h"
 
 @class ScrollChartView;

@@ -7,14 +7,14 @@
 //
 
 #import "CIAppDelegate.h"
-#import "Comparison.h"
+#import "ChartInsight-Swift.h"
 #import "RootViewController.h"
 #import "SettingsViewController.h"
 
 enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
 @interface SettingsViewController ()
-@property (strong, nonatomic) NSMutableArray *list;
+@property (strong, nonatomic) NSArray *list;
 @end
 
 @implementation SettingsViewController
@@ -23,9 +23,7 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
     [super viewDidLoad];
     self.title  = @"Settings";
 
-    NSString *dbPath = [NSString stringWithFormat:@"%@/Documents/charts.db", NSHomeDirectory()];
-
-    [self setList:[Comparison listAll:dbPath]];
+    self.list = Comparison.listAll;
 
     self.view.backgroundColor = [UIColor systemBackgroundColor];
     
@@ -128,7 +126,7 @@ enum sectionType { NIGHT_MODE_SECTION, STOCK_LIST_SECTION };
 
         [comparison deleteFromDb];
 
-        [self.list removeObjectAtIndex:indexPath.row];
+        self.list = Comparison.listAll;
         
         [(RootViewController *)self.delegate reloadWhenVisible];
         

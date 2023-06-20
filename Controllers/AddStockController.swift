@@ -55,10 +55,10 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: "stockCell", for: indexPath)
         if (list.count > indexPath.row) {
             let stock = list[indexPath.row]
-            if stock.symbol != nil {
+            if stock.symbol != "" {
                 label = stock.symbol + " "
             }
-            if stock.name != nil {
+            if stock.name != "" {
                 label += stock.name
             }
         }

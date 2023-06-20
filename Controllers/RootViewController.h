@@ -1,5 +1,6 @@
-#import "Comparison.h"
 #import "ProgressIndicator.h"
+
+@class Stock; // forward declaration because this header is included in Bridging Header
 
 @interface RootViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
 

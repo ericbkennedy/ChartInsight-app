@@ -7,5 +7,4 @@
 
 #import "DataFetcherDelegate.h"
 #import "RootViewController.h"
-#import "Stock.h"
 #import "sqlite3.h"

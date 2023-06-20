@@ -4,8 +4,6 @@
 #import "FundamentalAPI.h"
 #import "StockData.h"
 #import <QuartzCore/QuartzCore.h>
-#import "Stock.h"
-
 
 @interface StockData () {
 @private
