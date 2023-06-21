@@ -115,7 +115,8 @@
     
     [self setMonthLabels:[NSMutableArray arrayWithCapacity:50]];
     
-    NSInteger maxBars = (UIScreen.mainScreen.bounds.size.height - 60) * UIScreen.mainScreen.scale;
+    // TODO: replace with NSArray containing NSValue elements
+    NSInteger maxBars = 2 * (UIScreen.mainScreen.bounds.size.height - 60) * UIScreen.mainScreen.scale;
     
     _blackVolume = (CGRect *)malloc(sizeof(CGRect) * maxBars);
     _filledGreenBars = (CGRect *)malloc(sizeof(CGRect) * maxBars);

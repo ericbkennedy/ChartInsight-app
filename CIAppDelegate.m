@@ -7,11 +7,10 @@
 
 #import "CIAppDelegate.h"
 #import "RootViewController.h"
-#import "SettingsViewController.h"
+#import "ChartInsight-Swift.h"
 
 @interface CIAppDelegate ()
-@property (strong, nonatomic) NSMutableArray *metrics;
-@property (strong, nonatomic) NSMutableDictionary *metricKeys;
+@property (strong, nonatomic) NSMutableDictionary <NSString *, NSArray *> *metricDictionary;
 @property (strong, nonatomic) UITabBarController *tabBarController;
 @property (strong, nonatomic) UINavigationController *favoritesNavigationController;
 @property (strong, nonatomic) UINavigationController *settingsNavigationController;
@@ -61,13 +60,13 @@
         [self nightModeOn:NO];
     }
    
-    [self setMetrics:[NSMutableArray arrayWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"metrics.plist" ofType:nil]]];
+    [self setMetrics:[NSArray arrayWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"metrics.plist" ofType:nil]]];
     
-    [self setMetricKeys:[NSMutableDictionary new]];
+    [self setMetricDictionary:[NSMutableDictionary new]];
     
     for (NSArray *category in self.metrics) {
         for (NSArray *type in category) {
-            [self.metricKeys setObject:type forKey:[type objectAtIndex:0]];
+            [self.metricDictionary setObject:type forKey:[type objectAtIndex:0]];
         }
     }
     
@@ -88,7 +87,7 @@
 
 - (nullable NSString *) titleForKey:(NSString *)key {
     
-    NSArray *item = [self.metricKeys objectForKey:key];    
+    NSArray *item = [self.metricDictionary objectForKey:key];    
     if (item != nil) {
         return [item objectAtIndex:1];
     }
@@ -96,7 +95,7 @@
 }
 
 - (nullable NSString *) descriptionForKey:(NSString *)key {
-    NSArray *item = [self.metricKeys objectForKey:key];    
+    NSArray *item = [self.metricDictionary objectForKey:key];    
     if (item != nil) {
         return [item objectAtIndex:2];
     }

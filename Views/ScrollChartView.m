@@ -6,10 +6,8 @@
 #import "FundamentalAPI.h"
 
 const CGFloat magnifierSize = 100.; // both width and height
-const CGFloat dotPattern[2] = {1.0, 6.0};
 const CGFloat dashPattern[2] = {1.0, 1.5};
-const CGFloat dotGripColor[4] = {0.5, 0.5, 0.8, 1.0};
-const CGFloat lightBlueColor[4] = {0.16, 0.34, 1.0, 1.0};
+const CGFloat dotGripColor[4] = {0.5, 0.5, 0.5, 1.0};
 const CGFloat monthLineColor[4] = {.4, .4, .4, .5};
 const CGFloat redMetric[4] = {1., .0, .0, .8};  // needs to be brighter than green
 
@@ -601,13 +599,14 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     
     CGContextDrawLayerInRect(ctx, CGRectMake(5 + _scaleShift, 5, _scaledWidth, _svHeight), _layerRef);
 
-    // Draw left-hand draggable line between tableview and chart area
-    CGContextSetStrokeColor(ctx, dotGripColor);
-    CGContextSetLineWidth(ctx, 1.0);   // pIXELs
-    CGContextBeginPath(ctx);
-    CGContextMoveToPoint(ctx, 0.5, 0);
-    CGContextAddLineToPoint(ctx, 0.5, _svHeight);
-    CGContextStrokePath(ctx);
+    if (self.layer.position.x > 0) { // draw line at chart left edge to visually separate from list of symbols
+        CGContextSetStrokeColor(ctx, monthLineColor);
+        CGContextSetLineWidth(ctx, 1.0);   // pIXELs
+        CGContextBeginPath(ctx);
+        CGContextMoveToPoint(ctx, 0.5, 0.5);
+        CGContextAddLineToPoint(ctx, 0.5, _svHeight);
+        CGContextStrokePath(ctx);
+    }
 }
 
 /* Transforms chart during pinch/zoom gesture and to calculate scaleShift for final shiftRedraw */

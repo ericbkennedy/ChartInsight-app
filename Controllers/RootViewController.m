@@ -8,6 +8,7 @@
 
 @property (assign, nonatomic) CGFloat width;
 @property (assign, nonatomic) CGFloat height;
+@property (assign, nonatomic) CGFloat rowHeight;
 @property (assign, nonatomic) CGFloat statusBarHeight;  // set using safeAreaInsets
 @property (assign, nonatomic) CGFloat toolbarHeight;
 @property (assign, nonatomic) CGFloat leftGap;
@@ -16,17 +17,17 @@
 @property (assign, nonatomic) CGFloat pinchCount;
 @property (assign, nonatomic) CGFloat pinchMidpointSum;
 
-@property (assign, nonatomic) BOOL dragWindow;
 @property (assign, nonatomic) BOOL newComparison;
 @property (assign, nonatomic) BOOL needsReload; // set by reloadWhenVisible
 
 @property (nonatomic, strong) UINavigationController    *popOverNav;    // required for navgiation controller within popover
 @property (nonatomic, strong) UITapGestureRecognizer   *doubleTapRecognizer;
 @property (nonatomic, strong) UILongPressGestureRecognizer *oneLongPressRecognizer;
-@property (nonatomic, strong) UILongPressGestureRecognizer *twoLongPressRecognizer;
 @property (nonatomic, strong) UIPanGestureRecognizer   *panRecognizer;
 @property (nonatomic, strong) UIPinchGestureRecognizer *pinchRecognizer;
-@property (nonatomic, strong) UIBarButtonItem *minimizeButton;
+@property (nonatomic, strong) UIBarButtonItem *toggleListButton;
+@property (nonatomic, strong) UIBarButtonItem *addStockButton;
+@property (nonatomic, strong) UIToolbar *addStockToolbar;             //  in tableView header
 @property (nonatomic, strong) UIToolbar *customNavigationToolbar;     //  better formatting than using self.navigationItem
 
 @property (strong, nonatomic) NSDateComponents *days;
@@ -101,7 +102,7 @@
         [self.scc.comparison saveToDb];
         [self.scc clearChart];
         [self.progressIndicator startAnimating];
-        [self resetToolbarWithSearch:YES];
+        [self resetToolbar];
         [self.scc loadChart];
     } 
 }
@@ -119,19 +120,13 @@
     } 
 }
 
-- (void) resetToolbarWithSearch:(BOOL)showSearch {
-
-    if (showSearch) {
-        self.minimizeButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(addStock:)];
-    } else {
-        self.minimizeButton = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"hideWebview"] style:UIBarButtonItemStylePlain target:self action:@selector(minimizeChart)];
-    }
+- (void) resetToolbar {
     
     if ([self.scc comparison] != nil) {
 
         NSMutableArray *buttons = [NSMutableArray new];
         
-        [buttons addObject:self.minimizeButton];
+        [buttons addObject:self.toggleListButton];
         
         [buttons addObject:[[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease]];
         
@@ -179,7 +174,8 @@
     self.edgesForExtendedLayout = UIRectEdgeNone;
     self.extendedLayoutIncludesOpaqueBars = NO;
 
-    self.leftGap = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 60 : 100;
+    self.leftGap = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 66 : 100;
+    self.rowHeight = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 40 : 44;
     
     [self setGregorian:[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian]];
     [self setDays:[[NSDateComponents alloc] init]];
@@ -189,21 +185,29 @@
     [self.customNavigationToolbar setFrame:CGRectMake(0, self.statusBarHeight, self.width, self.toolbarHeight)];
     [self.view addSubview:self.customNavigationToolbar];
     
-    [self setMinimizeButton:[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"maximize"] style:UIBarButtonItemStylePlain target:self action:@selector(minimizeChart)]];
-   
-    // dbMoved callback will the comparisonList
+    self.addStockToolbar = [UIToolbar new];
+    self.addStockToolbar.translucent = NO;
+    [self.addStockToolbar setFrame:CGRectMake(0, 0, self.leftGap, self.rowHeight)];
+    // addStockToolbar will be added as tableView footer
+    
+    UIBarButtonItem *addStockButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
+                                                                                    target:self action:@selector(addStock:)];
+    [self.addStockToolbar setItems:@[addStockButton]];
+     
+    self.toggleListButton = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"toggleList"]
+                                                             style:UIBarButtonItemStylePlain
+                                                            target:self action:@selector(toggleList)];
     
     // There's a toolbar above the tableView and a tabBar below so reduce height by 2 * self.toolbarHeight
     self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, self.toolbarHeight + self.statusBarHeight,
                                                                     205, self.height) // set by resizeFrameToSize:
                                                    style:UITableViewStylePlain] autorelease];
-        
-    // EK this is also set in viewDidAppear:  self.view.backgroundColor = UIColor.secondarySystemBackgroundColor;
-    
+            
     [self.tableView setClipsToBounds:NO];      // YES would create rounded corners, which doesn't matter when the background is all the same
 	[self.tableView setDelegate:self];
 	[self.tableView setDataSource:self];
 	[self.tableView setScrollEnabled:YES];
+    self.tableView.sectionHeaderTopPadding = 1; // reduced from default padding but larger than zero to show upper border
 	[self.view addSubview:self.tableView];
     [self.view sendSubviewToBack:self.tableView];
     
@@ -238,16 +242,10 @@
     [self.doubleTapRecognizer setNumberOfTapsRequired:2];
     [self.scc addGestureRecognizer:self.doubleTapRecognizer];
 
-    self.twoLongPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(trendline:)];
-    [self.twoLongPressRecognizer setMinimumPressDuration:0.4];
-    [self.twoLongPressRecognizer setNumberOfTouchesRequired:2];
-    [self.scc addGestureRecognizer:self.twoLongPressRecognizer];
-    
     self.oneLongPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(magnify:)];
     [self.oneLongPressRecognizer setMinimumPressDuration:0.5];
     [self.oneLongPressRecognizer setNumberOfTouchesRequired:1];
     [self.scc addGestureRecognizer:self.oneLongPressRecognizer];
-    // don't require twoLongPressRecognizer to fail because they respond to different numbers of touches
     
     self.pinchRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
     [self.scc addGestureRecognizer:self.pinchRecognizer];
@@ -258,7 +256,6 @@
     if (self.list.count > 0) {
         [self loadComparisonAtRow:0];
     }
-    self.dragWindow = NO;
 }
 
 - (void) resizeSubviewsForSize:(CGSize)newSize {
@@ -346,10 +343,7 @@
 }
 
 - (CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) {
-        return 40;
-    }
-    return 44;
+    return self.rowHeight;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)table cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -397,7 +391,7 @@
             [self.scc redrawCharts];
             [self reloadList:self.scc.comparison];
         }
-        [self resetToolbarWithSearch:YES];
+        [self resetToolbar];
     }
     [self popContainer];
 }
@@ -454,14 +448,11 @@
     [super viewWillAppear:animated];
 }
 
-- (void) minimizeChart {
+- (void) toggleList {
  
     CGFloat delta = - self.scc.layer.position.x;
     if (self.scc.layer.position.x < 1.) {
         delta += self.leftGap;    // maximize chart
-        [self.minimizeButton setImage:[UIImage imageNamed:@"maximize"]];
-    } else {
-        [self.minimizeButton setImage:[UIImage imageNamed:@"minimize"]]; 
     }
     
     self.scc.svWidth   -= delta;
@@ -471,44 +462,6 @@
     
     NSInteger shiftBars = round(self.scc.layer.contentsScale* delta/(self.scc.xFactor * self.scc.barUnit));       // don't use floor; it drops bars
     [self.scc updateMaxPercentChangeWithBarsShifted: - shiftBars];  // shiftBars are positive when delta is negative
-}
-
-- (void) dragLayer:(UIPanGestureRecognizer *)recognizer delta:(CGFloat)delta {
-    
-    delta = roundf(delta);      // preserve pixel alignment
-    
-    if (self.scc.layer.position.x > self.tableView.frame.size.width + 30 && delta > 0) {
-        return; // too small
-        
-    } else if (self.scc.layer.position.x < 30 && [recognizer translationInView:self.view].x < 0) {   // snap to left edge
-        
-        recognizer.enabled = NO;    // cancel addition touches
-        delta = - self.scc.layer.position.x;     // don't set newPoint.x to zero because it causes a bounce
-        self.netDelta += delta;
-    } else {
-        self.netDelta += delta;
-    }
-        
-    self.scc.svWidth -= delta;
-    self.scc.pxWidth = UIScreen.mainScreen.scale * self.scc.svWidth;
-    
-    self.scc.layer.position = CGPointMake(self.scc.layer.position.x + delta, self.scc.layer.position.y);
-    
-    if (recognizer.enabled == NO || [recognizer state] == UIGestureRecognizerStateEnded) {
-        
-        NSInteger shiftBars =  ceil(self.scc.layer.contentsScale* self.netDelta/(self.scc.xFactor * self.scc.barUnit));
-        
-        [self.scc updateMaxPercentChangeWithBarsShifted:- shiftBars];  // shiftBars are positive when delta is negative
-        
-        recognizer.enabled = YES;
-        self.dragWindow = NO;
-        
-        if (self.scc.layer.position.x < 1.) {
-            [self.minimizeButton setImage:[UIImage imageNamed:@"minimize"]];
-        } else {
-            [self.minimizeButton setImage:[UIImage imageNamed:@"maximize"]];
-        }
-    }
 }
 
 - (void) loadComparisonAtRow:(NSInteger)row {
@@ -532,13 +485,22 @@
     
     [self.scc setComparison:[self.list objectAtIndex:row]];
     [self.scc loadChart];
-    [self resetToolbarWithSearch:YES];
+    [self resetToolbar];
 }
 
 - (void) tableView:(UITableView *)clickedTableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {    
     if (self.list.count > indexPath.row) {
         [self loadComparisonAtRow:indexPath.row];
 	}
+}
+
+// Button to add stocks in header so results appear above keyboard
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return self.addStockToolbar;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return self.rowHeight;
 }
 
 - (void) viewWillDisappear:(BOOL)animated {
@@ -584,16 +546,6 @@
 // only RootViewController can do that, so it should handle displaying the magnifying glass based on response from SCC
 // SCC is the only thing that can inspect its arrays to determine which bars are being pressed and get the data for them
 // SCC returns a UIImage that contains the enlarged data and labels for the max and min
-- (void)trendline:(UILongPressGestureRecognizer *)recognizer {
-    
-    for (NSInteger i =0; i < recognizer.numberOfTouches; i++) {
-  //      CGPoint touch = [recognizer locationOfTouch:i inView:self.scc];
-  //      DLog(@"trendline touch %ld %f, %f", i, touch.x, touch.y);
-    }
-    
-    recognizer.cancelsTouchesInView =YES;
-}
-
 - (void)magnify:(UILongPressGestureRecognizer *)recognizer {
     
     if ([recognizer state] == UIGestureRecognizerStateBegan) {
@@ -654,17 +606,7 @@
     }
     
     currentShift = [recognizer translationInView:self.view].x;
-    delta = currentShift - self.lastShift;
-
-   // DLog(@"%f = %f - %f", delta, currentShift, lastShift);
-    
-    if (self.dragWindow) {
-        self.lastShift = currentShift;
-        
-        return [self dragLayer:recognizer delta:delta];
-    }
-
-    delta *= UIScreen.mainScreen.scale; // adjust for Retina scale after dragLayer call
+    delta = (currentShift - self.lastShift) * UIScreen.mainScreen.scale;
 
     NSInteger deltaBars;
     
@@ -745,7 +687,7 @@
         [self.progressIndicator startAnimating];
         
         [self.scc setComparison:comparison];
-        [self resetToolbarWithSearch:YES];
+        [self resetToolbar];
         [self.scc loadChart];
     }
 }

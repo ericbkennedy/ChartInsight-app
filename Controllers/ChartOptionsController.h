@@ -1,5 +1,4 @@
-#include <CoreGraphics/CGColor.h>
-#include "ChartInsight-Swift.h"
+@class Stock;
 
 @interface ChartOptionsController : UITableViewController <UIActionSheetDelegate>
 

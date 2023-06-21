@@ -15,8 +15,8 @@ class Comparison: NSObject {
     @objc var id: Int = 0
     @objc var stockList: [Stock] = []
     @objc var title: String = ""
-    var minKeyValues: [String: NSDecimalNumber] = [:]
-    var maxKeyValues: [String: NSDecimalNumber] = [:]
+    var minMetricValues: [String: NSDecimalNumber] = [:]
+    var maxMetricValues: [String: NSDecimalNumber] = [:]
       
     /// Union of all metric keys for stocks in this comparison set
     @objc func sparklineKeys() -> [String] {
@@ -26,15 +26,17 @@ class Comparison: NSObject {
             fundamentalKeys = fundamentalKeys.appending(stock.fundamentalList)
         }
      
-        // TODO: load from bundle
-        var allMetrics = [["CIRevenuePerShare", "EarningsPerShareBasic"],
-                          ["CINetCashFromOpsPerShare"]]
         var sortedMetrics: [String] = []
         
-        for category in allMetrics {
-            for key in category {
-                if fundamentalKeys.contains(key) {
-                    sortedMetrics.append(key)
+        if let delegate = UIApplication.shared.delegate as? CIAppDelegate {
+            for category in delegate.metrics {
+                for metric in category {
+                    if metric.count > 0 {
+                        let metricKey = String(metric[0])
+                        if fundamentalKeys.contains(metricKey) {
+                            sortedMetrics.append(metricKey)
+                        }
+                    }
                 }
             }
         }
@@ -42,50 +44,49 @@ class Comparison: NSObject {
     }
     
     @objc func resetMinMax() {
-        minKeyValues.removeAll(keepingCapacity: true)
-        maxKeyValues.removeAll(keepingCapacity: true)
+        minMetricValues.removeAll(keepingCapacity: true)
+        maxMetricValues.removeAll(keepingCapacity: true)
     }
     
+    /// Determine min and max values for fundamental metric key
     @objc func updateMinMax(for key: String, value: NSDecimalNumber?) {
         guard value != nil && value != .notANumber else { return }
 
-        if let minValueForKey = minKeyValues[key], minValueForKey != .notANumber {
+        if let minValueForKey = minMetricValues[key], minValueForKey != .notANumber {
             if value?.compare(minValueForKey) == .orderedAscending {
-                print("report value \(String(describing: value)) < \(minValueForKey)")
-                minKeyValues[key] = value
+                minMetricValues[key] = value
             }
-            if let maxValueForKey = maxKeyValues[key],
+            if let maxValueForKey = maxMetricValues[key],
                value?.compare(maxValueForKey) == .orderedDescending {
-                print("report value \(String(describing: value)) > \(maxValueForKey)")
-                maxKeyValues[key] = value
+                maxMetricValues[key] = value
             }
             
-        } else { // if min(for: key) == nil || min(for: key) == .notANumber {
+        } else { // minKeyValues[key] == nil or .notANumber
+            // Fundamental bar scale should range from zero (or a negative report value) to max
             if (value?.compare(NSDecimalNumber.zero) == .orderedAscending) {
-                minKeyValues[key] = value
+                minMetricValues[key] = value // negative value
             } else {
-                minKeyValues[key] = NSDecimalNumber.zero
+                minMetricValues[key] = NSDecimalNumber.zero
             }
-            print("initializing min to \(String(describing: minKeyValues[key])) for key \(key)")
-            maxKeyValues[key] = value
+            maxMetricValues[key] = value
         }
     }
     
-    // Returns notANumber if no values for key
+    /// Returns notANumber if no values for key
     @objc func range(for key: String) -> NSDecimalNumber {
-        if let maxValue = maxKeyValues[key],
-           let minValue = minKeyValues[key] {
+        if let maxValue = maxMetricValues[key],
+           let minValue = minMetricValues[key] {
             return maxValue.subtracting(minValue)
         }
         return NSDecimalNumber.notANumber
     }
     
     @objc func min(for key: String) -> NSDecimalNumber? {
-        return minKeyValues[key]
+        return minMetricValues[key]
     }
     
     @objc func max(for key: String) -> NSDecimalNumber? {
-        return maxKeyValues[key]
+        return maxMetricValues[key]
     }
     
     static func dbPath() -> String {
@@ -97,8 +98,58 @@ class Comparison: NSObject {
         saveToDb()
     }
     
+    /// Insert or update this stock comparison
     @objc func saveToDb() {
-        print("Finish rewrite to Swift")
+        var db: sqlite3ptr = nil
+        
+        guard SQLITE_OK == sqlite3_open(Comparison.dbPath(), &db) else { return }
+        var statement: sqlite3ptr = nil
+        var sql = ""
+        if id == 0 {
+            sql = "INSERT INTO comparison (sort) VALUES (0)"
+            guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
+            sqlite3_step(statement)
+            sqlite3_finalize(statement)
+            id = Int(sqlite3_last_insert_rowid(db))
+        }
+        
+        for stock in stockList {
+            let hexColorUTF8     = NSString(string: stock.hexFromUpColor()).utf8String
+            let fundamentalsUTF8 = NSString(string: stock.fundamentalList).utf8String
+            let technicalsUTF8   = NSString(string: stock.technicalList).utf8String
+            
+            if stock.comparisonStockId > 0 {
+                sql = "UPDATE comparisonStock SET chartType=?, color=?, fundamentals=?, technicals=? WHERE rowid=?"
+                sqlite3_prepare(db, sql, -1, &statement, nil);
+    
+                sqlite3_bind_int64(statement, 1, Int64(stock.chartType.rawValue));
+                sqlite3_bind_text(statement,  2, hexColorUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_text(statement,  3, fundamentalsUTF8, -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(statement,  4, technicalsUTF8, -1, SQLITE_TRANSIENT);
+                sqlite3_bind_int64(statement, 5, Int64(stock.comparisonStockId));
+
+                if SQLITE_DONE != sqlite3_step(statement) {
+                    print("Save to DB ERROR ", String(cString: sqlite3_errmsg(db)), sql)
+                }
+                sqlite3_finalize(statement);
+            } else if stock.comparisonStockId == 0 {
+                sql = "INSERT OR REPLACE INTO comparisonStock (comparisonId, stockId, chartType, color, fundamentals, technicals) VALUES (?, ?, ?, ?, ?, ?)"
+                sqlite3_prepare(db, sql, -1, &statement, nil);
+                
+                sqlite3_bind_int64(statement, 1, Int64(id));
+                sqlite3_bind_int64(statement, 2, Int64(stock.id));
+                sqlite3_bind_int64(statement, 3, Int64(stock.chartType.rawValue));
+                sqlite3_bind_text(statement,  4, hexColorUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_text(statement,  5, fundamentalsUTF8, -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(statement,  6, technicalsUTF8, -1, SQLITE_TRANSIENT);
+
+                if SQLITE_DONE != sqlite3_step(statement) {
+                    print("Save to DB ERROR ", String(cString: sqlite3_errmsg(db)), sql)
+                }
+                sqlite3_finalize(statement);
+            }
+        }
+        sqlite3_close(db);
     }
     
     /// Deletes comparison row and all comparisonStock rows
@@ -109,31 +160,46 @@ class Comparison: NSObject {
         var statement: sqlite3ptr = nil
         
         var sql = "DELETE FROM comparisonStock WHERE comparisonId = ?"
-        
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
         
         sqlite3_bind_int64(statement, 1, Int64(id))
         
         if SQLITE_DONE != sqlite3_step(statement){
-            print(String(format: "Delete comparisonStock DB ERROR '%s'.", sqlite3_errmsg(db)))
+            print(String(format: "Delete from comparisonStock DB ERROR '%s'.", sqlite3_errmsg(db)))
         }
         sqlite3_finalize(statement);
         
         sql = "DELETE FROM comparison WHERE rowid = ?"
-        
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
                 
         sqlite3_bind_int64(statement, 1, Int64(id))
         
         if SQLITE_DONE != sqlite3_step(statement){
-            print(String(format: "Delete comparisonStock DB ERROR '%s'.", sqlite3_errmsg(db)))
+            print(String(format: "Delete from comparison DB ERROR '%s'.", sqlite3_errmsg(db)))
         }
         sqlite3_finalize(statement);
         sqlite3_close(db);        
     }
     
+    /// Delete a single stock from this comparison
     @objc(deleteStock:) func delete(stock: Stock) {
-        print("Finish rewrite to Swift")
+        var db: sqlite3ptr = nil
+        
+        guard SQLITE_OK == sqlite3_open(Comparison.dbPath(), &db) else { return }
+        var statement: sqlite3ptr = nil
+        
+        let sql = "DELETE FROM comparisonStock WHERE stockId = ?"
+        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
+        
+        sqlite3_bind_int64(statement, 1, Int64(stock.id))
+        
+        if SQLITE_DONE == sqlite3_step(statement){
+            stockList.removeAll(where: {$0 == stock})
+        } else {
+            print(String(format: "delete(stock:) DB ERROR '%s'.", sqlite3_errmsg(db)))
+        }
+        sqlite3_finalize(statement);
+        sqlite3_close(db);
     }
     
     @objc
@@ -161,17 +227,17 @@ class Comparison: NSObject {
        
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return list }
         
-        var comparison: Comparison = Comparison() // Note set this to nil once Comparison is fully Swift
+        var comparison: Comparison? = nil
         var lastComparisonId = 0
         var title = ""
         
         while (SQLITE_ROW == sqlite3_step(statement)) {
             if lastComparisonId != sqlite3_column_int(statement, 0) {
-                comparison = Comparison()
-                comparison.id = Int(sqlite3_column_int(statement, 0))
-                lastComparisonId = comparison.id
-                list.append(comparison)
                 title = ""
+                comparison = Comparison() // only need to create a new comparison after initial one
+                lastComparisonId = Int(sqlite3_column_int(statement, 0))
+                comparison?.id = lastComparisonId
+                list.append(comparison!)
             }
             let stock = Stock()
             stock.comparisonStockId = Int(sqlite3_column_int(statement, CI.comparisonStockId.rawValue))
@@ -202,8 +268,8 @@ class Comparison: NSObject {
                 stock.technicalList = String(cString: UnsafePointer(sqlite3_column_text(statement, CI.technicalList.rawValue)))
             }
             
-            comparison.stockList.append(stock)
-            comparison.title = title
+            comparison?.stockList.append(stock)
+            comparison?.title = title
         }
         sqlite3_finalize(statement)
         sqlite3_close(db)

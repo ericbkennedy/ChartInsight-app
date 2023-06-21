@@ -10,18 +10,16 @@ import Foundation
 
 class AddStockController: UITableViewController, UISearchBarDelegate {
     
-    @objc var delegate: RootViewController?
-    var list: [Stock]
-    var searchBar : UISearchBar
+    @objc var delegate: RootViewController? = nil
+    var list: [Stock] = []
+    var searchBar = UISearchBar()
+    let cellID = "stockCell"
     
     required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) is not supported since no storyboard or nib is used")
+        super.init(coder: aDecoder)
     }
     
     override init(style: UITableView.Style) {
-        searchBar = UISearchBar()
-        list = []
-        delegate = nil // will be set later to RootViewController
         super.init(style: style)
     }
         
@@ -30,9 +28,9 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
 
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "stockCell")
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         
-        searchBar = UISearchBar(frame: .zero) //CGRectMake(0.0, 0.0, 300.0, 44.0))
+        searchBar = UISearchBar(frame: .zero)
         searchBar.delegate = self
         searchBar.autocorrectionType = .no
         searchBar.showsCancelButton = true // make it easier to dismiss?
@@ -52,7 +50,7 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         var label = ""
-        let cell = tableView.dequeueReusableCell(withIdentifier: "stockCell", for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
         if (list.count > indexPath.row) {
             let stock = list[indexPath.row]
             if stock.symbol != "" {
@@ -62,7 +60,9 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
                 label += stock.name
             }
         }
-        cell.textLabel?.text = label
+        var config = cell.defaultContentConfiguration()
+        config.text = label
+        cell.contentConfiguration = config
         return cell
     }
 

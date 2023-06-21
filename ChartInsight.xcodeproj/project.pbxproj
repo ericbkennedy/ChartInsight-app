@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		0B1BD559183C351100EE97D1 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B1BD558183C351100EE97D1 /* QuartzCore.framework */; };
 		0B1BD55B183C351A00EE97D1 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B1BD55A183C351A00EE97D1 /* libsqlite3.dylib */; };
-		0B42BC001C420B2700139C33 /* AddFundamentalController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */; };
 		0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC011C420BE400139C33 /* ChartOptionsController.m */; };
 		0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC111C420C1A00139C33 /* RootViewController.m */; };
 		0B42BC221C420C2F00139C33 /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC141C420C2F00139C33 /* StockData.m */; };
@@ -20,10 +19,10 @@
 		0B42BC361C420C8100139C33 /* charts.db in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC301C420C8100139C33 /* charts.db */; };
 		0B42BC371C420C8100139C33 /* metrics.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC321C420C8100139C33 /* metrics.plist */; };
 		0B42BC391C420CB600139C33 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC381C420CB600139C33 /* Images.xcassets */; };
-		0B56776C1CE90E70009F02D4 /* SettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B56776B1CE90E70009F02D4 /* SettingsViewController.m */; };
 		0BB7F521183C31B90040F1C6 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F520183C31B90040F1C6 /* Foundation.framework */; };
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
+		801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801191872A42734B001C6ADD /* AddFundamentalController.swift */; };
 		803399BF2A2A9C4300C81714 /* DB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DB.swift */; };
 		804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804D975C2A38D0CF00F61FF7 /* BarData.swift */; };
 		809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F72A2A8FF600766030 /* ScrollChartView.m */; };
@@ -33,6 +32,7 @@
 		8097DB0D2A40CB96003E11E0 /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB0B2A40CB96003E11E0 /* Stock.swift */; };
 		8097DB0F2A413A8A003E11E0 /* Comparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB0E2A413A8A003E11E0 /* Comparison.swift */; };
 		8097DB102A413A8A003E11E0 /* Comparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB0E2A413A8A003E11E0 /* Comparison.swift */; };
+		8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB112A422FB4003E11E0 /* SettingsViewController.swift */; };
 		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
 		80B0E4D92A3B649F003072DA /* DataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B0E4D82A3B649F003072DA /* DataFetcher.swift */; };
 		80B0E4DA2A3B649F003072DA /* DataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B0E4D82A3B649F003072DA /* DataFetcher.swift */; };
@@ -54,8 +54,6 @@
 /* Begin PBXFileReference section */
 		0B1BD558183C351100EE97D1 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		0B1BD55A183C351A00EE97D1 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
-		0B42BBFE1C420B2700139C33 /* AddFundamentalController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AddFundamentalController.h; path = Controllers/AddFundamentalController.h; sourceTree = SOURCE_ROOT; };
-		0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AddFundamentalController.m; path = Controllers/AddFundamentalController.m; sourceTree = SOURCE_ROOT; };
 		0B42BC011C420BE400139C33 /* ChartOptionsController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ChartOptionsController.m; path = Controllers/ChartOptionsController.m; sourceTree = SOURCE_ROOT; };
 		0B42BC061C420BE500139C33 /* ChartOptionsController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ChartOptionsController.h; path = Controllers/ChartOptionsController.h; sourceTree = SOURCE_ROOT; };
 		0B42BC101C420C1A00139C33 /* RootViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RootViewController.h; path = Controllers/RootViewController.h; sourceTree = SOURCE_ROOT; };
@@ -73,13 +71,12 @@
 		0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Prefix.pch"; sourceTree = SOURCE_ROOT; };
 		0B42BC321C420C8100139C33 /* metrics.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = metrics.plist; path = Data/metrics.plist; sourceTree = SOURCE_ROOT; };
 		0B42BC381C420CB600139C33 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
-		0B56776A1CE90E70009F02D4 /* SettingsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SettingsViewController.h; path = Controllers/SettingsViewController.h; sourceTree = SOURCE_ROOT; };
-		0B56776B1CE90E70009F02D4 /* SettingsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SettingsViewController.m; path = Controllers/SettingsViewController.m; sourceTree = SOURCE_ROOT; };
 		0BB7F51D183C31B90040F1C6 /* ChartInsight.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChartInsight.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BB7F520183C31B90040F1C6 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		801191872A42734B001C6ADD /* AddFundamentalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundamentalController.swift; sourceTree = "<group>"; };
 		803399BE2A2A9C4200C81714 /* DB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DB.swift; path = Models/DB.swift; sourceTree = SOURCE_ROOT; };
 		804D975C2A38D0CF00F61FF7 /* BarData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
 		809576F52A2A8FF600766030 /* ProgressIndicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressIndicator.h; sourceTree = "<group>"; };
@@ -89,6 +86,7 @@
 		8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extensions.swift"; sourceTree = "<group>"; };
 		8097DB0B2A40CB96003E11E0 /* Stock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
 		8097DB0E2A413A8A003E11E0 /* Comparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Comparison.swift; sourceTree = "<group>"; };
+		8097DB112A422FB4003E11E0 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
 		80B0E4D82A3B649F003072DA /* DataFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataFetcher.swift; sourceTree = "<group>"; };
 		80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DataFetcherDelegate.h; sourceTree = "<group>"; };
@@ -134,12 +132,10 @@
 		0B1BD527183C33B800EE97D1 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
-				0B42BBFE1C420B2700139C33 /* AddFundamentalController.h */,
-				0B42BBFF1C420B2700139C33 /* AddFundamentalController.m */,
+				801191872A42734B001C6ADD /* AddFundamentalController.swift */,
 				0B42BC101C420C1A00139C33 /* RootViewController.h */,
 				0B42BC111C420C1A00139C33 /* RootViewController.m */,
-				0B56776A1CE90E70009F02D4 /* SettingsViewController.h */,
-				0B56776B1CE90E70009F02D4 /* SettingsViewController.m */,
+				8097DB112A422FB4003E11E0 /* SettingsViewController.swift */,
 				0B42BC061C420BE500139C33 /* ChartOptionsController.h */,
 				0B42BC011C420BE400139C33 /* ChartOptionsController.m */,
 				809F32342A36C7430018526F /* AddStockController.swift */,
@@ -339,15 +335,15 @@
 				804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */,
 				8097DB0C2A40CB96003E11E0 /* Stock.swift in Sources */,
 				809F32352A36C7430018526F /* AddStockController.swift in Sources */,
-				0B42BC001C420B2700139C33 /* AddFundamentalController.m in Sources */,
+				8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */,
 				809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */,
 				0B42BC221C420C2F00139C33 /* StockData.m in Sources */,
 				8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */,
 				0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */,
 				80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */,
+				801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */,
 				8097DB0F2A413A8A003E11E0 /* Comparison.swift in Sources */,
 				0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */,
-				0B56776C1CE90E70009F02D4 /* SettingsViewController.m in Sources */,
 				0B42BC351C420C8100139C33 /* main.m in Sources */,
 				803399BF2A2A9C4300C81714 /* DB.swift in Sources */,
 				0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */,

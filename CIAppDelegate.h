@@ -13,7 +13,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (strong, nonatomic) UIWindow *window;
 
-- (nonnull NSArray *) metrics;
+/// Non-alphabetical order of metrics achieved with array of categories which contains array of metric details
+@property (strong, nonatomic) NSArray <NSArray <NSArray <NSString *> *> *> *metrics;
 
 - (nullable NSString *) titleForKey:(nonnull NSString *)key;
 

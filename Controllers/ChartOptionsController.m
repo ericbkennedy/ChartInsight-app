@@ -1,5 +1,5 @@
 #import "ChartOptionsController.h"
-#import "AddFundamentalController.h"
+#import "ChartInsight-Swift.h"
 #import "CIAppDelegate.h"     // for chart type list
 
 enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
@@ -707,11 +707,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         for (NSArray *type in category) {
             NSString *key = [type objectAtIndex:0];
             if ([self.listedMetricKeyString rangeOfString:key].length == 0) {      // skip already listed ones
-                
-                if (self.stock.hasFundamentals || ([key isEqualToString:@"CostOfSales"] == NO
-                        && [key isEqualToString:@"ResearchAndDevelopmentExpenses"] == NO 
-                        && [key isEqualToString:@"SellingGeneralAndAdministrativeExpenses"] == NO
-                        && [key isEqualToString:@"TangibleBookValuePerShare"] == NO)) {
+                if (self.stock.hasFundamentals) {
                     [availableMetrics addObject:type];
                 }
             }

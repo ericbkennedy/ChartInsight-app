@@ -16,12 +16,12 @@
 		<array>
 			<string>CostOfGoodsAndServicesSold</string>
 			<string>Cost Of Sales</string>
-			<string>Expenses directly associated with production of goods or services. Excludes depreciation, depletion, amortization, and SG&amp;A</string>
+			<string>Expenses associated with production of goods or services, excluding depreciation, depletion, amortization, and SG&amp;A</string>
 		</array>
 		<array>
 			<string>ResearchAndDevelopmentExpense</string>
 			<string>Research &amp; Development Cost</string>
-			<string>Research costs without regard to immediate commercial application. Development takes research to a marketable stage.</string>
+			<string>Research lacks an immediate commercial application and development takes research to a marketable stage</string>
 		</array>
 		<array>
 			<string>SellingGeneralAndAdministrativeExpense</string>

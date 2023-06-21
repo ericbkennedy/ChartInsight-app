@@ -105,7 +105,6 @@ class DB: NSObject {
         }
         sqlite3_finalize(statement)
         sqlite3_close(db)
-            
     }
  
     func loadBarData(for stockId: Int, startDateInt: Int) -> [BarData] {
@@ -136,6 +135,8 @@ class DB: NSObject {
             
             rowsLoaded.append(newBar)
         }
+        sqlite3_finalize(statement)
+        sqlite3_close(db)
         return rowsLoaded
     }
     
@@ -172,6 +173,7 @@ class DB: NSObject {
                  }
              }
          }
+         sqlite3_close(db)
          
          if (list.count == 0) { // Add placeholder
              let stock = Stock()
