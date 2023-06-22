@@ -72,10 +72,11 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
         
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if let searchText = searchBar.text {
-            // Avoid blocking keyboard animations by dispatching to another thread
-            DispatchQueue.global(qos: .userInteractive).async {
-                let localList = DB().findStock(search: searchText)
-                DispatchQueue.main.async { // update UI on main
+
+            Task(priority: .high) {
+                let localList = await DBActor.shared.findStock(search: searchText)
+                
+                await MainActor.run {
                     self.list.removeAll()
                     if (localList.isEmpty == false) {
                         self.list = localList

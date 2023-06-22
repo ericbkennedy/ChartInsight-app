@@ -13,9 +13,7 @@
 		0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC111C420C1A00139C33 /* RootViewController.m */; };
 		0B42BC221C420C2F00139C33 /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC141C420C2F00139C33 /* StockData.m */; };
 		0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC191C420C2F00139C33 /* FundamentalAPI.m */; };
-		0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC281C420C4700139C33 /* CIAppDelegate.m */; };
 		0B42BC331C420C8100139C33 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */; };
-		0B42BC351C420C8100139C33 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC2F1C420C8100139C33 /* main.m */; };
 		0B42BC361C420C8100139C33 /* charts.db in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC301C420C8100139C33 /* charts.db */; };
 		0B42BC371C420C8100139C33 /* metrics.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC321C420C8100139C33 /* metrics.plist */; };
 		0B42BC391C420CB600139C33 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC381C420CB600139C33 /* Images.xcassets */; };
@@ -23,10 +21,9 @@
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
 		801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801191872A42734B001C6ADD /* AddFundamentalController.swift */; };
-		803399BF2A2A9C4300C81714 /* DB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DB.swift */; };
+		803399BF2A2A9C4300C81714 /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DBActor.swift */; };
 		804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804D975C2A38D0CF00F61FF7 /* BarData.swift */; };
 		809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F72A2A8FF600766030 /* ScrollChartView.m */; };
-		809576FA2A2A8FF600766030 /* ProgressIndicator.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F82A2A8FF600766030 /* ProgressIndicator.m */; };
 		8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */; };
 		8097DB0C2A40CB96003E11E0 /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB0B2A40CB96003E11E0 /* Stock.swift */; };
 		8097DB0D2A40CB96003E11E0 /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB0B2A40CB96003E11E0 /* Stock.swift */; };
@@ -39,6 +36,11 @@
 		80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */; };
 		80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */; };
 		80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */; };
+		80E586EE2A433E6100A380AA /* ProgressIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E586ED2A433E6100A380AA /* ProgressIndicator.swift */; };
+		80E587332A435BB700A380AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E587322A435BB700A380AA /* AppDelegate.swift */; };
+		80E587342A435BB700A380AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E587322A435BB700A380AA /* AppDelegate.swift */; };
+		80E587362A435DE800A380AA /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E587352A435DE800A380AA /* SceneDelegate.swift */; };
+		80E587372A435DE800A380AA /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E587352A435DE800A380AA /* SceneDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,11 +64,8 @@
 		0B42BC181C420C2F00139C33 /* StockData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StockData.h; path = Models/StockData.h; sourceTree = SOURCE_ROOT; };
 		0B42BC191C420C2F00139C33 /* FundamentalAPI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FundamentalAPI.m; path = Models/FundamentalAPI.m; sourceTree = SOURCE_ROOT; };
 		0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FundamentalAPI.h; path = Models/FundamentalAPI.h; sourceTree = SOURCE_ROOT; };
-		0B42BC281C420C4700139C33 /* CIAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CIAppDelegate.m; sourceTree = SOURCE_ROOT; };
-		0B42BC291C420C4700139C33 /* CIAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CIAppDelegate.h; sourceTree = SOURCE_ROOT; };
 		0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "ChartInsight-Info.plist"; sourceTree = SOURCE_ROOT; };
-		0B42BC2F1C420C8100139C33 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = SOURCE_ROOT; };
 		0B42BC301C420C8100139C33 /* charts.db */ = {isa = PBXFileReference; lastKnownFileType = file; name = charts.db; path = Data/charts.db; sourceTree = SOURCE_ROOT; };
 		0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Prefix.pch"; sourceTree = SOURCE_ROOT; };
 		0B42BC321C420C8100139C33 /* metrics.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = metrics.plist; path = Data/metrics.plist; sourceTree = SOURCE_ROOT; };
@@ -77,12 +76,10 @@
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		801191872A42734B001C6ADD /* AddFundamentalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundamentalController.swift; sourceTree = "<group>"; };
-		803399BE2A2A9C4200C81714 /* DB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DB.swift; path = Models/DB.swift; sourceTree = SOURCE_ROOT; };
+		803399BE2A2A9C4200C81714 /* DBActor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DBActor.swift; path = Models/DBActor.swift; sourceTree = SOURCE_ROOT; };
 		804D975C2A38D0CF00F61FF7 /* BarData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
-		809576F52A2A8FF600766030 /* ProgressIndicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressIndicator.h; sourceTree = "<group>"; };
 		809576F62A2A8FF600766030 /* ScrollChartView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollChartView.h; sourceTree = "<group>"; };
 		809576F72A2A8FF600766030 /* ScrollChartView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ScrollChartView.m; sourceTree = "<group>"; };
-		809576F82A2A8FF600766030 /* ProgressIndicator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProgressIndicator.m; sourceTree = "<group>"; };
 		8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extensions.swift"; sourceTree = "<group>"; };
 		8097DB0B2A40CB96003E11E0 /* Stock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
 		8097DB0E2A413A8A003E11E0 /* Comparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Comparison.swift; sourceTree = "<group>"; };
@@ -95,6 +92,9 @@
 		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartInsightTests.swift; sourceTree = "<group>"; };
 		80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigNumberFormatterTests.swift; sourceTree = "<group>"; };
+		80E586ED2A433E6100A380AA /* ProgressIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressIndicator.swift; sourceTree = "<group>"; };
+		80E587322A435BB700A380AA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		80E587352A435DE800A380AA /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,7 +155,7 @@
 				0B42BC191C420C2F00139C33 /* FundamentalAPI.m */,
 				804D975C2A38D0CF00F61FF7 /* BarData.swift */,
 				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
-				803399BE2A2A9C4200C81714 /* DB.swift */,
+				803399BE2A2A9C4200C81714 /* DBActor.swift */,
 				8097DB0B2A40CB96003E11E0 /* Stock.swift */,
 			);
 			name = Models;
@@ -167,8 +167,8 @@
 			children = (
 				0B42BC381C420CB600139C33 /* Images.xcassets */,
 				80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */,
-				0B42BC291C420C4700139C33 /* CIAppDelegate.h */,
-				0B42BC281C420C4700139C33 /* CIAppDelegate.m */,
+				80E587322A435BB700A380AA /* AppDelegate.swift */,
+				80E587352A435DE800A380AA /* SceneDelegate.swift */,
 				0B16DB4329BC1C2B00FCA714 /* Data */,
 				0B1BD540183C33C300EE97D1 /* Models */,
 				809576F02A2A8EB300766030 /* Views */,
@@ -176,7 +176,6 @@
 				0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */,
 				8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */,
 				80D5B9E92A294F2100314733 /* Tests */,
-				0B42BC2F1C420C8100139C33 /* main.m */,
 				0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */,
 				0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */,
 				0BB7F51F183C31B90040F1C6 /* Frameworks */,
@@ -209,8 +208,7 @@
 		809576F02A2A8EB300766030 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				809576F52A2A8FF600766030 /* ProgressIndicator.h */,
-				809576F82A2A8FF600766030 /* ProgressIndicator.m */,
+				80E586ED2A433E6100A380AA /* ProgressIndicator.swift */,
 				809576F62A2A8FF600766030 /* ScrollChartView.h */,
 				809576F72A2A8FF600766030 /* ScrollChartView.m */,
 			);
@@ -331,21 +329,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				809576FA2A2A8FF600766030 /* ProgressIndicator.m in Sources */,
 				804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */,
 				8097DB0C2A40CB96003E11E0 /* Stock.swift in Sources */,
+				80E587332A435BB700A380AA /* AppDelegate.swift in Sources */,
 				809F32352A36C7430018526F /* AddStockController.swift in Sources */,
 				8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */,
 				809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */,
 				0B42BC221C420C2F00139C33 /* StockData.m in Sources */,
 				8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */,
-				0B42BC2A1C420C4700139C33 /* CIAppDelegate.m in Sources */,
 				80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */,
 				801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */,
 				8097DB0F2A413A8A003E11E0 /* Comparison.swift in Sources */,
 				0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */,
-				0B42BC351C420C8100139C33 /* main.m in Sources */,
-				803399BF2A2A9C4300C81714 /* DB.swift in Sources */,
+				80E586EE2A433E6100A380AA /* ProgressIndicator.swift in Sources */,
+				80E587362A435DE800A380AA /* SceneDelegate.swift in Sources */,
+				803399BF2A2A9C4300C81714 /* DBActor.swift in Sources */,
 				0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */,
 				80B0E4D92A3B649F003072DA /* DataFetcher.swift in Sources */,
 				0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */,
@@ -356,6 +354,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				80E587342A435BB700A380AA /* AppDelegate.swift in Sources */,
+				80E587372A435DE800A380AA /* SceneDelegate.swift in Sources */,
 				80B0E4DA2A3B649F003072DA /* DataFetcher.swift in Sources */,
 				8097DB102A413A8A003E11E0 /* Comparison.swift in Sources */,
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,

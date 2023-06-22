@@ -1,8 +1,7 @@
 #import "ChartOptionsController.h"
 #import "ChartInsight-Swift.h"
-#import "CIAppDelegate.h"     // for chart type list
 
-enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
+enum indicatorType {  MOVING_AVERAGE, SAWTOOTH   };
 
 @interface ChartOptionsController () {
     NSInteger fundamentalControlRow;
@@ -40,7 +39,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
 }
 
 - (NSArray *) metrics {
-    return [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] metrics]; 
+    return [(AppDelegate *)[[UIApplication sharedApplication] delegate] metrics]; 
 }
 
 - (UIImage *)imageForChartType:(NSInteger)type andColor:(NSInteger)c showLabel:(BOOL)showLabel {
@@ -193,20 +192,6 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             CGContextAddCurveToPoint(ctx, 15, 35, 25, 15, 40, 13);    
             CGContextStrokePath(ctx);
             break;
-        case BOOK_OVERLAY:
-            
-            CGContextMoveToPoint(ctx, 1, 20);
-            CGContextAddLineToPoint(ctx, 9, 19);
-            CGContextAddLineToPoint(ctx, 17, 16);
-            CGContextAddLineToPoint(ctx, 25, 17);
-            CGContextAddLineToPoint(ctx, 33, 15);
-            CGContextAddLineToPoint(ctx, 40, 16);
-            
-            CGContextSetLineWidth(ctx, 2.5);
-            CGContextSetShadowWithColor(ctx, CGSizeMake(0., 2.5), 0.5, c);
-            CGContextSetStrokeColorWithColor(ctx, c);
-            CGContextStrokePath(ctx);
-            break;
             
         case SAWTOOTH:
             CGContextSetFillColorWithColor(ctx, [UIColor colorWithRed:1. green:0. blue:0. alpha:0.6].CGColor);
@@ -313,7 +298,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
     // and allow renderColorSegments to add the segments later
     self.colorSegmentedControl = [[UISegmentedControl alloc] initWithItems:@[]];
         
-    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
+    if ([(AppDelegate *)UIApplication.sharedApplication.delegate darkMode]) {
         // selectedcolor only shows up if darker than tintColor, so don't use black
         [self.typeSegmentedControl setTintColor:[UIColor darkGrayColor]];
         [self.colorSegmentedControl setTintColor:[UIColor darkGrayColor]];
@@ -498,13 +483,9 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
             if (row < [self.listedMetricKeys count]) {
                 NSString *key = [self.listedMetricKeys objectAtIndex:row];
             
-                if ([key isEqualToString:@"BookValuePerShare"]) {
-                    [[cell imageView] setImage:[self imageForOverlayType:BOOK_OVERLAY andColor:self.stock.upColorHalfAlpha]];
-                } else {
-                    [[cell imageView] setImage:[self imageForOverlayType:SAWTOOTH andColor:self.stock.upColorHalfAlpha]];
-                }
+                [[cell imageView] setImage:[self imageForOverlayType:SAWTOOTH andColor:self.stock.upColorHalfAlpha]];
             
-                cell.textLabel.text = [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
+                cell.textLabel.text = [(AppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
                 
                 if ([[self.listedMetricValues objectAtIndex:row] isEqualToNumber:[NSDecimalNumber one]]) {
                     onOff.on = YES;
@@ -670,7 +651,7 @@ enum indicatorType {  MOVING_AVERAGE, BOOK_OVERLAY, SAWTOOTH   };
         
         if (rowToFollow > -1 && !clickedAddMetric) {  // no control row on add row      
             
-            [self setFundamentalDescription:[(CIAppDelegate *)[[UIApplication sharedApplication] delegate] descriptionForKey:[self.listedMetricKeys objectAtIndex:adjRow]]];
+            [self setFundamentalDescription:[(AppDelegate *)[[UIApplication sharedApplication] delegate] descriptionForKey:[self.listedMetricKeys objectAtIndex:adjRow]]];
             
             fundamentalControlRow = rowToFollow + 1;
 

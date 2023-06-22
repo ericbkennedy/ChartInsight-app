@@ -1,4 +1,3 @@
-#import "CIAppDelegate.h"
 #import "RootViewController.h"
 #import "ScrollChartView.h"
 #import "ChartOptionsController.h"
@@ -35,8 +34,6 @@
 @property (strong, nonatomic) ScrollChartView *scc;
 
 @property (strong, nonatomic) NSArray *list;     // stocks from comparison table
-
-@property (strong, nonatomic) DB *db;
 
 @property (strong, nonatomic) NSDictionary *infoForPressedBar;
 
@@ -165,8 +162,6 @@
 }
 
 - (void)viewDidLoad {
-    self.db = [[DB alloc] init];
-    [self.db moveDBToDocumentsForDelegate:self];                      // copy db to documents and/or update existing db
     
     [super viewDidLoad];
     
@@ -284,7 +279,7 @@
         [self resizeSubviewsForSize:CGSizeMake(self.width, self.height)];
     }
     if (self.needsReload) {
-        [self reloadList:nil];
+        [self reloadKeepExistingComparison:NO];
         self.needsReload = NO;
     }
 }
@@ -330,7 +325,7 @@
         [otherColors removeObjectAtIndex:0];
     }
     [self.scc.comparison add:stock];
-    [self reloadList:self.scc.comparison];
+    [self reloadKeepExistingComparison:YES];
     [self popContainer];
 }
 
@@ -359,12 +354,6 @@
  
     cell.textLabel.text = [comparison title];
     cell.textLabel.font = [UIFont systemFontOfSize:13];
-    
-    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground] != NO) {
-        cell.textLabel.textColor = [UIColor lightGrayColor];
-    } else {
-        cell.textLabel.textColor = [UIColor colorWithRed:.490 green:.479 blue:0.432 alpha:1.0];
-    }
     return cell;
 }
 
@@ -381,15 +370,18 @@
             }
         }
         
+        // deleteStock runs async so determine stockList count before calling it
+        NSInteger stockCountBeforeDeletion = self.scc.comparison.stockList.count;
+        
         [self.scc.comparison deleteStock:s];
         
-        if (self.scc.comparison.stockList.count < 1) {
+        if (stockCountBeforeDeletion <= 1) {
             [self.scc.comparison deleteFromDb];
          //   DLog(@"deleted all from DB");
-            [self reloadList:nil];
+            [self reloadKeepExistingComparison:NO];
         } else {
             [self.scc redrawCharts];
-            [self reloadList:self.scc.comparison];
+            [self reloadKeepExistingComparison:YES];
         }
         [self resetToolbar];
     }
@@ -437,11 +429,6 @@
 - (void) viewWillAppear:(BOOL)animated {
     // hide navigationController so our customToolbar can take its place for better button sizing
 	[self.navigationController setNavigationBarHidden:YES animated:NO];
-    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
-        [self.customNavigationToolbar setBarStyle:UIBarStyleBlack];
-    } else {
-        [self.customNavigationToolbar setBarStyle:UIBarStyleDefault];
-    }
     
     self.view.backgroundColor = [UIColor secondarySystemBackgroundColor];
     
@@ -670,26 +657,31 @@
     }
 }
 
-- (void) reloadList:(Comparison *)comparison {
-        
-    self.list = Comparison.listAll;
-    [self.tableView reloadData];
-
-    if (comparison == nil) {
-        if (self.list.count > 0) {
-            comparison = [self.list objectAtIndex:0];
-        }
-    }
+- (void) reloadKeepExistingComparison:(BOOL)keepComparison {
     
-    if (comparison != nil) {
-        
-        [self.scc clearChart];
-        [self.progressIndicator startAnimating];
-        
-        [self.scc setComparison:comparison];
-        [self resetToolbar];
-        [self.scc loadChart];
-    }
+    // Replace completionHandler with async function after rewriting this class to Swift
+    [Comparison listAllWithCompletionHandler:^(NSArray <Comparison *> *newList) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.list = newList;
+            [self.tableView reloadData];
+
+            Comparison *comparisonToChart = nil;
+            if (keepComparison) {
+                comparisonToChart = self.scc.comparison;
+            } else if (self.list.count > 0) {
+                comparisonToChart = [self.list objectAtIndex:0];
+            }
+
+            if (comparisonToChart != nil) {
+                [self.scc clearChart];
+                [self.progressIndicator startAnimating];
+
+                [self.scc setComparison:comparisonToChart];
+                [self resetToolbar];
+                [self.scc loadChart];
+            }
+        });
+    }];
 }
 
 - (void) reloadWhenVisible {
@@ -700,9 +692,17 @@
     return YES;
 } 
 
-- (void) dbMoved:(NSString *)newPath {
-    DLog(@"Moved to %@", newPath);
-    [self reloadList:nil];
+- (void)updateList:(NSArray <Comparison *>*)newList {
+    self.list = newList;
+    [self.tableView reloadData];
+
+    if (self.list.count > 0) {
+        Comparison *comparisonToChart = self.list[0];
+        [self.progressIndicator startAnimating];
+        [self.scc setComparison:comparisonToChart];
+        [self resetToolbar];
+        [self.scc loadChart];
+    }
 }
 
 

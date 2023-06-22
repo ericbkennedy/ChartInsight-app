@@ -176,34 +176,34 @@ class DataFetcher: NSObject {
         
         let oldestDateInt = dateInt(from: requestOldest)
         
-        fetchedData = DB().loadBarData(for: stockId, startDateInt: oldestDateInt)
+        Task {
+            fetchedData = await DBActor.shared.loadBarData(for: stockId, startDateInt: oldestDateInt)
         
-        barsFromDB = fetchedData.count
-        if barsFromDB > 0 {
-            lastClose = date(from: fetchedData[0])
-            nextClose = getNextTradingDateAfter(date: lastClose)
-            
-            if requestNewest.timeIntervalSince(nextClose) >= 0.0 { // need to contact server
-                requestOldest = nextClose // skip dates loaded from DB
-                requestNewest = Date()
+            barsFromDB = fetchedData.count
+            if barsFromDB > 0 {
+                lastClose = date(from: fetchedData[0])
+                nextClose = getNextTradingDateAfter(date: lastClose)
+                
+                if requestNewest.timeIntervalSince(nextClose) >= 0.0 { // need to contact server
+                    requestOldest = nextClose // skip dates loaded from DB
+                    requestNewest = Date()
+                }
+                // send values loaded from DB
+                await historicalDataLoaded(barDataArray: fetchedData)
             }
-            // send values loaded from DB
-            historicalDataLoaded(barDataArray: fetchedData)
-        }
-        
-        if isRecent(lastOfflineError) {
-            print("lastOfflineError \(lastOfflineError) was too recent to try again")
-            cancelDownload()
-        } else {
-            guard let url = formatRequestURL() else { return }
             
-            Task {
+            if isRecent(lastOfflineError) {
+                print("lastOfflineError \(lastOfflineError) was too recent to try again")
+                cancelDownload()
+            } else {
+                guard let url = formatRequestURL() else { return }
+                
                 do {
                     try await fetchDailyData(from: url)
                 } catch {
-                    print("error occurred")
+                    print("Error occurred: \(error.localizedDescription)")
                     if fetchedData.isEmpty == false { // send what we have
-                        historicalDataLoaded(barDataArray: fetchedData)
+                        await historicalDataLoaded(barDataArray: fetchedData)
                     }
                 }
             }
@@ -222,21 +222,19 @@ class DataFetcher: NSObject {
             }
         }
         
-        DB().save(fetchedData, stockId: stockId)
-        
-        historicalDataLoaded(barDataArray: fetchedData)
+        await historicalDataLoaded(barDataArray: fetchedData)
+
+        // save to DB after updating UI with historicalDataLoaded()
+        await DBActor.shared.save(fetchedData, stockId: stockId)
     }
     
-    func historicalDataLoaded(barDataArray: [BarData]) {
+    @MainActor func historicalDataLoaded(barDataArray: [BarData]) {
         guard barDataArray.count > 0 else {
             // should be a failure condition
             print("barDataArray \(barDataArray)")
             return
         }
-        
-        DispatchQueue.main.async {
-            self.delegate?.fetcherLoadedHistoricalData(barDataArray)
-        }
+        self.delegate?.fetcherLoadedHistoricalData(barDataArray)
     }
     
     @objc(dateFromBar:)

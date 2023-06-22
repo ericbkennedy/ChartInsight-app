@@ -1,5 +1,6 @@
-#import "ProgressIndicator.h"
 
+@class Comparison;
+@class ProgressIndicator;
 @class Stock; // forward declaration because this header is included in Bridging Header
 
 @interface RootViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
@@ -8,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, strong) NSCalendar *gregorian;
 @property (nonatomic, strong) ProgressIndicator	*progressIndicator;
-@property (nonatomic, strong) UIImageView *magnifier;   // CIAppDelegate will hide on suspend
+@property (nonatomic, strong) UIImageView *magnifier;   // SceneDelegate will hide on suspend
 
 // SettingsViewController will call reloadWhenVisible after a stock comparison is deleted
 // so this controller can reload the tableView when the user switches back to this tab
@@ -24,8 +25,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void) deleteStock:(NSInteger)sender;
 
-// callback after the db is moved from the bundle or upgraded
-- (void) dbMoved:(NSString *)newPath;
+/// Callback after async comparisonList reload
+- (void) updateList:(NSArray <Comparison *>*)newList;
 
 /// called by AddStockController when a new stock is added
 - (void) insertStock:(Stock *)stock;

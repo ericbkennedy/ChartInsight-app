@@ -60,7 +60,6 @@
 @property (strong, nonatomic) NSDecimalNumber *minLow;
 @property (strong, nonatomic) NSDecimalNumber *scaledLow;
 @property (strong, nonatomic) NSDecimalNumber *lastPrice;
-@property (strong, nonatomic) NSDecimalNumber *bookValue;
 
 
 @property (nonatomic) CGContextRef offscreenContext;

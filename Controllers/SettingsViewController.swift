@@ -43,21 +43,24 @@ class SettingsViewController: UITableViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        list = Comparison.listAll() // reload list on each apperence so it reflects added stock
-        tableView.reloadData()
+        Task {
+            list = await Comparison.listAll() // reload list on each apperence so it reflects added stock
+            await MainActor.run {
+                tableView.reloadData()
+            }
+        }
     }
     
     @objc func doneEditing() {
-        let delegate = UIApplication.shared.delegate as? CIAppDelegate
-        delegate?.showFavoritesTab()
+        tabBarController?.selectedIndex = 0;
     }
     
     @objc func toggleNightDay() {
         
-        let oldValue = UserDefaults.standard.bool(forKey: "nightBackground")
+        let oldValue = UserDefaults.standard.bool(forKey: "darkMode")
         
-        if let delegate = UIApplication.shared.delegate as? CIAppDelegate {
-            delegate.nightMode(on: !oldValue)
+        if let sceneDelegate = UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate {
+            sceneDelegate.darkMode(isOn: !oldValue)
         }
     }
     
@@ -70,7 +73,7 @@ class SettingsViewController: UITableViewController {
         if indexPath.section == SectionType.nightMode.rawValue {
             config.text = "Night mode"
             let onOffSwitch = UISwitch()
-            onOffSwitch.isOn = UserDefaults.standard.bool(forKey: "nightBackground")
+            onOffSwitch.isOn = UserDefaults.standard.bool(forKey: "darkMode")
             onOffSwitch.addTarget(self, action: #selector(toggleNightDay), for: .touchUpInside)
             cell.accessoryView = onOffSwitch
                         
@@ -103,9 +106,14 @@ class SettingsViewController: UITableViewController {
             if indexPath.row < list.count {
                 let comparison = list[indexPath.row]
                 comparison.deleteFromDb()
-                list = Comparison.listAll()
-                delegate?.reloadWhenVisible()
-                tableView.deleteRows(at: [indexPath], with: .fade)
+                Task {
+                    list = await Comparison.listAll() // reload list on each apperence so it reflects added stock
+                    await MainActor.run {
+                        delegate?.reloadWhenVisible()
+                        tableView.deleteRows(at: [indexPath], with: .fade)
+                        tableView.reloadData()
+                    }
+                }
             }
         }
     }

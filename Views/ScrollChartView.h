@@ -1,8 +1,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import "ChartInsight-Swift.h"
-#import "ProgressIndicator.h"
 
-@class ScrollChartView;
+@class ProgressIndicator;
 
 @interface ScrollChartView : UIView
 

@@ -5,7 +5,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import "CIAppDelegate.h"
 #import "ChartOptionsController.h" // delegate for AddFundamentalController
 #import "DataFetcherDelegate.h"
 #import "RootViewController.h"

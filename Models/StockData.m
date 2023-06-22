@@ -107,7 +107,6 @@
     
     [self setMaxHigh:[NSDecimalNumber zero]];
     [self setMinLow:[NSDecimalNumber zero]];
-    [self setBookValue:[NSDecimalNumber notANumber]];
     
     self.fetcher = [[DataFetcher alloc] init];
     self.dailyData = [NSMutableArray array];
@@ -671,7 +670,6 @@
 - (void) clearChart {
     _pointCount = _redBarCount = _whiteBarCount = _monthCount = _blackCount = _redCount = _redPointCount = 0;
     _movingAvg1Count = _movingAvg2Count = _bbCount = _hollowRedCount = _filledGreenCount = 0;
-    [self setBookValue:[NSDecimalNumber notANumber]];
 }
 
 - (NSString *) monthName:(NSInteger)month {
@@ -768,43 +766,9 @@
             }
         }
         
-        NSDecimalNumber *reportValue;
-        
         // Only ScrollChartView can calculate min and max values across multiple stocks in a comparison.
         // ScrollChartView will also calculate the labels, so keep the NSDecimalNumber originals and
         // just calculate quarter-end x values.
-        
-        // Use NSMutableArray to preserve the order 
-        // book value must be handled separately because we DO need to calculate the min and max values and use those on the main chart
-        // yFactor            
-        
-        if ([[self.fundamentalAPI columns] objectForKey:@"BookValuePerShare"] != nil) {
-            NSInteger r = self.newestReport;
-            
-            do {
-                reportValue = [self.fundamentalAPI valueForReport:r withKey:@"BookValuePerShare"];
-                
-            } while ([reportValue isEqualToNumber:[NSDecimalNumber notANumber]] && ++r <= self.oldestReport);
-            
-            if ([reportValue isEqualToNumber:[NSDecimalNumber notANumber]] == NO) {                
-                [self setBookValue:reportValue];                    
-            
-                do {
-                    reportValue = [self.fundamentalAPI valueForReport:r withKey:@"BookValuePerShare"];
-                    if ([reportValue isEqualToNumber:[NSDecimalNumber notANumber]]) {
-                        break;
-                    }
-                    
-                    if ([self.maxHigh compare:reportValue] == NSOrderedAscending) {
-                        [self setMaxHigh:reportValue];
-                    }
-                    if ([self.scaledLow compare:reportValue] == NSOrderedDescending) {
-                        [self setScaledLow:reportValue];
-                    }
-                    r++;
-                } while (r < self.oldestReport);
-            }
-        }
         
         NSInteger r = self.newestReport;
         self.fundamentalAPI.newestReportInView = self.newestReport;

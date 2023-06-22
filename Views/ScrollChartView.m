@@ -1,7 +1,6 @@
 #import <CoreText/CoreText.h>
 #import "ScrollChartView.h"
 #import "ChartInsight-Swift.h" // for Stock and BigNumberFormatter
-#import "CIAppDelegate.h"
 #import "StockData.h"
 #import "FundamentalAPI.h"
 
@@ -137,7 +136,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     
     [self resetDimensions];     // this IS necessary for first load
     
-    [self setSparklineKeys:[self.comparison sparklineKeys]];     // excludes BookValuePerShare
+    self.sparklineKeys = self.comparison.sparklineKeys;
     
     _sparklineHeight = 100 * [self.sparklineKeys count];
     
@@ -224,7 +223,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             for (NSString *key in [[[stockData fundamentalAPI] columns] allKeys]) {
                 NSInteger r = [stockData fundamentalAPI].newestReportInView;
                 // DLog(@"checking key %@", key);
-                if ([key isEqualToString:@"BookValuePerShare"]) { continue; }
                 
                 do {
                     reportValue = [[stockData fundamentalAPI] valueForReport:r withKey:key];
@@ -263,39 +261,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                 }
             }
         }
-        
-        if ([[stockData bookValue] isEqualToNumber:[NSDecimalNumber notANumber]] == NO) {
-                    
-            NSInteger r = [stockData fundamentalAPI].newestReportInView;
-            CGContextSaveGState(_layerContext);
-            CGContextBeginPath(_layerContext);
-            
-            CGFloat y = 0.;
-            BOOL firstReport = YES;
-            
-            while ((reportValue = [[stockData fundamentalAPI] valueForReport:r withKey:@"BookValuePerShare"]) && r < [stockData fundamentalAPI].oldestReportInView) {
                 
-                if ([reportValue isEqualToNumber:[NSDecimalNumber notANumber]]) {
-                    r++;
-                    continue;
-                }
-                y = stockData.yFactor * [[stockData.maxHigh decimalNumberBySubtracting:reportValue] doubleValue];
-                
-                if (firstReport) {  // first report
-                    CGContextMoveToPoint(_layerContext, stockData.fundamentalAlignments[r], y + _sparklineHeight);
-                    firstReport = NO;
-                } else {
-                    CGContextAddLineToPoint(_layerContext, stockData.fundamentalAlignments[r], y + _sparklineHeight);
-                }
-                r++;
-            }    
-            CGContextSetLineWidth(_layerContext, 5.);
-            CGContextSetShadowWithColor(_layerContext, CGSizeMake(0., 5.), 0.5, stockData.stock.upColorHalfAlpha.CGColor);
-            CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
-            CGContextStrokePath(_layerContext);  
-            CGContextRestoreGState(_layerContext);
-        }
-        
         if (stockData.movingAvg1Count > 2) {
             CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.colorInverseHalfAlpha.CGColor);
             CGContextBeginPath(_layerContext);
@@ -449,11 +415,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
         avoidLabel = stockData.lastPrice;
         
-//        // Optional: show book value on yAxis
-//        if ([stock.bookValue isEqualToNumber:[NSDecimalNumber notANumber]] == NO) {
-//            [self writeLabel:stock.bookValue forStock:stock atX:x showBox:YES];
-//        }
-        
         if (15 < fabs(stockData.yFactor * [[stockData.maxHigh decimalNumberBySubtracting:stockData.lastPrice] doubleValue])) {
             // lastPrice is lower than maxHigh
             [self writeLabel:stockData.maxHigh forStock:stockData atX:x showBox:NO];
@@ -532,7 +493,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
                 NSInteger r = [stockData fundamentalAPI].newestReportInView;
                 if (title == nil) {
-                    title = [(CIAppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
+                    title = [(AppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
                     CGFloat x = MIN(_pxWidth + 5, stockData.fundamentalAlignments[r] + 10);
                     CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
                     UIColor *stockColor = [UIColor colorWithCGColor:stockData.stock.upColor.CGColor];
@@ -822,7 +783,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     UIColor *backgroundColor = UIColor.whiteColor;
     UIColor *textColor = UIColor.blackColor;
     
-    if ([(CIAppDelegate *)[[UIApplication sharedApplication] delegate] nightBackground]) {
+    if ([(AppDelegate *)UIApplication.sharedApplication.delegate darkMode]) {
         backgroundColor = UIColor.blackColor; // reverse colors
         textColor = UIColor.whiteColor;
     }
