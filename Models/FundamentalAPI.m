@@ -24,11 +24,9 @@
 // this is tricky because the CSV report is parsed by quarter, not type, but we store the values in arrays per type
 // so we need to create an array per type, and store index those arrays with another array so we can add extra objects to the arrays instead of the dictionary itself
 - (void) parseResponse {
-    
-    // DLog(@"parseResponse on %@", self.responseString);
 
     if (self.responseString.length < 13 || [[self.responseString substringToIndex:8] isEqualToString:@"y	m	d	q	"] == NO) {
-        DLog(@"Fundamental API Header mismatch so failed");
+        NSLog(@"Fundamental API Header mismatch so failed");
         return;
     }
     
@@ -47,7 +45,6 @@
                 for (NSInteger p = colCountYMDQ; p < parts.count; p++) {
                     thisArray = [NSMutableArray arrayWithCapacity:lines.count];
                     [listOfColumns addObject:thisArray];
-                   //  DLog(@"created array with key %@", [parts objectAtIndex:p]);
                     [self.columns setObject:thisArray forKey:[parts objectAtIndex:p]];
                 }
 
@@ -61,7 +58,7 @@
                 
                 for (NSInteger p = colCountYMDQ; p < parts.count; p++) {
                     thisArray = [listOfColumns objectAtIndex:(p - colCountYMDQ)];
-                    // DLog(@"adding %@ to column %ld at index %ld", [parts objectAtIndex:p], (p-colCountYMDQ), l);
+                    // NSLog(@"adding %@ to column %ld at index %ld", [parts objectAtIndex:p], (p-colCountYMDQ), l);
                     if ([[parts objectAtIndex:p] length] > 0) {
                         [thisArray addObject:[[[NSDecimalNumber alloc] initWithString:[parts objectAtIndex:p]] autorelease]];
                     } else {
@@ -84,7 +81,6 @@
     if (r < [self.barAlignments count]) {
         return [[self.barAlignments objectAtIndex:r] integerValue];
     }
-   // DLog(@"bar alignment is -1 at %d", r);
     return -1;
 }
 
@@ -118,7 +114,7 @@
         } else if (response && [response respondsToSelector:@selector(statusCode)]) {
             NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
             if (statusCode == 404) {
-                DLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, URL);
+                NSLog(@"%@ error with %ld and %@", self.symbol, (long)statusCode, URL);
                 
                 [self.delegate performSelector:@selector(APIFailed:) withObject:@"404 response"];
 

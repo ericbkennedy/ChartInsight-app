@@ -19,7 +19,7 @@ enum ServiceError: Error {
 
 class DataFetcher: NSObject {
     var fetchedData: [BarData] = []
-    var loadingData: Bool = false
+    @objc var loadingData: Bool = false
     var countBars: Int = 0
     var barsFromDB: Int = 0
     @objc var delegate: DataFetcherDelegate? = nil
@@ -167,6 +167,7 @@ class DataFetcher: NSObject {
         
         if loadingData {
             print("load in progress, returning")
+            return // since another request is in progress let it call the delegate methods when it finishes or fails
         }
         loadingData = true
         
@@ -231,7 +232,8 @@ class DataFetcher: NSObject {
     @MainActor func historicalDataLoaded(barDataArray: [BarData]) {
         guard barDataArray.count > 0 else {
             // should be a failure condition
-            print("barDataArray \(barDataArray)")
+            print("\(symbol) empty historicalDataLoaded \(barDataArray)")
+            delegate?.fetcherFailed("Empty response")
             return
         }
         self.delegate?.fetcherLoadedHistoricalData(barDataArray)

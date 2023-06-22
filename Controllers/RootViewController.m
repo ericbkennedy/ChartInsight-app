@@ -286,7 +286,6 @@
 
 /// called by AddStockController when a new stock is added
 - (void) insertStock:(Stock *)stock {
-    DLog(@"Inserted %@ %@", stock.symbol, stock.name);
     
     if (self.newComparison || self.scc.comparison == nil) {
         [self.scc setComparison:[[Comparison alloc] init]];
@@ -377,7 +376,6 @@
         
         if (stockCountBeforeDeletion <= 1) {
             [self.scc.comparison deleteFromDb];
-         //   DLog(@"deleted all from DB");
             [self reloadKeepExistingComparison:NO];
         } else {
             [self.scc redrawCharts];
@@ -502,26 +500,6 @@
     }
 }
 
-// the only purpose of this recognizer is to prevent selecting cells behing the CALayer ScrollChartView
-- (void)singleTap:(UITapGestureRecognizer *)recognizer {
-    
-    CGPoint point = [recognizer locationInView:self.view];
-    
-    BOOL belowTopToolbar = (point.y > self.toolbarHeight) ? YES : NO;
-
-    if (point.x >= self.scc.layer.position.x && belowTopToolbar) {
-        recognizer.cancelsTouchesInView = YES;   //
-         DLog(@" * * * * single tap CANCELS");
-    } else {
-        recognizer.cancelsTouchesInView = NO;
-    }
-}
-
-// required for UIMenuController support
--(BOOL)canBecomeFirstResponder {
-    return YES;
-}
-
 // required to support multi-touch long press
 -(BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
     return YES ;
@@ -612,7 +590,6 @@
 }
 
 - (void)handlePinch:(UIPinchGestureRecognizer *)recognizer {
-   // DLog(@"handle pinch with scale %f", (recognizer.scale));
  
     // take location of initial touch into account when calculating view
     
@@ -631,12 +608,10 @@
     
         recognizer.cancelsTouchesInView =YES;
      
-       // DLog(@"recognizer state = %d", recognizer.state);
         CGFloat pinchMidpoint = [recognizer locationInView:self.view].x - self.scc.layer.position.x - 5;
         
 
         if (recognizer.state == UIGestureRecognizerStateBegan) {
-            // DLog(@"start location of touches x = %f", ([recognizer locationInView:self.view].x - self.scc.layer.position.x));
             self.pinchCount = self.pinchMidpointSum = 0.;
             
         } else if (recognizer.state == UIGestureRecognizerStateChanged) {
@@ -645,7 +620,6 @@
             pinchMidpoint = self.pinchMidpointSum / self.pinchCount;          // average of touches smooths touch errors
             [self.scc resizeChartImage:(recognizer.scale)  withCenter:pinchMidpoint];
         } else {
-            // DLog(@" end: location of touches x = %f", pinchMidpoint);
             [self.scc resizeChart:(recognizer.scale)];
         }
  //   }

@@ -1,3 +1,5 @@
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
 
 // This class holds fundamental metrics for a company as arrays of objects
 //      date (in separate year, month, day) arrays

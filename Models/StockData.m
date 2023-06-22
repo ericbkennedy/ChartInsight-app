@@ -73,7 +73,7 @@
 }
 
 - (void)dealloc {
-    DLog(@"%@ is being deallocated", self.stock.symbol);
+    NSLog(@"%@ is being deallocated", self.stock.symbol);
     self.delegate = nil;
     // don't release memory I didn't alloc in StockData, like the gregorian calendar
     
@@ -170,7 +170,6 @@
 
 - (void) fetcherLoadedFundamentalData:(FundamentalAPI *)fundamental {
     
-    // DLog(@"%d fundamental values loaded", [[fundamental year] count]);
     if (self.busy == NO && self.periodCount > 1) {
         dispatch_barrier_sync(concurrentQueue, ^{ [self updateFundamentalAlignment];
                                                                             [self computeChart];    });
@@ -289,12 +288,12 @@
 - (void) updateHighLow {
     
     if (self.periodCount == 0) {
-        DLog(@"No bars so exiting");
+        NSLog(@"No bars so exiting");
         return;
     }
       
     if (self.oldestBarShown <= 0) {
-        DLog(@"resetting oldestBarShown %ld to MIN(50, %ld)", self.oldestBarShown, self.periodCount);
+        NSLog(@"resetting oldestBarShown %ld to MIN(50, %ld)", self.oldestBarShown, self.periodCount);
         self.oldestBarShown = MIN(50, self.periodCount);
     } else if (self.oldestBarShown >= self.periodCount) {
         self.oldestBarShown = self.periodCount -1;
@@ -329,7 +328,6 @@
         [self setPercentChange:[self.maxHigh decimalNumberByDividingBy:self.minLow]];
         
         if ([self.percentChange compare:self.chartPercentChange] == NSOrderedDescending) {
-            // DLog(@"percentChange %@ is bigger than %@ so adjusting", percentChange, chartPercentChange);
             [self setChartPercentChange:self.percentChange];
         }
         [self setScaledLow:[self.maxHigh decimalNumberByDividingBy:self.chartPercentChange]];
@@ -341,22 +339,19 @@
 - (NSDecimalNumber *) shiftRedraw:(NSInteger)barsShifted withBars:(NSInteger)screenBarWidth {
     
     if (self.oldestBarShown + barsShifted >= self.periodCount) {
-        DLog(@"early return because oldestBarShown %ld + barsShifted %ld > %ld barCount", self.oldestBarShown, barsShifted, self.periodCount);
+        NSLog(@"early return because oldestBarShown %ld + barsShifted %ld > %ld barCount", self.oldestBarShown, barsShifted, self.periodCount);
         return self.percentChange;
     }
     self.oldestBarShown += barsShifted;
         
     [self setNewestBarShown:(self.oldestBarShown - screenBarWidth)];     // handles negative values
-    
-    // DLog(@"self.oldestBarShown %d and newestBarShown in shiftREdraw is %d", self.oldestBarShown, newestBarShown);
         
     if (self.oldestBarShown <= 0) {  // nothing to show yet
-        DLog(@"%@ self.oldestBarShown is less than zero at %ld", self.stock.symbol, self.oldestBarShown);
+        NSLog(@"%@ self.oldestBarShown is less than zero at %ld", self.stock.symbol, self.oldestBarShown);
         [self clearChart];
 
     } else if (self.busy) {
         // Avoid deadlock by limiting concurrentQueue to updateHighLow and didFinishFetch
-       // DLog(@"%@ is busy", self.stock.symbol);
 
         dispatch_sync(concurrentQueue,  ^{    [self updateHighLow];     });
         return self.percentChange;
@@ -368,8 +363,9 @@
             self.busy = YES;
             [self.fetcher fetchIntradayQuote];
 
-        } else if ([self.fetcher.nextClose compare:[NSDate date]] == NSOrderedAscending) { // next close is in the past
-            DLog(@"api.nextClose %@ vs now %@", self.fetcher.nextClose, [NSDate date]);
+        } else if (self.fetcher.loadingData == NO && [self.fetcher.nextClose compare:[NSDate date]] == NSOrderedAscending) {
+            // next close is in the past
+            NSLog(@"api.nextClose %@ vs now %@", self.fetcher.nextClose, [NSDate date]);
             self.busy = YES;
             [self.delegate performSelectorOnMainThread:@selector(showProgressIndicator) withObject:nil waitUntilDone:NO];
             [self.fetcher fetchNewerThanDate:self.newest];
@@ -412,7 +408,6 @@
     
     if (force || pctDifference > 0.02 ) {
         
-        // DLog(@"%@ pctDifference %f so pct changing from %@ to %@", [self.stock symbol], pctDifference, self.chartPercentChange, maxPercentChange);
         [self setChartPercentChange:maxPercentChange];
         
         [self setScaledLow:[self.maxHigh decimalNumberByDividingBy:self.chartPercentChange]];
@@ -432,7 +427,7 @@
 
 -(void) fetcherFailed:(NSString *)message {
     self.busy = NO;
-    DLog(@"%@", message);
+    NSLog(@"%@", message);
     [self.delegate performSelectorOnMainThread:@selector(requestFailedWithMessage:) withObject:message waitUntilDone:NO];
 }
 
@@ -447,10 +442,10 @@
         NSDate *apiNewest = [self.fetcher dateFromBar:intradayBar];
         
         CGFloat dateDiff = [apiNewest timeIntervalSinceDate:[self newest]];
-       // DLog(@"intrday datediff is %f when comparing %@ to %@", dateDiff, [self newest], apiNewest);
+       // NSLog(@"intrday datediff is %f when comparing %@ to %@", dateDiff, [self newest], apiNewest);
         
         if (dateDiff > 84600) {
-            DLog(@"intraday moving %ld self.bars by 1", self.periodCount);
+            NSLog(@"intraday moving %ld self.bars by 1", self.periodCount);
             [self.dailyData insertObject:intradayBar atIndex:0];
             // self.barCount may or may not increase; let summarizeByDate figure that out
             oldMovingAvg1 = oldMovingAvg2 = .0f;
@@ -606,20 +601,18 @@
     dispatch_barrier_sync(concurrentQueue, ^{
         BarData *newestBar = loadedData[0];
         NSDate *apiNewest = [self.fetcher dateFromBar:newestBar];
-    
-        DLog(@"%@ dailyData.count %ld newest %@ and api.newest %@ and api.oldest %@", self.stock.symbol, self.dailyData.count, self.newest, apiNewest, self.fetcher.oldestDate);
         
         if ( self.dailyData.count == 0) { // case 1. First request
             [self setNewest:apiNewest];
             [self setLastPrice:[[NSDecimalNumber alloc] initWithDouble:newestBar.close]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
             [self setOldest:[self.fetcher oldestDate]];
 
-            DLog(@"%@ added %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
+            NSLog(@"%@ added %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
             
             [self.dailyData addObjectsFromArray:loadedData];
             
         } else if ([self.newest compare:apiNewest] == NSOrderedAscending) {         // case 2. Newer dates
-            DLog(@"api is newer, so inserting %ld bars at start of dailyData", loadedData.count);
+            NSLog(@"api is newer, so inserting %ld bars at start of dailyData", loadedData.count);
         
             for (NSInteger i = 0; i < loadedData.count; i++) {
                 [self.dailyData insertObject:loadedData[i] atIndex:i];
@@ -632,7 +625,7 @@
             
             [self.dailyData addObjectsFromArray:loadedData];
             
-            DLog(@"%@ older dates %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
+            NSLog(@"%@ older dates %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
             
             [self setOldest:[self.fetcher oldestDate]];
         }
@@ -650,7 +643,7 @@
         }
       });
     
-    DLog(@"after %ld self.bars (%ld new), newest %@ and oldest %@", self.periodCount, loadedData.count, self.newest, self.oldest);
+    NSLog(@"%@ fetcherLoadedHistoricalData dailyData.count %ld, newest %@ and oldest %@", self.stock.symbol, self.dailyData.count, self.newest, self.oldest);
 
     [self.delegate performSelectorOnMainThread:@selector(requestFinished:) withObject:self.percentChange waitUntilDone:NO];
 }
@@ -744,16 +737,16 @@
             lastBarAlignment = [self.fundamentalAPI barAlignmentForReport:r];
             
             if (self.newestReport > 0 && lastBarAlignment == -1) {
-              //  DLog(@"ran out of trading data after report %d", newestReport);
+              //  NSLog(@"ran out of trading data after report %d", newestReport);
 
             } else if (lastBarAlignment > 0 && lastBarAlignment <= _newestBarShown) { // && lastBarAlignment <= newestBarShown) {
-               //  DLog(@"lastBarAlignment %d <= %d so newestReport = %d", lastBarAlignment, newestBarShown, r);
+               //  NSLog(@"lastBarAlignment %d <= %d so newestReport = %d", lastBarAlignment, newestBarShown, r);
                 self.newestReport = r;
             }
             
             if (lastBarAlignment > oldestValidBar || -1 == lastBarAlignment) {
                 self.oldestReport = r;       // first report just out of view
-                // DLog(@" lastBarAlignment %d > %d oldestValidBar or not defined", lastBarAlignment, oldestValidBar);
+                // NSLog(@" lastBarAlignment %d > %d oldestValidBar or not defined", lastBarAlignment, oldestValidBar);
                 break;
             }
         }        
@@ -801,7 +794,7 @@
         
         self.yFactor = [[self.chartBase decimalNumberByDividingBy:range] doubleValue];
     } else {
-       // DLog(@"%@ range is %@ so would be a divide by zero, skipping computeChart", stock.symbol, range);
+       // NSLog(@"%@ range is %@ so would be a divide by zero, skipping computeChart", stock.symbol, range);
         self.ready = YES;    // prevent unending scroll wheel
         return;
     }
@@ -947,7 +940,7 @@
         }
         
         if (self.periodData[a].volume <= 0) {
-     //       DLog(@"volume shouldn't be zero but is for a=%ld", a);
+     //       NSLog(@"volume shouldn't be zero but is for a=%ld", a);
         } else {
             if (oldestClose > self.periodData[a].close) {
                     _redVolume[_redCount++] = CGRectMake(barCenter - _xFactor/2, volumeBase, _xFactor, - self.periodData[a].volume/volumeFactor);

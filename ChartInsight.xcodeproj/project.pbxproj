@@ -67,7 +67,6 @@
 		0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "ChartInsight-Info.plist"; sourceTree = SOURCE_ROOT; };
 		0B42BC301C420C8100139C33 /* charts.db */ = {isa = PBXFileReference; lastKnownFileType = file; name = charts.db; path = Data/charts.db; sourceTree = SOURCE_ROOT; };
-		0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Prefix.pch"; sourceTree = SOURCE_ROOT; };
 		0B42BC321C420C8100139C33 /* metrics.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = metrics.plist; path = Data/metrics.plist; sourceTree = SOURCE_ROOT; };
 		0B42BC381C420CB600139C33 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		0BB7F51D183C31B90040F1C6 /* ChartInsight.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChartInsight.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -177,7 +176,6 @@
 				8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */,
 				80D5B9E92A294F2100314733 /* Tests */,
 				0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */,
-				0B42BC311C420C8100139C33 /* ChartInsight-Prefix.pch */,
 				0BB7F51F183C31B90040F1C6 /* Frameworks */,
 				0BB7F51E183C31B90040F1C6 /* Products */,
 			);
@@ -483,8 +481,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer: Eric Kennedy (873B425HPH)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEVELOPMENT_TEAM = KGH5A5RXPH;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "ChartInsight-Prefix.pch";
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				INFOPLIST_FILE = "ChartInsight-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight.app;
@@ -509,8 +506,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer: Eric Kennedy (873B425HPH)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEVELOPMENT_TEAM = KGH5A5RXPH;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "ChartInsight-Prefix.pch";
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				INFOPLIST_FILE = "ChartInsight-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.chartinsight.app;

@@ -146,7 +146,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         stockData.stock = stock;
         
         stockData.oldestBarShown = [self maxBarOffset];
-        // DLog(@"oldestBarShown %d", stockData.oldestBarShown);
         
         [stockData setDelegate:self];
         [stockData setGregorian:self.gregorian];
@@ -222,11 +221,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             stocksWithFundamentals++;
             for (NSString *key in [[[stockData fundamentalAPI] columns] allKeys]) {
                 NSInteger r = [stockData fundamentalAPI].newestReportInView;
-                // DLog(@"checking key %@", key);
                 
                 do {
                     reportValue = [[stockData fundamentalAPI] valueForReport:r withKey:key];
-                    // DLog(@"report value is %@", reportValue);
                     [self.comparison updateMinMaxFor:key value:reportValue];  // handles notANumber
 
                 } while (++r <= [stockData fundamentalAPI].oldestReportInView);
@@ -257,7 +254,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     label = [[stockData monthLabels] objectAtIndex:monthLabelIndex];
                     [self showString:label atPoint:CGPointMake(p.x, p.y + offset * (s + 1)) withColor:stockData.stock.upColor];
                 } else {
-                   // DLog(@"Missing month label for index %d", monthLabelIndex);
+                   // NSLog(@"Missing month label for index %d", monthLabelIndex);
                 }
             }
         }
@@ -705,7 +702,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
 
     if (outOfBars) {
-        // DLog(@"no bars to shift");
         return;
     }
     
@@ -918,7 +914,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
     [self.progressIndicator stopAnimating]; 
 
-    // DLog(@"RequestFailed so stopping progressIndicator because ERROR %@ and last error %f", message, [[NSDate date] timeIntervalSinceDate:self.lastNetworkErrorShown]);
+    // NSLog(@"RequestFailed so stopping progressIndicator because ERROR %@ and last error %f", message, [[NSDate date] timeIntervalSinceDate:self.lastNetworkErrorShown]);
 }
 
 - (void) requestFinished:(NSDecimalNumber *)newPercentChange {
@@ -929,7 +925,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         if (stock.ready == YES) {
             chartsReady++;
         } else {
-           // DLog(@"requestFinished but %@ is NOT READY", stock.stock.symbol);
+           // NSLog(@"requestFinished but %@ is NOT READY", stock.stock.symbol);
         }
     }   
     
