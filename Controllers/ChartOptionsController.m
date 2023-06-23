@@ -607,14 +607,6 @@ enum indicatorType {  MOVING_AVERAGE, SAWTOOTH   };
     return 44;
 }
 
-- (void) hidePicker {
-    [self.tableView reloadData];
-    [self.tapWhenFinished removeFromSuperview];
-    self.tapWhenFinished.hidden = YES;
-    self.tableView.scrollEnabled = YES;
-    [self.delegate performSelector:@selector(reloadWithStock:) withObject:self.stock];
-}
-
 - (void)tableView:(UITableView *)table didSelectRowAtIndexPath:(NSIndexPath *)rawIndexPath {
     
     [self.tableView deselectRowAtIndexPath:rawIndexPath animated:YES];  // deselect before deleting to avoid deselecting deleted index

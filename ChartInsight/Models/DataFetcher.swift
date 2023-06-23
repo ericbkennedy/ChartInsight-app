@@ -19,7 +19,7 @@ enum ServiceError: Error {
 
 class DataFetcher: NSObject {
     var fetchedData: [BarData] = []
-    @objc var loadingData: Bool = false
+    @objc var isLoadingData: Bool = false
     var countBars: Int = 0
     var barsFromDB: Int = 0
     @objc var delegate: DataFetcherDelegate? = nil
@@ -65,7 +65,7 @@ class DataFetcher: NSObject {
     }
     
     @objc func fetchIntradayQuote() {
-        if (loadingData) {
+        if (isLoadingData) {
             print("loadingData = true so skipping Intraday fetch")
         } else if (isRecent(lastOfflineError)) {
             print("last offline error \(lastOfflineError) was too recent to try again %f",
@@ -76,7 +76,7 @@ class DataFetcher: NSObject {
         
         let urlString = "https://chartinsight.com/api/intraday/\(symbol)?token=\(API_KEY)"
         guard let url = URL(string: urlString) else { return }
-        loadingData = true
+        isLoadingData = true
         
         Task {
             do {
@@ -165,11 +165,11 @@ class DataFetcher: NSObject {
         
         requestNewest = Date()
         
-        if loadingData {
+        if isLoadingData {
             print("load in progress, returning")
             return // since another request is in progress let it call the delegate methods when it finishes or fails
         }
-        loadingData = true
+        isLoadingData = true
         
         barsFromDB = 0
         countBars = 0
@@ -295,8 +295,8 @@ class DataFetcher: NSObject {
     
     /// Called BEFORE creating a URLSessionTask if there was a recent offline error or it was too soon to try again
     func cancelDownload() {
-        if (loadingData) {
-            loadingData = false
+        if (isLoadingData) {
+            isLoadingData = false
         }
         delegate?.fetcherCanceled()
     }

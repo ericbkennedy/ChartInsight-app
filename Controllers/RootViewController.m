@@ -1,7 +1,7 @@
 #import "RootViewController.h"
 #import "ScrollChartView.h"
 #import "ChartOptionsController.h"
-#import "ChartInsight-Swift.h" // for DBUpdater
+#import "ChartInsight-Swift.h" // for Swift classes
 
 @interface RootViewController ()
 

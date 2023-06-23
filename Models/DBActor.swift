@@ -207,7 +207,7 @@ import Foundation
             stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(3))))
             
             stock.hasFundamentals = 0 < Int(sqlite3_column_int(statement, Int32(4)))
-            if (stock.hasFundamentals) { // Banks aren't supported and ETFs don't report XML financials
+            if (stock.hasFundamentals == false) { // Banks aren't supported and ETFs don't report XML financials
                 stock.fundamentalList = "";
             }
             list.append(stock)

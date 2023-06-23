@@ -1,9 +1,5 @@
-#include <dispatch/dispatch.h>
 #import "ChartInsight-Swift.h" // for BarData *
-#import <CoreGraphics/CoreGraphics.h>
-#import "FundamentalAPI.h"
 #import "StockData.h"
-#import <QuartzCore/QuartzCore.h>
 
 @interface StockData () {
 @private
@@ -14,7 +10,9 @@
 }
 @property (nonatomic, strong) NSMutableArray<BarData *> *dailyData;
 @property (nonatomic, strong) NSMutableArray<BarData *> *periodData;   // points to dailyData except for monthly or weekly
+@property (nonatomic, copy) NSDictionary<NSString*, NSArray<NSDecimalNumber*>*> *fundamentalColumns;
 @property (nonatomic, strong) DataFetcher *fetcher;
+@property (nonatomic, strong) FundamentalFetcher *fundamentalFetcher;
 @end
 
 @implementation StockData
@@ -64,9 +62,9 @@
 
 // Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
 - (void)invalidateAndCancel {
-    // fundamentalAPI uses the sharedSession so don't invalidate it
-    [self.fundamentalAPI setDelegate:nil];
-    self.fundamentalAPI = nil; // will trigger dealloc on fundamentalAPI
+    // fundamentalFetcher uses the sharedSession so don't invalidate it
+    [self.fundamentalFetcher setDelegate:nil];
+    self.fundamentalFetcher = nil; // will trigger deinit on fundamentalFetcher
     [self.fetcher invalidateAndCancel];
     [self.fetcher setDelegate:nil];
     self.fetcher = nil;
@@ -157,18 +155,18 @@
     
     dispatch_set_target_queue(concurrentQueue, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0));
 
-    [self setFundamentalAPI:nil];
-
     [self.fetcher fetchNewerThanDate:[NSDate distantPast]];
 
     if ([self.stock fundamentalList].length > 4) {
         [self.delegate performSelector:@selector(showProgressIndicator)];
-        [self setFundamentalAPI:[[FundamentalAPI alloc] init]];
-        [self.fundamentalAPI getFundamentalsForStock:self.stock withDelegate:self];
+        self.fundamentalFetcher = [[FundamentalFetcher alloc] init];
+        [self.fundamentalFetcher getFundamentalsFor:self.stock withDelegate:self];
     }
 }
 
-- (void) fetcherLoadedFundamentalData:(FundamentalAPI *)fundamental {
+/// FundamentalFetcher calls StockData with the columns parsed out of the API
+- (void) fetcherLoadedFundamentals:(NSDictionary<NSString*, NSArray<NSDecimalNumber*>*>*) columns {
+    self.fundamentalColumns = columns;
     
     if (self.busy == NO && self.periodCount > 1) {
         dispatch_barrier_sync(concurrentQueue, ^{ [self updateFundamentalAlignment];
@@ -179,6 +177,24 @@
     }
 }
 
+/// Returns all fundamental metric keys or [] if fundamentals aren't loaded
+- (NSArray <NSString *> *) fundamentalKeys {
+    if (self.fundamentalColumns != nil && self.fundamentalColumns.count > 0) {
+        return self.fundamentalColumns.allKeys;
+    }
+    return @[];
+}
+
+/// Metric value (or .notANumber) for a report index and metric key
+- (NSDecimalNumber *) fundamentalValueForReport:(NSInteger)report metric:(NSString *)metric {
+    if (self.fundamentalColumns != nil) {
+        NSArray *valuesForMetric = self.fundamentalColumns[metric];
+        if (valuesForMetric != nil && report < valuesForMetric.count) {
+            return valuesForMetric[report];
+        }
+    }
+    return NSDecimalNumber.notANumber;
+}
 
 // When calculating the simple moving average, there are 3 possible cases:
 // 1. all values in self.periodData are new
@@ -265,20 +281,20 @@
 
 // Align the array of fundamental data points to an offset into the self.periodData array
 - (void) updateFundamentalAlignment {
-    if (self.fundamentalAPI != nil && self.fundamentalAPI.columns.count > 0) {
+    if (self.fundamentalFetcher != nil && self.fundamentalFetcher.isLoadingData == NO && self.fundamentalFetcher.columns.count > 0) {
         
         NSInteger i = 0, r = 0;
-        for (r = 0; r < self.fundamentalAPI.year.count; r++) {
+        for (r = 0; r < self.fundamentalFetcher.year.count; r++) {
             
-            NSInteger lastReportYear = [[[self.fundamentalAPI year] objectAtIndex:r] intValue];
-            NSInteger lastReportMonth = [[[self.fundamentalAPI month] objectAtIndex:r] intValue];
+            NSInteger lastReportYear = self.fundamentalFetcher.year[r].intValue;
+            NSInteger lastReportMonth = self.fundamentalFetcher.month[r].intValue;
             
             while (i < self.periodCount && (self.periodData[i].year > lastReportYear ||  self.periodData[i].month > lastReportMonth)) {
                 i++;
             }
             if (i < self.periodCount && self.periodData[i].year == lastReportYear && self.periodData[i].month == lastReportMonth) {
                 
-                [self.fundamentalAPI setBarAlignment:i forReport:r];
+                [self.fundamentalFetcher setBarAlignment:i report:r];
             }
         }
     }   
@@ -363,7 +379,7 @@
             self.busy = YES;
             [self.fetcher fetchIntradayQuote];
 
-        } else if (self.fetcher.loadingData == NO && [self.fetcher.nextClose compare:[NSDate date]] == NSOrderedAscending) {
+        } else if (self.fetcher.isLoadingData == NO && [self.fetcher.nextClose compare:[NSDate date]] == NSOrderedAscending) {
             // next close is in the past
             NSLog(@"api.nextClose %@ vs now %@", self.fetcher.nextClose, [NSDate date]);
             self.busy = YES;
@@ -419,18 +435,21 @@
     }
 }
 
+/// DataFetcher has an active download that must be allowed to finish or fail before accepting an additional request
 - (void) fetcherCanceled {
     self.busy = NO;
     NSString *message = @"Canceled request";
     [self.delegate performSelectorOnMainThread:@selector(requestFailedWithMessage:) withObject:message waitUntilDone:NO];
 }
 
+/// DataFetcher failed downloading historical data or intraday data
 -(void) fetcherFailed:(NSString *)message {
     self.busy = NO;
     NSLog(@"%@", message);
     [self.delegate performSelectorOnMainThread:@selector(requestFailedWithMessage:) withObject:message waitUntilDone:NO];
 }
 
+/// DataFetcher calls StockData with intraday price data
 -(void) fetcherLoadedIntradayBar:(BarData *)intradayBar {
     
     // Avoid deadlock by limiting concurrentQueue to updateHighLow and fetcherLoaded*    
@@ -586,6 +605,7 @@
     // don't call updateHighLow here because summarizeByDate doesn't consider daysAgo but updateHighLow must be called AFTER shifting newestBarShown
 }
 
+/// DataFetcher calls StockData with the array of historical price data
 -(void) fetcherLoadedHistoricalData:(NSArray<BarData*> *)loadedData {
 
     /* Three cases since intraday updates are a separate callback:
@@ -725,16 +745,16 @@
         oldestClose = self.periodData[oldestValidBar].open; // No older data so use open in lieu of prior close
     }
     
-    if (self.fundamentalAPI.columns.count > 0) {
+    if (self.fundamentalFetcher.isLoadingData == NO && self.fundamentalFetcher.columns.count > 0) {
         
-        self.oldestReport = self.fundamentalAPI.year.count - 1;
+        self.oldestReport = self.fundamentalFetcher.year.count - 1;
         
         self.newestReport = 0;
         NSInteger lastBarAlignment = 0;
         
         for (NSInteger r = 0; r <= self.oldestReport; r++) {
             
-            lastBarAlignment = [self.fundamentalAPI barAlignmentForReport:r];
+            lastBarAlignment = [self.fundamentalFetcher barAlignmentForReport:r];
             
             if (self.newestReport > 0 && lastBarAlignment == -1) {
               //  NSLog(@"ran out of trading data after report %d", newestReport);
@@ -764,13 +784,13 @@
         // just calculate quarter-end x values.
         
         NSInteger r = self.newestReport;
-        self.fundamentalAPI.newestReportInView = self.newestReport;
+        self.newestReportInView = self.newestReport;
         
         NSInteger barAlignment = lastBarAlignment = -1;
         
         do {
             lastBarAlignment = barAlignment;
-            barAlignment = [self.fundamentalAPI barAlignmentForReport:r];
+            barAlignment = [self.fundamentalFetcher barAlignmentForReport:r];
             
             if (barAlignment < 0) {
                 break;
@@ -784,7 +804,7 @@
             _fundamentalAlignments[r] = (oldestValidBar - lastBarAlignment + 1) * self.xFactor + xRaw;
         }
         
-        self.fundamentalAPI.oldestReportInView = r;
+        self.oldestReportInView = r;
     }
     
     // TO DO: move this to updateHighLow    

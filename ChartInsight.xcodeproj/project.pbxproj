@@ -12,7 +12,6 @@
 		0B42BC091C420BE500139C33 /* ChartOptionsController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC011C420BE400139C33 /* ChartOptionsController.m */; };
 		0B42BC121C420C1A00139C33 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC111C420C1A00139C33 /* RootViewController.m */; };
 		0B42BC221C420C2F00139C33 /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC141C420C2F00139C33 /* StockData.m */; };
-		0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B42BC191C420C2F00139C33 /* FundamentalAPI.m */; };
 		0B42BC331C420C8100139C33 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */; };
 		0B42BC361C420C8100139C33 /* charts.db in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC301C420C8100139C33 /* charts.db */; };
 		0B42BC371C420C8100139C33 /* metrics.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0B42BC321C420C8100139C33 /* metrics.plist */; };
@@ -21,6 +20,8 @@
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
 		801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801191872A42734B001C6ADD /* AddFundamentalController.swift */; };
+		803089D22A44A968008C31EF /* FundamentalFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803089D12A44A968008C31EF /* FundamentalFetcher.swift */; };
+		803089D32A44A968008C31EF /* FundamentalFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803089D12A44A968008C31EF /* FundamentalFetcher.swift */; };
 		803399BF2A2A9C4300C81714 /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DBActor.swift */; };
 		804D975D2A38D0CF00F61FF7 /* BarData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804D975C2A38D0CF00F61FF7 /* BarData.swift */; };
 		809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F72A2A8FF600766030 /* ScrollChartView.m */; };
@@ -62,8 +63,6 @@
 		0B42BC111C420C1A00139C33 /* RootViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RootViewController.m; path = Controllers/RootViewController.m; sourceTree = SOURCE_ROOT; };
 		0B42BC141C420C2F00139C33 /* StockData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StockData.m; path = Models/StockData.m; sourceTree = SOURCE_ROOT; };
 		0B42BC181C420C2F00139C33 /* StockData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StockData.h; path = Models/StockData.h; sourceTree = SOURCE_ROOT; };
-		0B42BC191C420C2F00139C33 /* FundamentalAPI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FundamentalAPI.m; path = Models/FundamentalAPI.m; sourceTree = SOURCE_ROOT; };
-		0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FundamentalAPI.h; path = Models/FundamentalAPI.h; sourceTree = SOURCE_ROOT; };
 		0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		0B42BC2E1C420C8100139C33 /* ChartInsight-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "ChartInsight-Info.plist"; sourceTree = SOURCE_ROOT; };
 		0B42BC301C420C8100139C33 /* charts.db */ = {isa = PBXFileReference; lastKnownFileType = file; name = charts.db; path = Data/charts.db; sourceTree = SOURCE_ROOT; };
@@ -75,6 +74,7 @@
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		801191872A42734B001C6ADD /* AddFundamentalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundamentalController.swift; sourceTree = "<group>"; };
+		803089D12A44A968008C31EF /* FundamentalFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FundamentalFetcher.swift; sourceTree = "<group>"; };
 		803399BE2A2A9C4200C81714 /* DBActor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DBActor.swift; path = Models/DBActor.swift; sourceTree = SOURCE_ROOT; };
 		804D975C2A38D0CF00F61FF7 /* BarData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
 		809576F62A2A8FF600766030 /* ScrollChartView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollChartView.h; sourceTree = "<group>"; };
@@ -150,8 +150,7 @@
 				80B0E4D82A3B649F003072DA /* DataFetcher.swift */,
 				80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */,
 				8097DB0E2A413A8A003E11E0 /* Comparison.swift */,
-				0B42BC1A1C420C2F00139C33 /* FundamentalAPI.h */,
-				0B42BC191C420C2F00139C33 /* FundamentalAPI.m */,
+				803089D12A44A968008C31EF /* FundamentalFetcher.swift */,
 				804D975C2A38D0CF00F61FF7 /* BarData.swift */,
 				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
 				803399BE2A2A9C4200C81714 /* DBActor.swift */,
@@ -335,10 +334,10 @@
 				809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */,
 				0B42BC221C420C2F00139C33 /* StockData.m in Sources */,
 				8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */,
+				803089D22A44A968008C31EF /* FundamentalFetcher.swift in Sources */,
 				80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */,
 				801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */,
 				8097DB0F2A413A8A003E11E0 /* Comparison.swift in Sources */,
-				0B42BC251C420C2F00139C33 /* FundamentalAPI.m in Sources */,
 				80E586EE2A433E6100A380AA /* ProgressIndicator.swift in Sources */,
 				80E587362A435DE800A380AA /* SceneDelegate.swift in Sources */,
 				803399BF2A2A9C4300C81714 /* DBActor.swift in Sources */,
@@ -355,6 +354,7 @@
 				80E587342A435BB700A380AA /* AppDelegate.swift in Sources */,
 				80E587372A435DE800A380AA /* SceneDelegate.swift in Sources */,
 				80B0E4DA2A3B649F003072DA /* DataFetcher.swift in Sources */,
+				803089D32A44A968008C31EF /* FundamentalFetcher.swift in Sources */,
 				8097DB102A413A8A003E11E0 /* Comparison.swift in Sources */,
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
 				8097DB0D2A40CB96003E11E0 /* Stock.swift in Sources */,

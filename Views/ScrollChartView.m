@@ -1,8 +1,6 @@
-#import <CoreText/CoreText.h>
 #import "ScrollChartView.h"
 #import "ChartInsight-Swift.h" // for Stock and BigNumberFormatter
 #import "StockData.h"
-#import "FundamentalAPI.h"
 
 const CGFloat magnifierSize = 100.; // both width and height
 const CGFloat dashPattern[2] = {1.0, 1.5};
@@ -217,16 +215,18 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             continue; // nothing to draw, so skip it
         }
         
-        if ([stockData fundamentalAPI] != nil) {
+        NSArray <NSString *> *fundamentalKeys = [stockData fundamentalKeys];
+        
+        if (fundamentalKeys.count > 0) {
             stocksWithFundamentals++;
-            for (NSString *key in [[[stockData fundamentalAPI] columns] allKeys]) {
-                NSInteger r = [stockData fundamentalAPI].newestReportInView;
+            for (NSString *key in fundamentalKeys) {
+                NSInteger r = stockData.newestReportInView;
                 
                 do {
-                    reportValue = [[stockData fundamentalAPI] valueForReport:r withKey:key];
+                    reportValue = [stockData fundamentalValueForReport:r metric:key];
                     [self.comparison updateMinMaxFor:key value:reportValue];  // handles notANumber
 
-                } while (++r <= [stockData fundamentalAPI].oldestReportInView);
+                } while (++r <= stockData.oldestReportInView);
             }
         }
         
@@ -485,10 +485,10 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                 continue;
             }
             
-            if (stockData.oldestBarShown > 0 && [stockData fundamentalAPI] != nil) {
+            if (stockData.oldestBarShown > 0 && stockData.fundamentalKeys.count > 0) {
                 CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
 
-                NSInteger r = [stockData fundamentalAPI].newestReportInView;
+                NSInteger r = stockData.newestReportInView;
                 if (title == nil) {
                     title = [(AppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
                     CGFloat x = MIN(_pxWidth + 5, stockData.fundamentalAlignments[r] + 10);
@@ -497,9 +497,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     [self showString:title atPoint:CGPointMake(x, yLabel) withColor:stockColor];
                 }
             
-                for (/* r = newestReportInView  */; r < stockData.fundamentalAPI.oldestReportInView && stockData.fundamentalAlignments[r] > 0; r++) {
+                for (/* r = newestReportInView  */; r < stockData.oldestReportInView && stockData.fundamentalAlignments[r] > 0; r++) {
                     
-                    reportValue = [[stockData fundamentalAPI] valueForReport:r withKey:key];
+                    reportValue = [stockData fundamentalValueForReport:r metric:key];
             
                     if ([reportValue isEqualToNumber:[NSDecimalNumber notANumber]]) {
                         continue;

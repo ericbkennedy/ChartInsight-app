@@ -1,9 +1,5 @@
 #import "DataFetcherDelegate.h"
-#import "ChartInsight-Swift.h" // for BarData and DataFetcher
-
- // forward declaration to avoid circular header inclusion
-@class FundamentalAPI;
-@class Stock;
+#import "ChartInsight-Swift.h" // for Stock and other Swift classes
 
 @interface StockData : NSObject<DataFetcherDelegate>
 
@@ -33,7 +29,9 @@
 @property (nonatomic) NSInteger blackCount;
 @property (nonatomic) NSInteger redCount;
 @property (nonatomic) NSInteger oldestReport;
+@property (nonatomic) NSInteger oldestReportInView;
 @property (nonatomic) NSInteger newestReport;
+@property (nonatomic) NSInteger newestReportInView;
 @property (nonatomic) CGPoint  *points;
 @property (nonatomic) CGPoint  *redPoints;
 @property (nonatomic) CGPoint  *movingAvg1;
@@ -67,7 +65,6 @@
 @property (strong, nonatomic) NSDecimalNumber *chartBase;
 @property (strong, nonatomic) NSMutableArray *reportBarIndex;
 
-@property (strong, nonatomic) FundamentalAPI *fundamentalAPI;
 @property (strong, nonatomic) NSDate *oldest;
 @property (strong, nonatomic) NSDate *newest;   // newest date loaded, not the newest date shown
 
@@ -98,6 +95,13 @@
 
 // Note this takes doubles even on 32 bit platforms because a double modulo function is used
 - (double) pxAlign:(double)raw alignTo:(double)alignTo;
+
+
+/// Returns all fundamental metric keys or [] if fundamentals aren't loaded
+- (NSArray <NSString *> *) fundamentalKeys;
+
+/// Metric value (or .notANumber) for a report index and metric key
+- (NSDecimalNumber *) fundamentalValueForReport:(NSInteger)report metric:(NSString *)metric;
 
 // Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
 - (void) invalidateAndCancel;
