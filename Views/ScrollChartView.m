@@ -560,7 +560,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     
     CGContextDrawLayerInRect(ctx, CGRectMake(5 + _scaleShift, 5, _scaledWidth, _svHeight), _layerRef);
 
-    if (self.layer.position.x > 0) { // draw line at chart left edge to visually separate from list of symbols
+    if (self.layer.position.x > 0) { // draw line at chart left edge to visually separate from list of tickers
         CGContextSetStrokeColor(ctx, monthLineColor);
         CGContextSetLineWidth(ctx, 1.0);   // pIXELs
         CGContextBeginPath(ctx);
@@ -954,7 +954,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         if (stock.ready == YES) {
             chartsReady++;
         } else {
-           // NSLog(@"requestFinished but %@ is NOT READY", stock.stock.symbol);
+           // NSLog(@"requestFinished but %@ is NOT READY", stock.stock.ticker);
         }
     }   
     

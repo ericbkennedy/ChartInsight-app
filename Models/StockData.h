@@ -1,4 +1,3 @@
-#import "DataFetcherDelegate.h"
 #import "ChartInsight-Swift.h" // for Stock and other Swift classes
 
 @interface StockData : NSObject<DataFetcherDelegate>

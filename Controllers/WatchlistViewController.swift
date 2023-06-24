@@ -398,7 +398,7 @@ class WatchlistViewController: UITableViewController {
         
         if scrollChartView.comparison != nil {
             for stock in scrollChartView.comparison.stockList {
-                let tickerButton = UIBarButtonItem(title: stock.symbol,
+                let tickerButton = UIBarButtonItem(title: stock.ticker,
                                                    style: .plain,
                                                    target: self,
                                                    action: #selector(editStock))

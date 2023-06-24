@@ -85,7 +85,6 @@
 		8097DB112A422FB4003E11E0 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
 		80B0E4D82A3B649F003072DA /* DataFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataFetcher.swift; sourceTree = "<group>"; };
-		80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DataFetcherDelegate.h; sourceTree = "<group>"; };
 		80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Bridging-Header.h"; sourceTree = "<group>"; };
 		80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BigNumberFormatter.swift; path = "/Users/erickennedy/Library/CloudStorage/Dropbox/ChartInsight/iOS app/Models/BigNumberFormatter.swift"; sourceTree = "<absolute>"; };
 		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -148,7 +147,6 @@
 				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
 				8097DB0E2A413A8A003E11E0 /* Comparison.swift */,
 				80B0E4D82A3B649F003072DA /* DataFetcher.swift */,
-				80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */,
 				803399BE2A2A9C4200C81714 /* DBActor.swift */,
 				803089D12A44A968008C31EF /* FundamentalFetcher.swift */,
 				8097DB0B2A40CB96003E11E0 /* Stock.swift */,

@@ -176,7 +176,7 @@ import Foundation
          
          if (list.count == 0) { // Add placeholder
              let stock = Stock()
-             stock.symbol = ""
+             stock.ticker = ""
              stock.name = "No matches with supported fundamentals"
              list.append(stock)
          }
@@ -189,7 +189,7 @@ import Foundation
         var list: [Stock] = []
         var statement: sqlite3ptr = nil
         
-        let sql = "SELECT rowid,symbol,name,startDate,hasFundamentals,offsets(stock) FROM stock WHERE stock MATCH ? ORDER BY offsets(stock) ASC LIMIT 50"
+        let sql = "SELECT rowid,ticker,name,startDate,hasFundamentals,offsets(stock) FROM stock WHERE stock MATCH ? ORDER BY offsets(stock) ASC LIMIT 50"
        
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return list }
         
@@ -201,7 +201,7 @@ import Foundation
             let stock = Stock()
             stock.id = Int(sqlite3_column_int(statement, 0))
             
-            stock.symbol = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(1))))
+            stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(1))))
             stock.name = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(2))))
             // Faster search results UI if string to date conversion happens after user selects the stock
             stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(3))))
@@ -333,7 +333,7 @@ import Foundation
             case comparisonId
             case comparisonStockId
             case stockId
-            case symbol
+            case ticker
             case startDate
             case hasFundamentals
             case chartType
@@ -341,7 +341,7 @@ import Foundation
             case fundamentalList
             case technicalList
         }
-        let sql = "SELECT K.rowid, CS.rowid, stockId, symbol, startDate, hasFundamentals, chartType, color, fundamentals, technicals FROM comparison K JOIN comparisonStock CS on K.rowid = CS.comparisonId JOIN stock ON stock.rowid = stockId ORDER BY K.rowid, CS.rowId"
+        let sql = "SELECT K.rowid, CS.rowid, stockId, ticker, startDate, hasFundamentals, chartType, color, fundamentals, technicals FROM comparison K JOIN comparisonStock CS on K.rowid = CS.comparisonId JOIN stock ON stock.rowid = stockId ORDER BY K.rowid, CS.rowId"
         
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return list }
         
@@ -360,8 +360,8 @@ import Foundation
             let stock = Stock()
             stock.comparisonStockId = Int(sqlite3_column_int(statement, CI.comparisonStockId.rawValue))
             stock.id = Int(sqlite3_column_int(statement, CI.stockId.rawValue))
-            stock.symbol = String(cString: UnsafePointer(sqlite3_column_text(statement, CI.symbol.rawValue)))
-            title = title.appending("\(stock.symbol) ")
+            stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, CI.ticker.rawValue)))
+            title = title.appending("\(stock.ticker) ")
             stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, CI.startDate.rawValue)))
             // startDateString will be converted to NSDate by [StockData init] as price data is loaded
             

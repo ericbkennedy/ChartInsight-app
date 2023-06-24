@@ -71,7 +71,7 @@
 }
 
 - (void)dealloc {
-    NSLog(@"%@ is being deallocated", self.stock.symbol);
+    NSLog(@"%@ is being deallocated", self.stock.ticker);
     self.delegate = nil;
     // don't release memory I didn't alloc in StockData, like the gregorian calendar
     
@@ -144,7 +144,7 @@
     [self.fetcher setRequestOldestWithStartString:self.stock.startDateString];
     [self setNewest:self.fetcher.requestOldest];
     
-    self.fetcher.symbol = self.stock.symbol;
+    self.fetcher.ticker = self.stock.ticker;
     self.fetcher.stockId = self.stock.id;
     self.fetcher.gregorian = self.gregorian;
     self.fetcher.delegate = self;
@@ -363,7 +363,7 @@
     [self setNewestBarShown:(self.oldestBarShown - screenBarWidth)];     // handles negative values
         
     if (self.oldestBarShown <= 0) {  // nothing to show yet
-        NSLog(@"%@ self.oldestBarShown is less than zero at %ld", self.stock.symbol, self.oldestBarShown);
+        NSLog(@"%@ self.oldestBarShown is less than zero at %ld", self.stock.ticker, self.oldestBarShown);
         [self clearChart];
 
     } else if (self.busy) {
@@ -633,7 +633,7 @@
             [self setLastPrice:[[NSDecimalNumber alloc] initWithDouble:newestBar.close]];  // if daysAgo > 0, lastPrice will be off until all newer data is fetched
             [self setOldest:[self.fetcher oldestDate]];
 
-            NSLog(@"%@ added %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
+            NSLog(@"%@ added %ld new barData.count to %ld exiting self.dailyData.count", self.stock.ticker, loadedData.count, self.dailyData.count);
             
             [self.dailyData addObjectsFromArray:loadedData];
             
@@ -651,7 +651,7 @@
             
             [self.dailyData addObjectsFromArray:loadedData];
             
-            NSLog(@"%@ older dates %ld new barData.count to %ld exiting self.dailyData.count", self.stock.symbol, loadedData.count, self.dailyData.count);
+            NSLog(@"%@ older dates %ld new barData.count to %ld exiting self.dailyData.count", self.stock.ticker, loadedData.count, self.dailyData.count);
             
             [self setOldest:[self.fetcher oldestDate]];
         }
@@ -669,7 +669,7 @@
         }
       });
     
-    NSLog(@"%@ fetcherLoadedHistoricalData dailyData.count %ld, newest %@ and oldest %@", self.stock.symbol, self.dailyData.count, self.newest, self.oldest);
+    NSLog(@"%@ fetcherLoadedHistoricalData dailyData.count %ld, newest %@ and oldest %@", self.stock.ticker, self.dailyData.count, self.newest, self.oldest);
 
     [self.delegate performSelectorOnMainThread:@selector(requestFinished:) withObject:self.percentChange waitUntilDone:NO];
 }
@@ -820,7 +820,7 @@
         
         self.yFactor = [[self.chartBase decimalNumberByDividingBy:range] doubleValue];
     } else {
-       // NSLog(@"%@ range is %@ so would be a divide by zero, skipping computeChart", stock.symbol, range);
+       // NSLog(@"%@ range is %@ so would be a divide by zero, skipping computeChart", stock.ticker, range);
         self.ready = YES;    // prevent unending scroll wheel
         return;
     }

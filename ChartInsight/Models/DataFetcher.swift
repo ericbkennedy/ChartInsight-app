@@ -8,6 +8,23 @@
 
 import Foundation
 
+@objc protocol DataFetcherDelegate {
+    /// FundamentalFetcher calls StockData with the columns parsed out of the API
+    func fetcherLoadedFundamentals(_ columns: [String: [NSDecimalNumber]])
+    
+    /// DataFetcher calls StockData with the array of historical price data
+    func fetcherLoadedHistoricalData(_ loadedData: [BarData])
+    
+    /// DataFetcher calls StockData with intraday price data
+    func fetcherLoadedIntradayBar(_ intradayBar: BarData)
+
+    /// DataFetcher failed downloading historical data or intraday data
+    func fetcherFailed(_ message: String)
+
+    /// DataFetcher has an active download that must be allowed to finish or fail before accepting an additional request
+    func fetcherCanceled()
+}
+
 let API_KEY = "placeholderToken";
 
 enum ServiceError: Error {
@@ -23,7 +40,7 @@ class DataFetcher: NSObject {
     var countBars: Int = 0
     var barsFromDB: Int = 0
     @objc var delegate: DataFetcherDelegate? = nil
-    @objc var symbol: String = ""
+    @objc var ticker: String = ""
     @objc var stockId: Int = 0
     @objc var requestNewest: Date = Date()
     @objc var requestOldest: Date = Date(timeIntervalSinceReferenceDate: 0)
@@ -48,7 +65,7 @@ class DataFetcher: NSObject {
         if let date = dateFormatter.date(from: "\(startString)T20:00:00Z") {
             requestOldest = date
         } else {
-            print("Error converting \(symbol) \(startString) to date")
+            print("Error converting \(ticker) \(startString) to date")
         }
     }
     
@@ -74,7 +91,7 @@ class DataFetcher: NSObject {
             return
         }
         
-        let urlString = "https://chartinsight.com/api/intraday/\(symbol)?token=\(API_KEY)"
+        let urlString = "https://chartinsight.com/api/intraday/\(ticker)?token=\(API_KEY)"
         guard let url = URL(string: urlString) else { return }
         isLoadingData = true
         
@@ -88,7 +105,7 @@ class DataFetcher: NSObject {
     }
     
     func handleError(_ error: Error) {
-        print("ERROR for \(symbol) \(error.localizedDescription)")
+        print("ERROR for \(ticker) \(error.localizedDescription)")
         
         // TODO: check connection
         lastOfflineError = Date()
@@ -133,7 +150,7 @@ class DataFetcher: NSObject {
             self.lastIntradayFetch = Date()
         } else if (!fetchedData.isEmpty && fabs(fetchedData[0].close - previousClose) > 0.02) {
             // Intraday API uses IEX data and may not have intraday data even when the market is open
-            let message = "\(self.symbol) intraday prevClose \(previousClose) doesn't match (self.fetchedData[0].close)"
+            let message = "\(self.ticker) intraday prevClose \(previousClose) doesn't match (self.fetchedData[0].close)"
             self.delegate?.fetcherFailed(message)
         }
     }
@@ -146,7 +163,7 @@ class DataFetcher: NSObject {
            let endM = gregorian?.component(.month, from: requestNewest),
            let endD = gregorian?.component(.day, from: requestNewest) {
 
-            var urlString = "https://chartinsight.com/api/ohlcv/\(symbol)?"
+            var urlString = "https://chartinsight.com/api/ohlcv/\(ticker)?"
             urlString += "startDate=\(startY)-\(startM)-\(startD)"
             urlString += "&endDate=\(endY)-\(endM)-\(endD)&token=\(API_KEY)"
 
@@ -232,7 +249,7 @@ class DataFetcher: NSObject {
     @MainActor func historicalDataLoaded(barDataArray: [BarData]) {
         guard barDataArray.count > 0 else {
             // should be a failure condition
-            print("\(symbol) empty historicalDataLoaded \(barDataArray)")
+            print("\(ticker) empty historicalDataLoaded \(barDataArray)")
             delegate?.fetcherFailed("Empty response")
             return
         }

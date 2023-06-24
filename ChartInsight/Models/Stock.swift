@@ -43,7 +43,7 @@ class Stock: NSObject {
         }
     }
     var upColorHalfAlpha: UIColor = .init(red: 0, green: 0.6, blue: 0, alpha: 0.5)
-    var symbol: String = ""
+    var ticker: String = ""
     var name: String = ""
     var fundamentalList: String = ""
     var technicalList: String = ""

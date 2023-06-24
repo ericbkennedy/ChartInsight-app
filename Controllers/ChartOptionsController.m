@@ -279,7 +279,7 @@ enum indicatorType {  MOVING_AVERAGE, SAWTOOTH   };
     [self setTapWhenFinished:[[UIButton alloc] init]];
     [self.tapWhenFinished setHidden:YES];
     
-    self.title = [NSString stringWithFormat:@"%@ Chart Options", self.stock.symbol];
+    self.title = [NSString stringWithFormat:@"%@ Chart Options", self.stock.ticker];
     
 	[self setSections:@[@"", @"Color", @"Financials", @"Technicals", @""]];
     
@@ -500,7 +500,7 @@ enum indicatorType {  MOVING_AVERAGE, SAWTOOTH   };
             }
 
         } else {
-            cell.textLabel.text = [NSString stringWithFormat:@"None available for %@", self.stock.symbol];
+            cell.textLabel.text = [NSString stringWithFormat:@"None available for %@", self.stock.ticker];
         }
         
     } else if (section == 3) {

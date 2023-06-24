@@ -17,7 +17,7 @@ import Foundation
 @objcMembers
 class FundamentalFetcher: NSObject {
     var isLoadingData: Bool = false
-    var symbol: String = ""
+    var ticker: String = ""
     var delegate: DataFetcherDelegate? = nil
     var year:    [Int] = []
     var month:   [Int] = []
@@ -31,7 +31,7 @@ class FundamentalFetcher: NSObject {
             return
         }
         isLoadingData = true
-        symbol = stock.symbol
+        ticker = stock.ticker
         delegate = withDelegate
                 
         if let url = formatRequestURL(keys: stock.fundamentalList) {
@@ -46,7 +46,7 @@ class FundamentalFetcher: NSObject {
     }
     
     func formatRequestURL(keys: String) -> URL? {
-        let urlString = "https://chartinsight.com/api/fundamentalTSV/\(symbol)/\(keys)?&token=\(API_KEY)"
+        let urlString = "https://chartinsight.com/api/fundamentalTSV/\(ticker)/\(keys)?&token=\(API_KEY)"
         return URL(string: urlString)
     }
     

@@ -54,8 +54,8 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
         if (list.count > indexPath.row) {
             let stock = list[indexPath.row]
-            if stock.symbol != "" {
-                label = stock.symbol + " "
+            if stock.ticker != "" {
+                label = stock.ticker + " "
             }
             if stock.name != "" {
                 label += stock.name
@@ -91,7 +91,7 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
     /// Clicking the done/return button or typing return on simulator will send the 1st stock in the list to the delegate
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard delegate != nil else { return }
-        if (list.count > 0 && list[0].symbol.count > 0) {
+        if (list.count > 0 && list[0].ticker.count > 0) {
             delegate?.insert(stock: list[0], isNewComparison: isNewComparison);
         }
     }
@@ -105,7 +105,7 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
         if (list.count > indexPath.row) {
             let selected = list[indexPath.row]
             
-            if (selected.isKind(of: Stock.self) && selected.symbol.count > 0) {
+            if (selected.isKind(of: Stock.self) && selected.ticker.count > 0) {
                 delegate?.insert(stock: selected, isNewComparison: isNewComparison);
             } else { // user selected placeholder for no matches so reset search
                 searchBar.text = ""
