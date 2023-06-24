@@ -73,7 +73,7 @@ class Stock: NSObject {
     func setColorWith(hexString: String) {
 
         if let upColor = UIColor.init(hex: hexString) {
-        
+            self.upColor = upColor
             if hexString == "009900" && chartType != .Close {
                 color = .red // upColor is green so other bars should be red
             } else {

@@ -577,6 +577,12 @@
     }
 }
 
+/// Return the number of bars at the newBarUnit scale to check if one stock in a comparison
+/// will limit the date range that can be charted in the comparison
+- (NSInteger) maxPeriodSupportedForBarUnit:(CGFloat)newBarUnit {
+    return floor(self.dailyData.count / newBarUnit);
+}
+
 - (void) updatePeriodDataByDayWeekOrMonth {
 
     if (self.barUnit == 1.) {

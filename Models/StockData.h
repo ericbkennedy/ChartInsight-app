@@ -77,6 +77,10 @@
 /// Count of total bars (either monthly, weekly or daily) which determines the oldest date available for display
 - (NSInteger) periodCount;
 
+/// Return the number of bars at the newBarUnit scale to check if one stock in a comparison
+/// will limit the date range that can be charted in the comparison
+- (NSInteger) maxPeriodSupportedForBarUnit:(CGFloat)newBarUnit;
+
 - (NSString *) monthName:(NSInteger)month;
 
 - (NSInteger) newestBarShown;

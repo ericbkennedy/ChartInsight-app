@@ -12,8 +12,7 @@
 @property (nonatomic) CGFloat xFactor;
 
 @property (strong, nonatomic) Comparison *comparison;
-@property (strong, nonatomic) NSCalendar *gregorian;
-@property (strong, nonatomic) ProgressIndicator	*progressIndicator;
+@property (strong, nonatomic) ProgressIndicator	*progressIndicator; // reference to WatchlistVC property
 
 - (NSInteger) maxBarOffset;
 

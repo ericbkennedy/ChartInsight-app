@@ -22,6 +22,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 @property (strong, nonatomic) NSDecimalNumberHandler *roundDown;
 @property (strong, nonatomic) BigNumberFormatter *numberFormatter;
 @property (strong, nonatomic) NSArray<NSString *> *sparklineKeys;
+@property (strong, nonatomic) NSCalendar *gregorian;
 @property (strong, nonatomic) NSDate *lastNetworkErrorShown;
 @end
 
@@ -76,6 +77,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         self.stocks = [[NSMutableArray alloc] init];
        
         [self setRoundDown:[NSDecimalNumberHandler decimalNumberHandlerWithRoundingMode:NSRoundDown scale:0 raiseOnExactness:NO raiseOnOverflow:NO raiseOnUnderflow:NO raiseOnDivideByZero:NO]];
+
+        [self setGregorian:[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian]];
         
         BigNumberFormatter *newNumberFormatter = [[BigNumberFormatter alloc] init];
         [self setNumberFormatter:newNumberFormatter];
@@ -623,8 +626,23 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     NSInteger shiftBars = floor(self.layer.contentsScale * _scaleShift /(_barUnit * newXfactor));
     _scaleShift = 0.;
     
+    // Check if a stock has less price data available and limit all stocks to that shorter date range
+    NSInteger maxSupportedPeriods = 0, currentOldestShown = 0;
+    for (StockData *stockData in self.stocks) {
+        if (currentOldestShown == 0) {
+            currentOldestShown = stockData.oldestBarShown;
+        }
+        NSInteger periodCountAtNewScale = [stockData maxPeriodSupportedForBarUnit:_barUnit];
+        
+        if (maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale) {
+            maxSupportedPeriods = periodCountAtNewScale;
+        }
+    }
+        
     if (newXfactor == _xFactor) {
         return; // prevent strange pan when zoom hits max or mix
+    } else if (currentOldestShown + shiftBars > maxSupportedPeriods) { // already at maxSupportedPeriods
+        shiftBars = 0;
     }
 
     _xFactor = newXfactor;
@@ -645,8 +663,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
            
             [stockData updatePeriodDataByDayWeekOrMonth];
             
-            if (stockData.oldestBarShown > stockData.periodCount) {
-                stockData.oldestBarShown = stockData.periodCount;
+            if (stockData.oldestBarShown > maxSupportedPeriods) {
+                stockData.oldestBarShown = maxSupportedPeriods;
             }
 
             [stockData updateHighLow];      // must be a separate call to handle shifting
@@ -689,13 +707,24 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
     BOOL outOfBars = YES;
     NSInteger MIN_BARS_SHOWN = 20;
+    NSInteger maxSupportedPeriods = 0, currentOldestShown = 0;
     
     for(StockData *stock in self.stocks) {
+        if (maxSupportedPeriods == 0 || maxSupportedPeriods > stock.periodCount) {
+            maxSupportedPeriods = stock.periodCount;
+        }
+        if (currentOldestShown == 0) {
+            currentOldestShown = stock.oldestBarShown;
+        }
         
         if (barsShifted == 0) {
             outOfBars = NO;
-        } else if (barsShifted > 0 && barsShifted < stock.periodCount - stock.newestBarShown) {
-            outOfBars = NO;
+        } else if (barsShifted > 0) { // users panning to older dates
+            if (currentOldestShown + barsShifted >= maxSupportedPeriods) { // already at max
+                outOfBars = YES;
+            } else if (barsShifted < stock.periodCount - stock.newestBarShown) {
+                outOfBars = NO;
+            }
         } else if (barsShifted < 0 && stock.oldestBarShown - barsShifted > MIN_BARS_SHOWN) {
             outOfBars = NO;
         }

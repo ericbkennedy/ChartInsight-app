@@ -18,7 +18,7 @@ import Foundation
     let READONLY_NOMUTEX = Int32(SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX)
     
     // Update local db for stock splits (delete from history), ticker changes and delistings
-    func updateFromAPI(delegate: RootViewController) async {
+    func updateFromAPI(delegate: WatchlistViewController) async {
          
         // TODO create real API
         guard let url = URL(string: "https://chartinsight.com/api/close/STR?token=test") else {
