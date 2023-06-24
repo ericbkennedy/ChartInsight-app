@@ -10,36 +10,29 @@
 @property (assign, nonatomic) CGFloat rowHeight;
 @property (assign, nonatomic) CGFloat statusBarHeight;  // set using safeAreaInsets
 @property (assign, nonatomic) CGFloat toolbarHeight;
-@property (assign, nonatomic) CGFloat leftGap;
+@property (assign, nonatomic) CGFloat tableViewWidthVisible;
 @property (assign, nonatomic) CGFloat lastShift;
-@property (assign, nonatomic) CGFloat netDelta;
 @property (assign, nonatomic) CGFloat pinchCount;
 @property (assign, nonatomic) CGFloat pinchMidpointSum;
 
-@property (assign, nonatomic) BOOL newComparison;
 @property (assign, nonatomic) BOOL needsReload; // set by reloadWhenVisible
 
 @property (nonatomic, strong) UINavigationController    *popOverNav;    // required for navgiation controller within popover
 @property (nonatomic, strong) UITapGestureRecognizer   *doubleTapRecognizer;
-@property (nonatomic, strong) UILongPressGestureRecognizer *oneLongPressRecognizer;
+@property (nonatomic, strong) UILongPressGestureRecognizer *longPressRecognizer;
 @property (nonatomic, strong) UIPanGestureRecognizer   *panRecognizer;
 @property (nonatomic, strong) UIPinchGestureRecognizer *pinchRecognizer;
 @property (nonatomic, strong) UIBarButtonItem *toggleListButton;
 @property (nonatomic, strong) UIBarButtonItem *addStockButton;
 @property (nonatomic, strong) UIToolbar *addStockToolbar;             //  in tableView header
-@property (nonatomic, strong) UIToolbar *customNavigationToolbar;     //  better formatting than using self.navigationItem
-
-@property (strong, nonatomic) NSDateComponents *days;
+@property (nonatomic, strong) UIToolbar *navStockButtonToolbar;     //  For stock ticker buttons in self.navigationItem.titleView
 
 @property (strong, nonatomic) ScrollChartView *scc;
 
 @property (strong, nonatomic) NSArray *list;     // stocks from comparison table
 
-@property (strong, nonatomic) NSDictionary *infoForPressedBar;
-
 @property (strong, nonatomic) UITableView *tableView;
 
-@property (strong, nonatomic) UIBarButtonItem *barTitle;
 @end
 
 @implementation RootViewController
@@ -61,21 +54,19 @@
     [self presentViewController:self.popOverNav animated:YES completion:nil];
 }
 
-- (void) addStock:(id)sender {
-    
-    UIBarButtonItem *button = (UIBarButtonItem *)sender;
-        
-    if (button.tag == 0) {
-        if (self.scc.layer.position.x < 30) {
-            return;
-        }
-        self.newComparison = YES;
-    } else {
-        self.newComparison = NO;
-    }
-    
+/// User clicked compare button to add compare another stock to the current chart
+- (void) compareStock:(id)sender {
     AddStockController *addStockController = [[AddStockController alloc] init];
-    addStockController.delegate = self;
+  //  addStockController.delegate = self;
+    addStockController.isNewComparison = NO;
+    [self popoverPush:addStockController fromButton:sender];
+}
+
+/// User clicked "+" add button in tableView header to chart a new stock by itself (technically this is a single-stock comparison)
+- (void) addStock:(id)sender {
+    AddStockController *addStockController = [[AddStockController alloc] init];
+    //addStockController.delegate = self;
+    addStockController.isNewComparison = YES;
     [self popoverPush:addStockController fromButton:sender];
 }
 
@@ -108,7 +99,7 @@
 - (void) redrawWithStock:(Stock *)stock {
     if (self.scc != nil) {
         [self.scc.comparison saveToDb];
-        for (UIBarButtonItem *button in self.customNavigationToolbar.items) {
+        for (UIBarButtonItem *button in self.navStockButtonToolbar.items) {
             if (button.tag == (NSInteger)stock) {
                 [button setTintColor:stock.upColor];
             }
@@ -145,7 +136,7 @@
         
         if ([stockList count] < 3 || UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
             
-            button = [[UIBarButtonItem alloc] initWithTitle:@"compare" style:UIBarButtonItemStylePlain target:self action:@selector(addStock:)];
+            button = [[UIBarButtonItem alloc] initWithTitle:@"compare" style:UIBarButtonItemStylePlain target:self action:@selector(compareStock:)];
                         
             NSDictionary *smallFont = [NSDictionary dictionaryWithObjectsAndKeys:[UIFont systemFontOfSize:10], NSFontAttributeName,nil];
             [button setTitleTextAttributes:smallFont forState:UIControlStateNormal];
@@ -157,7 +148,7 @@
         
         [buttons addObject:[[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease]];
 
-        [self.customNavigationToolbar setItems:buttons];
+        [self.navStockButtonToolbar setItems:buttons];
     }
 }
 
@@ -165,24 +156,23 @@
     
     [super viewDidLoad];
     
-    [self resizeFrameToSize:self.view.frame.size];
+    [self isNewFrameSize:self.view.frame.size];
     self.edgesForExtendedLayout = UIRectEdgeNone;
     self.extendedLayoutIncludesOpaqueBars = NO;
 
-    self.leftGap = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 66 : 100;
+    self.tableViewWidthVisible = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 66 : 100;
     self.rowHeight = (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone) ? 40 : 44;
     
     [self setGregorian:[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian]];
-    [self setDays:[[NSDateComponents alloc] init]];
     
-    self.customNavigationToolbar = [UIToolbar new];
-	self.customNavigationToolbar.translucent = NO;
-    [self.customNavigationToolbar setFrame:CGRectMake(0, self.statusBarHeight, self.width, self.toolbarHeight)];
-    [self.view addSubview:self.customNavigationToolbar];
+    self.navStockButtonToolbar = [UIToolbar new];
+	self.navStockButtonToolbar.translucent = NO;
+    [self.navStockButtonToolbar setFrame:CGRectMake(0, 0, self.width, self.toolbarHeight)];
+    self.navigationItem.titleView = self.navStockButtonToolbar;
     
     self.addStockToolbar = [UIToolbar new];
     self.addStockToolbar.translucent = NO;
-    [self.addStockToolbar setFrame:CGRectMake(0, 0, self.leftGap, self.rowHeight)];
+    [self.addStockToolbar setFrame:CGRectMake(0, 0, self.tableViewWidthVisible, self.rowHeight)];
     // addStockToolbar will be added as tableView footer
     
     UIBarButtonItem *addStockButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
@@ -193,9 +183,7 @@
                                                              style:UIBarButtonItemStylePlain
                                                             target:self action:@selector(toggleList)];
     
-    // There's a toolbar above the tableView and a tabBar below so reduce height by 2 * self.toolbarHeight
-    self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, self.toolbarHeight + self.statusBarHeight,
-                                                                    205, self.height) // set by resizeFrameToSize:
+    self.tableView = [[[UITableView alloc] initWithFrame:CGRectMake(0, 0, 205, self.height) // set by resizeFrameToSize:
                                                    style:UITableViewStylePlain] autorelease];
             
     [self.tableView setClipsToBounds:NO];      // YES would create rounded corners, which doesn't matter when the background is all the same
@@ -208,8 +196,8 @@
     
     [self setScc:[[ScrollChartView alloc] init]];
     [self.scc.layer setAnchorPoint:CGPointMake(0., 0.)];                      // allows bounds = frame
-    [self.scc.layer setPosition:CGPointMake(self.leftGap, CGRectGetMaxY(self.customNavigationToolbar.frame))];  // ipad menu bar
-    [self.scc setBounds:CGRectMake(0, 0, self.width, self.height)];
+    [self.scc.layer setPosition:CGPointMake(self.tableViewWidthVisible, 0)];  // ipad menu bar
+    [self.scc setBounds:CGRectMake(0, 0, self.width, self.height - 4)]; // Leave space between months and TabBar
     [self.scc resetDimensions];
     [self.scc createLayerContext];
 
@@ -227,7 +215,7 @@
 
     [self setProgressIndicator:[[ProgressIndicator alloc] initWithFrame:CGRectMake(0, 0, self.width, 4.)]];
     // Add progressIndicator as subview of customNavigationToolbar to ensure placement below status bar
-    [self.customNavigationToolbar addSubview:self.progressIndicator];
+    [self.navStockButtonToolbar addSubview:self.progressIndicator];
     [self.progressIndicator.layer setZPosition:4];
     [self.progressIndicator setHidden:YES]; // until startAnimating is called
     [self.scc setProgressIndicator:self.progressIndicator];
@@ -237,10 +225,10 @@
     [self.doubleTapRecognizer setNumberOfTapsRequired:2];
     [self.scc addGestureRecognizer:self.doubleTapRecognizer];
 
-    self.oneLongPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(magnify:)];
-    [self.oneLongPressRecognizer setMinimumPressDuration:0.5];
-    [self.oneLongPressRecognizer setNumberOfTouchesRequired:1];
-    [self.scc addGestureRecognizer:self.oneLongPressRecognizer];
+    self.longPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(magnify:)];
+    [self.longPressRecognizer setMinimumPressDuration:0.5];
+    [self.longPressRecognizer setNumberOfTouchesRequired:1];
+    [self.scc addGestureRecognizer:self.longPressRecognizer];
     
     self.pinchRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
     [self.scc addGestureRecognizer:self.pinchRecognizer];
@@ -254,12 +242,10 @@
 }
 
 - (void) resizeSubviewsForSize:(CGSize)newSize {
-    [self.customNavigationToolbar setFrame:CGRectMake(0, self.statusBarHeight, newSize.width, self.toolbarHeight)];
-    CGFloat combinedToolbarHeight = self.statusBarHeight + self.toolbarHeight;
-
-    self.tableView.frame = CGRectMake(0, combinedToolbarHeight, 205, newSize.height - combinedToolbarHeight);
+    [self.navStockButtonToolbar setFrame:CGRectMake(0, 0, newSize.width, self.toolbarHeight)];
+    self.tableView.frame = CGRectMake(0, 0, 205, newSize.height);
     self.progressIndicator.frame = CGRectMake(0, 0, self.width, 4); // relative to parent customNavigationToolbar
-    self.scc.layer.position = CGPointMake(self.scc.layer.position.x, combinedToolbarHeight);
+    self.scc.layer.position = CGPointMake(self.scc.layer.position.x, 0);
     
     [self.tableView reloadData];
     
@@ -268,14 +254,14 @@
     
     [self.scc updateMaxPercentChangeWithBarsShifted: -shiftBars];  // shiftBars are positive when delta is negative
 
-    self.scc.bounds = CGRectMake(0, 0, newSize.width, newSize.height - combinedToolbarHeight);
+    self.scc.bounds = CGRectMake(0, 0, newSize.width, newSize.height);
     [self.scc resize];
 }
 
 - (void) viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     
-    if ([self resizeFrameToSize:self.view.frame.size]) {
+    if ([self isNewFrameSize:self.view.frame.size]) {
         [self resizeSubviewsForSize:CGSizeMake(self.width, self.height)];
     }
     if (self.needsReload) {
@@ -285,9 +271,9 @@
 }
 
 /// called by AddStockController when a new stock is added
-- (void) insertStock:(Stock *)stock {
+- (void) insertStock:(Stock *)stock isNewComparison:(BOOL)isNewComparison {
     
-    if (self.newComparison || self.scc.comparison == nil) {
+    if (isNewComparison || self.scc.comparison == nil) {
         [self.scc setComparison:[[Comparison alloc] init]];
         [self.scc.comparison setId: 0];  // new unsaved comparison
         [self.scc.comparison setStockList:[NSMutableArray arrayWithCapacity:3]];
@@ -360,14 +346,6 @@
     
     if (self.scc != nil && sender > 0) {
         Stock *s = (Stock *)sender;
-
-        UIBarButtonItem *buttonToRemove = nil;
-        
-        for (UIBarButtonItem *button in self.customNavigationToolbar.items) {
-            if (button.tag == sender) {
-                buttonToRemove = button;
-            }
-        }
         
         // deleteStock runs async so determine stockList count before calling it
         NSInteger stockCountBeforeDeletion = self.scc.comparison.stockList.count;
@@ -388,7 +366,6 @@
 
 /// Find the keyWindow and get the safeAreaInsets for the notch and other unsafe areas
 - (UIEdgeInsets) getSafeAreaInsets {
-    UIEdgeInsets noInsets = UIEdgeInsetsMake(0, 0, 0, 0);
     for (UIWindowScene *scene in [[[UIApplication sharedApplication] connectedScenes] allObjects]) {
         if (scene.keyWindow != nil) { // can be nil for iPadOS apps which support multiple windows
             UIWindow *keyWindow = scene.keyWindow;
@@ -397,20 +374,19 @@
             }
         }
     }
-    return noInsets;
+    return UIEdgeInsetsMake(0, 0, 0, 0);
 }
 
-- (BOOL) resizeFrameToSize:(CGSize)newSize {
-	CGFloat newWidth, newHeight;
+- (BOOL) isNewFrameSize:(CGSize)newSize {
+    CGFloat newWidth = newSize.width;
+    CGFloat newHeight;
     UIEdgeInsets safeAreaInsets = [self getSafeAreaInsets]; // replace deprecated method
     
-    self.toolbarHeight = 44;
+    self.toolbarHeight = 44; // Extra height for lines
     self.statusBarHeight = 20;
     if (safeAreaInsets.top > self.statusBarHeight) {
         self.statusBarHeight = safeAreaInsets.top;
     }
-    
-    newWidth = newSize.width;
 
     // To show stock ticker buttons in the toolbar, a custom toolbar is displayed and the navigationController's toolbar is hidden
     // Thus newSize must be reduced by height of 2 toolbars
@@ -426,7 +402,8 @@
 
 - (void) viewWillAppear:(BOOL)animated {
     // hide navigationController so our customToolbar can take its place for better button sizing
-	[self.navigationController setNavigationBarHidden:YES animated:NO];
+	//[self.navigationController setNavigationBarHidden:YES animated:NO];
+//    [self.navigationController setToolbarHidden:NO animated:NO]
     
     self.view.backgroundColor = [UIColor secondarySystemBackgroundColor];
     
@@ -437,7 +414,7 @@
  
     CGFloat delta = - self.scc.layer.position.x;
     if (self.scc.layer.position.x < 1.) {
-        delta += self.leftGap;    // maximize chart
+        delta += self.tableViewWidthVisible;    // maximize chart
     }
     
     self.scc.svWidth   -= delta;
@@ -495,7 +472,7 @@
 
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
     [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
-    if ([self resizeFrameToSize:size]) {
+    if ([self isNewFrameSize:size]) {
         [self resizeSubviewsForSize:size];
     }
 }

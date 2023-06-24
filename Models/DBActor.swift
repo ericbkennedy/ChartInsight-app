@@ -47,7 +47,7 @@ import Foundation
         return String(format: "%@/Documents/charts.db", NSHomeDirectory())
     }
     
-    func update(delegate: RootViewController) async {
+    func update(delegate: WatchlistViewController) async {
         
         guard let path = Bundle.main.path(forResource:"charts.db", ofType:nil) else {
             print("charts.db is missing from Bundle")
@@ -66,7 +66,7 @@ import Foundation
             
             let list = comparisonList()
             await MainActor.run {
-                delegate.updateList(list)
+                delegate.update(list: list)
             }
             // Check for stock splits and ticker updates after UI has rendered
             // await updateFromAPI(delegate: delegate);

@@ -8,4 +8,5 @@
 #import "ChartOptionsController.h" // delegate for AddFundamentalController
 #import "DataFetcherDelegate.h"
 #import "RootViewController.h"
+#import "ScrollChartView.h"
 #import "sqlite3.h"

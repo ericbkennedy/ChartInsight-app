@@ -20,6 +20,8 @@
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
 		801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801191872A42734B001C6ADD /* AddFundamentalController.swift */; };
+		802E48D52A46278B00D02E8F /* WatchlistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802E48D42A46278B00D02E8F /* WatchlistViewController.swift */; };
+		802E48D62A46278B00D02E8F /* WatchlistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802E48D42A46278B00D02E8F /* WatchlistViewController.swift */; };
 		803089D22A44A968008C31EF /* FundamentalFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803089D12A44A968008C31EF /* FundamentalFetcher.swift */; };
 		803089D32A44A968008C31EF /* FundamentalFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803089D12A44A968008C31EF /* FundamentalFetcher.swift */; };
 		803399BF2A2A9C4300C81714 /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803399BE2A2A9C4200C81714 /* DBActor.swift */; };
@@ -74,6 +76,7 @@
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		801191872A42734B001C6ADD /* AddFundamentalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundamentalController.swift; sourceTree = "<group>"; };
+		802E48D42A46278B00D02E8F /* WatchlistViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistViewController.swift; sourceTree = "<group>"; };
 		803089D12A44A968008C31EF /* FundamentalFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FundamentalFetcher.swift; sourceTree = "<group>"; };
 		803399BE2A2A9C4200C81714 /* DBActor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DBActor.swift; path = Models/DBActor.swift; sourceTree = SOURCE_ROOT; };
 		804D975C2A38D0CF00F61FF7 /* BarData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
@@ -132,12 +135,13 @@
 			isa = PBXGroup;
 			children = (
 				801191872A42734B001C6ADD /* AddFundamentalController.swift */,
+				809F32342A36C7430018526F /* AddStockController.swift */,
+				0B42BC061C420BE500139C33 /* ChartOptionsController.h */,
+				0B42BC011C420BE400139C33 /* ChartOptionsController.m */,
 				0B42BC101C420C1A00139C33 /* RootViewController.h */,
 				0B42BC111C420C1A00139C33 /* RootViewController.m */,
 				8097DB112A422FB4003E11E0 /* SettingsViewController.swift */,
-				0B42BC061C420BE500139C33 /* ChartOptionsController.h */,
-				0B42BC011C420BE400139C33 /* ChartOptionsController.m */,
-				809F32342A36C7430018526F /* AddStockController.swift */,
+				802E48D42A46278B00D02E8F /* WatchlistViewController.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -145,16 +149,16 @@
 		0B1BD540183C33C300EE97D1 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				0B42BC181C420C2F00139C33 /* StockData.h */,
-				0B42BC141C420C2F00139C33 /* StockData.m */,
-				80B0E4D82A3B649F003072DA /* DataFetcher.swift */,
-				80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */,
-				8097DB0E2A413A8A003E11E0 /* Comparison.swift */,
-				803089D12A44A968008C31EF /* FundamentalFetcher.swift */,
 				804D975C2A38D0CF00F61FF7 /* BarData.swift */,
 				80D5B9E22A292F9700314733 /* BigNumberFormatter.swift */,
+				8097DB0E2A413A8A003E11E0 /* Comparison.swift */,
+				80B0E4D82A3B649F003072DA /* DataFetcher.swift */,
+				80B0E4DB2A3B838C003072DA /* DataFetcherDelegate.h */,
 				803399BE2A2A9C4200C81714 /* DBActor.swift */,
+				803089D12A44A968008C31EF /* FundamentalFetcher.swift */,
 				8097DB0B2A40CB96003E11E0 /* Stock.swift */,
+				0B42BC181C420C2F00139C33 /* StockData.h */,
+				0B42BC141C420C2F00139C33 /* StockData.m */,
 			);
 			name = Models;
 			path = ChartInsight/Models;
@@ -333,6 +337,7 @@
 				8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */,
 				809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */,
 				0B42BC221C420C2F00139C33 /* StockData.m in Sources */,
+				802E48D52A46278B00D02E8F /* WatchlistViewController.swift in Sources */,
 				8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */,
 				803089D22A44A968008C31EF /* FundamentalFetcher.swift in Sources */,
 				80D5B9E32A292F9700314733 /* BigNumberFormatter.swift in Sources */,
@@ -357,6 +362,7 @@
 				803089D32A44A968008C31EF /* FundamentalFetcher.swift in Sources */,
 				8097DB102A413A8A003E11E0 /* Comparison.swift in Sources */,
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
+				802E48D62A46278B00D02E8F /* WatchlistViewController.swift in Sources */,
 				8097DB0D2A40CB96003E11E0 /* Stock.swift in Sources */,
 				80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */,
 			);

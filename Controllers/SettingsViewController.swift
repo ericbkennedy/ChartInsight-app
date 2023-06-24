@@ -15,7 +15,7 @@ public enum SectionType: Int {
 @objcMembers
 class SettingsViewController: UITableViewController {
     
-    @objc var delegate: RootViewController? = nil
+    @objc var delegate: WatchlistViewController? = nil
     var list: [Comparison] = []
     let cellID = "settingsCell"
     
@@ -109,7 +109,7 @@ class SettingsViewController: UITableViewController {
                 Task {
                     list = await Comparison.listAll() // reload list on each apperence so it reflects added stock
                     await MainActor.run {
-                        delegate?.reloadWhenVisible()
+                        delegate?.needsReload = true
                         tableView.deleteRows(at: [indexPath], with: .fade)
                         tableView.reloadData()
                     }

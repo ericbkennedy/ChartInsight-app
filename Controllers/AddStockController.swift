@@ -10,7 +10,8 @@ import Foundation
 
 class AddStockController: UITableViewController, UISearchBarDelegate {
     
-    @objc var delegate: RootViewController? = nil
+    @objc var delegate: WatchlistViewController? = nil
+    @objc var isNewComparison: Bool = false
     var list: [Stock] = []
     var searchBar = UISearchBar()
     let cellID = "stockCell"
@@ -91,7 +92,7 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard delegate != nil else { return }
         if (list.count > 0 && list[0].symbol.count > 0) {
-            delegate?.insert(list[0]);
+            delegate?.insert(stock: list[0], isNewComparison: isNewComparison);
         }
     }
         
@@ -105,7 +106,7 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
             let selected = list[indexPath.row]
             
             if (selected.isKind(of: Stock.self) && selected.symbol.count > 0) {
-                delegate?.insert(selected)
+                delegate?.insert(stock: selected, isNewComparison: isNewComparison);
             } else { // user selected placeholder for no matches so reset search
                 searchBar.text = ""
                 list.removeAll()

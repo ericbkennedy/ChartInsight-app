@@ -31,7 +31,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void) updateList:(NSArray <Comparison *>*)newList;
 
 /// called by AddStockController when a new stock is added
-- (void) insertStock:(Stock *)stock;
+- (void) insertStock:(Stock *)stock isNewComparison:(BOOL)isNewComparison;
 
 NS_ASSUME_NONNULL_END
 @end

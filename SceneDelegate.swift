@@ -12,7 +12,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
     let tabBarController = UITabBarController()
-    var watchlistViewController = RootViewController()
+    var watchlistViewController = WatchlistViewController()
     var settingsViewController = SettingsViewController(style: .plain)
 
     var watchlistNavigationController: UINavigationController?

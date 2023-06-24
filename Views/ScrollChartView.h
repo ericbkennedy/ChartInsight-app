@@ -1,7 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
-#import "ChartInsight-Swift.h"
 
+@class Comparison;
 @class ProgressIndicator;
 
 @interface ScrollChartView : UIView
