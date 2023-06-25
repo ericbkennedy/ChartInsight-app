@@ -14,8 +14,8 @@
 import Foundation
 
 class WatchlistViewController: UITableViewController {
-    var progressIndicator: ProgressIndicator = ProgressIndicator(frame: .zero)
-    var magnifier: UIImageView = UIImageView(frame: CGRectMake(0, 0, 100, 100))
+    var progressIndicator = ProgressIndicator(frame: CGRectMake(0, 0, 320, 4))
+    var magnifier = UIImageView(frame: CGRectMake(0, 0, 100, 100))
     var needsReload: Bool = false // set by SettingsViewController after a comparison is deleted
     
     enum ZPosition: CGFloat {
@@ -23,7 +23,7 @@ class WatchlistViewController: UITableViewController {
     }
     
     private let cellID = "cellId"
-    private let padding = 5.0
+    private let padding = 6.0
     private var width: CGFloat = 0
     private var height: CGFloat = 0
     private var rowHeight: CGFloat = 0
@@ -110,17 +110,6 @@ class WatchlistViewController: UITableViewController {
         
         updateNavStockButtonToolbar()
         navigationItem.titleView = navStockButtonToolbar
-        
-        if (scrollChartView.svWidth == 0) { // initialize it on first view but not when tabs change
-            scrollChartView.bounds = CGRectMake(0, 0, width, height)
-            scrollChartView.resetDimensions()
-            scrollChartView.createLayerContext()
-            scrollChartView.setNeedsDisplay()
-        }
-        
-        progressIndicator.layer.zPosition = ZPosition.progressIndicator.rawValue
-        
-        scrollChartView.progressIndicator = progressIndicator
         view.layer.setNeedsDisplay()
     }
     
@@ -198,8 +187,6 @@ class WatchlistViewController: UITableViewController {
     
     func resizeSubviews(newSize: CGSize) {
         navStockButtonToolbar.frame = CGRectMake(0, 0, newSize.width, toolbarHeight)
-        progressIndicator.frame = CGRectMake(0, 0, newSize.width, 4)
-        
         tableView.reloadData()
         
         let delta = scrollChartView.bounds.size.width - newSize.width
@@ -209,6 +196,12 @@ class WatchlistViewController: UITableViewController {
         scrollChartView.updateMaxPercentChange(withBarsShifted: -shiftBars) // shiftBars are + when delta is -
         scrollChartView.bounds = CGRectMake(0, 0, width, height) // isNewFrameSize calculated height
         scrollChartView.resize()
+        
+        // ProgressIndicator doesn't resize by changing the frame property so create a new instance
+        progressIndicator = ProgressIndicator(frame: CGRectMake(0, 0, width - tableViewWidthVisible, 4))
+        progressIndicator.layer.zPosition = ZPosition.progressIndicator.rawValue
+        scrollChartView.addSubview(progressIndicator)
+        scrollChartView.progressIndicator = progressIndicator
     }
     
     /// Device rotated (supported only on iPad) so update width and height properties and resize subviews
@@ -313,6 +306,15 @@ class WatchlistViewController: UITableViewController {
                 scrollChartView.redrawCharts()
             }
         }
+    }
+    
+    /// Called by ChartOptionsController when the user adds new fundamental metrics
+    @objc func reload(withStock: Stock) {
+        scrollChartView.comparison.saveToDb()
+        scrollChartView.clearChart()
+        progressIndicator.startAnimating()
+        updateNavStockButtonToolbar()
+        scrollChartView.loadChart()
     }
     
     /// Called after user taps the Trash icon in ChartOptionsController to delete a stock in a comparison
