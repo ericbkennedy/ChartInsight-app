@@ -91,23 +91,16 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     return self;
 }
 
+/// Ensure any pending requests for prior comparison are invalidated and set stockData.delegate = nil
 - (void) clearChart {
     [self.progressIndicator reset];
-    
-    CAKeyframeAnimation* animation = [CAKeyframeAnimation animationWithKeyPath:@"opacity"];
-    animation.duration = 2.0;
-    animation.values = @[ @0.8, @0.5];
-    animation.keyTimes = @[ @0.0, @1.0];
-    animation.delegate = self;
-      
-    self.layer.opacity = 0.5;
-    [self.layer addAnimation:animation forKey:@"opacity"];
     
     CGContextClearRect(_layerContext, CGRectMake(0, 0, self.layer.contentsScale * _maxWidth, _pxHeight));
     [self setNeedsDisplay];
     
     for (StockData *s in self.stocks) {
         [s invalidateAndCancel];    // ensures StockData, DataAPI and FundamentalAPI get deallocated
+        s.delegate = nil;
     }
     
     [self.stocks removeAllObjects];
@@ -171,28 +164,31 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     NSDecimalNumber *reportValue = [NSDecimalNumber notANumber];    // init for safety
     CGPoint p;
     NSString *label;
-    
-    NSInteger dateShift = -1;
-    
+        
     if (self.stocks.count > 0) {
         stockData = [self.stocks objectAtIndex:0];
         
-        dateShift = stockData.oldestBarShown;
-        
         CGContextSetStrokeColor(_layerContext, monthLineColor);        
         CGContextSetLineWidth(_layerContext, 1.0);   // in pixels not points
-        CGContextStrokeLineSegments(_layerContext, stockData.monthLines, stockData.monthCount);
         
         CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
         
         NSInteger monthLabelIndex = 0;
         CGFloat offset = 10 *  self.layer.contentsScale;
          
-        for (NSInteger m = 0; m < stockData.monthCount; m++) {
+        for (NSInteger m = 0; m < stockData.monthLines.count; m++) {
+            CGPoint topPoint = stockData.monthLines[m].CGPointValue;
+
             m++; // 2nd point is chartbase
             
-            p = (CGPoint) stockData.monthLines[m];
+            p = stockData.monthLines[m].CGPointValue;
             
+            CGContextBeginPath(_layerContext);
+            CGContextMoveToPoint(_layerContext, topPoint.x, topPoint.y);
+            CGContextAddLineToPoint(_layerContext, p.x, p.y);
+            CGContextSetStrokeColor(_layerContext, monthLineColor);
+            CGContextStrokePath(_layerContext);
+
             monthLabelIndex = floorf(m/2);
             
             if (monthLabelIndex < [[stockData monthLabels] count]) {
@@ -235,61 +231,24 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
         CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
         CGContextSetLineWidth(_layerContext, 1.0);   // pIXELs
-        
-        if (s == 1 && dateShift != stockData.oldestBarShown) { // 3rd chart must use same dates as 2nd
-    
-            dateShift = stockData.oldestBarShown;
-            
-            CGContextSetStrokeColor(_layerContext, monthLineColor);
-            CGContextStrokeLineSegments(_layerContext, stockData.monthLines, stockData.monthCount);
-                        
-            NSInteger monthLabelIndex = 0;
-            CGFloat offset = 10 *  self.layer.contentsScale;
-            
-            for (NSInteger m = 0; m < stockData.monthCount; m++) {
-                m++; // 2nd point is chartbase
                 
-                p = (CGPoint) stockData.monthLines[m];
-                
-                monthLabelIndex = floorf(m/2);
-                
-                if (monthLabelIndex < [[stockData monthLabels] count]) {
-                    label = [[stockData monthLabels] objectAtIndex:monthLabelIndex];
-                    [self showString:label atPoint:CGPointMake(p.x, p.y + offset * (s + 1)) withColor:stockData.stock.upColor];
-                } else {
-                   // NSLog(@"Missing month label for index %d", monthLabelIndex);
-                }
-            }
-        }
-                
-        if (stockData.movingAvg1Count > 2) {
+        if (stockData.movingAvg1.count > 2) {
             CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.colorInverseHalfAlpha.CGColor);
-            CGContextBeginPath(_layerContext);
-            CGContextAddLines(_layerContext, stockData.movingAvg1, stockData.movingAvg1Count);
-            CGContextStrokePath(_layerContext);
+            [self strokeLineFromPoints:stockData.movingAvg1 context:_layerContext];
         }
         
-        if (stockData.movingAvg2Count > 2) {
+        if (stockData.movingAvg2.count > 2) {
             CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
-            CGContextBeginPath(_layerContext);
-            CGContextAddLines(_layerContext, stockData.movingAvg2, stockData.movingAvg2Count);
-            CGContextStrokePath(_layerContext);
+            [self strokeLineFromPoints:stockData.movingAvg2 context:_layerContext];
         }
 
-        if (stockData.bbCount > 2) {
+        if (stockData.upperBollingerBand.count > 2) {
             CGContextSetLineDash(_layerContext, 0., dashPattern, 2);
             CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
-            CGContextBeginPath(_layerContext);
-            CGContextAddLines(_layerContext, stockData.ubb, stockData.bbCount);
-            CGContextStrokePath(_layerContext);
+            [self strokeLineFromPoints:stockData.upperBollingerBand context:_layerContext];
+            [self strokeLineFromPoints:stockData.middleBollingerBand context:_layerContext];
+            [self strokeLineFromPoints:stockData.lowerBollingerBand context:_layerContext];
 
-            CGContextBeginPath(_layerContext);
-            CGContextAddLines(_layerContext, stockData.lbb, stockData.bbCount);
-            CGContextStrokePath(_layerContext);
-            
-            CGContextBeginPath(_layerContext);
-            CGContextAddLines(_layerContext, stockData.mbb, stockData.bbCount);
-            CGContextStrokePath(_layerContext);
             CGContextSetLineDash(_layerContext, 0, NULL, 0);    // reset to solid
         }
         
@@ -300,51 +259,51 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         CGContextSetFillColorWithColor(_layerContext, stockData.stock.color.CGColor);
         CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.color.CGColor);
         
-        if (stockData.redPointCount > 0) {
-            CGContextStrokeLineSegments(_layerContext, stockData.redPoints, stockData.redPointCount);
-        }
+        [self strokeLinesFromPoints:stockData.redPoints context:_layerContext];
         
-        if (stockData.redBarCount > 0) {
-            
-            for (NSInteger r = 0; r < stockData.hollowRedCount; r++) {
-                CGContextStrokeRect(_layerContext, stockData.hollowRedBars[r]);
-            }
-            CGContextFillRects(_layerContext, stockData.redBars, stockData.redBarCount);
+        for (NSValue *value in stockData.hollowRedBars) {
+            CGContextStrokeRect(_layerContext, value.CGRectValue);
         }
-        
+
+        for (NSValue *value in stockData.redBars) {
+            CGContextFillRect(_layerContext, value.CGRectValue);
+        }
+                
         CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
         
-        if (stockData.whiteBarCount > 0) {
-            for (NSInteger r = 0; r < stockData.whiteBarCount; r++) {
-                CGContextStrokeRect(_layerContext, stockData.greenBars[r]);
-            }    
+        if (stockData.greenBars.count > 0) {
+            for (NSValue *value in stockData.greenBars) {
+                CGContextStrokeRect(_layerContext, value.CGRectValue);
+            }
             
             CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
-            CGContextFillRects(_layerContext, stockData.filledGreenBars, stockData.filledGreenCount);
+            
+            for (NSValue *value in stockData.filledGreenBars) {
+                CGContextFillRect(_layerContext, value.CGRectValue);
+            }
         }
         
         CGContextSetFillColorWithColor(_layerContext, stockData.stock.colorHalfAlpha.CGColor);
-        CGContextFillRects(_layerContext, stockData.redVolume, stockData.redCount);
+        for (NSValue *value in stockData.redVolume) {
+            CGContextFillRect(_layerContext, value.CGRectValue);
+        }
         
         CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
-        CGContextFillRects(_layerContext, stockData.blackVolume, stockData.blackCount);
-
+        for (NSValue *value in stockData.blackVolume) {
+            CGContextFillRect(_layerContext, value.CGRectValue);
+        }
         
         switch (stockData.stock.chartType) {
-            case 0:
-            case 1:
+            case ChartTypeOHLC:
+            case ChartTypeHLC:
                 CGContextSetBlendMode(_layerContext, kCGBlendModeNormal);
-                CGContextStrokeLineSegments(_layerContext, stockData.points, stockData.pointCount);
+                // now that blend mode is set, fall through to next case to render lines
+            case ChartTypeCandle:
+                [self strokeLinesFromPoints:stockData.points context:_layerContext];
                 break;
-            
-            case 2:
-                CGContextStrokeLineSegments(_layerContext, stockData.points, stockData.pointCount);
-                break;
-            case 3:
-                CGContextBeginPath(_layerContext);
-                CGContextAddLines(_layerContext, stockData.points, stockData.pointCount);
+            case ChartTypeClose:
                 CGContextSetLineJoin(_layerContext, kCGLineJoinRound);
-                CGContextStrokePath(_layerContext);
+                [self strokeLineFromPoints:stockData.points context:_layerContext];
                 break;
         }
             
@@ -414,8 +373,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         }
         
         avoidLabel = stockData.lastPrice;
+        CGFloat minSpace = 20; // Skip any label within this distance of the avoidLabel value
         
-        if (15 < fabs(stockData.yFactor * [[stockData.maxHigh decimalNumberBySubtracting:stockData.lastPrice] doubleValue])) {
+        if (minSpace < fabs(stockData.yFactor * [[stockData.maxHigh decimalNumberBySubtracting:stockData.lastPrice] doubleValue])) {
             // lastPrice is lower than maxHigh
             [self writeLabel:stockData.maxHigh forStock:stockData atX:x showBox:NO];
             avoidLabel = stockData.maxHigh;
@@ -426,20 +386,20 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         if ([stockData.maxHigh compare:stockData.lastPrice] == NSOrderedDescending) {
             [self writeLabel:stockData.lastPrice forStock:stockData atX:x showBox:YES];
             
-            if (15 > fabs(stockData.yFactor * [[stockData.lastPrice decimalNumberBySubtracting:nextLabel] doubleValue])) {
+            if (minSpace > fabs(stockData.yFactor * [[stockData.lastPrice decimalNumberBySubtracting:nextLabel] doubleValue])) {
                 nextLabel = [nextLabel decimalNumberBySubtracting:increment];       // go to next label
             }
         }
                 
         while ([nextLabel compare:stockData.minLow] == NSOrderedDescending) {
             
-            if (15 < fabs(stockData.yFactor * [[avoidLabel decimalNumberBySubtracting:nextLabel] doubleValue])) {
+            if (minSpace < fabs(stockData.yFactor * [[avoidLabel decimalNumberBySubtracting:nextLabel] doubleValue])) {
                 [self writeLabel:nextLabel forStock:stockData atX:x showBox:NO];
             }
 
             nextLabel = [nextLabel decimalNumberBySubtracting:increment];
             
-            if (20 > fabs(stockData.yFactor * [[stockData.lastPrice decimalNumberBySubtracting:nextLabel] doubleValue])) {
+            if (minSpace > fabs(stockData.yFactor * [[stockData.lastPrice decimalNumberBySubtracting:nextLabel] doubleValue])) {
                 avoidLabel = stockData.lastPrice;
             } else {
                 avoidLabel = stockData.minLow;
@@ -447,7 +407,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         }
         
         // If last price is near the minLow, skip minLow (e.g. RIMM)
-        if (15 < fabs(stockData.yFactor * [[stockData.minLow decimalNumberBySubtracting:stockData.lastPrice] doubleValue])) {
+        if (minSpace < fabs(stockData.yFactor * [[stockData.minLow decimalNumberBySubtracting:stockData.lastPrice] doubleValue])) {
             [self writeLabel:stockData.minLow forStock:stockData atX:x showBox:NO];
         }
     }
@@ -494,7 +454,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                 NSInteger r = stockData.newestReportInView;
                 if (title == nil) {
                     title = [(AppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
-                    CGFloat x = MIN(_pxWidth + 5, stockData.fundamentalAlignments[r] + 10);
+                    CGFloat x = MIN(_pxWidth + 5, stockData.fundamentalAlignments[r].floatValue + 10);
                     CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
                     UIColor *stockColor = [UIColor colorWithCGColor:stockData.stock.upColor.CGColor];
                     [self showString:title atPoint:CGPointMake(x, yLabel) withColor:stockColor];
@@ -507,10 +467,11 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     if ([reportValue isEqualToNumber:[NSDecimalNumber notANumber]]) {
                         continue;
                     }
-                    qWidth = stockData.fundamentalAlignments[r] - stockData.fundamentalAlignments[r + 1] - 3;
-                    
-                    if (qWidth < 0 || stockData.fundamentalAlignments[r + 1] < 1.) {
-                        qWidth = MIN(stockData.fundamentalAlignments[r], stockData.xFactor * 60/_barUnit) ;
+                                        
+                    if (r + 1 < stockData.fundamentalAlignments.count) { // can calculate bar width to older report
+                        qWidth = stockData.fundamentalAlignments[r].floatValue - stockData.fundamentalAlignments[r + 1].floatValue - 3;
+                    } else { // no older reports so use default fundamental bar width
+                        qWidth = MIN(stockData.fundamentalAlignments[r].floatValue, stockData.xFactor * 60/_barUnit) ;
                     }
                     h = [[reportValue decimalNumberByMultiplyingBy:sparklineYFactor] doubleValue];
                     
@@ -530,13 +491,13 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     }
                     
                     CGContextSetBlendMode(_layerContext, kCGBlendModeNormal);
-                    CGContextFillRect(_layerContext, CGRectMake(stockData.fundamentalAlignments[r], y, -qWidth, -h));
+                    CGContextFillRect(_layerContext, CGRectMake(stockData.fundamentalAlignments[r].floatValue, y, -qWidth, -h));
                                         
                     if (_barUnit < 5. && stocksWithFundamentals == 1) {     // don't show labels for monthly or comparison charts
                         label = [self.numberFormatter stringFromNumber:reportValue maxDigits:2*_xFactor];
                         CGContextSetBlendMode(_layerContext, kCGBlendModePlusLighter);
                     
-                        labelPosition.x = stockData.fundamentalAlignments[r] - 11.5 * label.length - 10;
+                        labelPosition.x = stockData.fundamentalAlignments[r].floatValue - 11.5 * label.length - 10;
                         [self showString:label atPoint:CGPointMake(labelPosition.x, labelPosition.y) withColor:metricColor];
                     }
                 }                
@@ -782,18 +743,20 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
      
     CGFloat y = s.yFloor - s.yFactor * [price doubleValue] + 20;    
     
-    y = [s pxAlign:y alignTo:0.5];
-    x = [s pxAlign:x alignTo:0.5];
-    
-    [self showString:l atPoint:CGPointMake(x, y) withColor:s.stock.upColor];
-    
+    CGFloat pxPerPoint = 1 / self.layer.contentsScale; // newer devices have 3 pixels per point
+    y = [s pxAlign:y alignTo:pxPerPoint];
+    x = [s pxAlign:x alignTo:pxPerPoint];
+        
     if (showBox) {
         CGFloat boxWidth = l.length * 14, // size to fit string l in *points* not device pixels
+                padding = 4,
                 boxHeight = 28;
         
         CGContextSetStrokeColorWithColor(_layerContext, s.stock.upColorHalfAlpha.CGColor);
-        CGContextStrokeRect(_layerContext, CGRectMake(x - 0.5, y - 24, boxWidth, boxHeight));
-     }
+        CGContextStrokeRect(_layerContext, CGRectMake(x - pxPerPoint, y - boxHeight + padding, boxWidth, boxHeight));
+    }
+    // Text after box so it appears on top of background
+    [self showString:l atPoint:CGPointMake(x, y) withColor:s.stock.upColor];
 }
 
 // To remember the last valid bar pressed, pressedBarIndex is only reset when the touch down begins
@@ -974,6 +937,37 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
 }
 
+/// Create a continuous path using the points provided and stroke the final path
+- (void) strokeLineFromPoints:(NSArray <NSValue *> *)points context:(CGContextRef)context {
+    if (points.count > 0) { // Avoid creating and stroking an empty path
+        CGContextBeginPath(context);
+        for (NSInteger i = 0; i < points.count; i++) {
+            NSValue *value = points[i];
+            if (i == 0) {
+                CGContextMoveToPoint(context, value.CGPointValue.x, value.CGPointValue.y);
+            } else {
+                CGContextAddLineToPoint(context, value.CGPointValue.x, value.CGPointValue.y);
+            }
+        }
+        CGContextStrokePath(context);
+    }
+}
+
+/// Create separate lines from each pair of points and stroke each line separately
+- (void) strokeLinesFromPoints:(NSArray <NSValue *> *)points context:(CGContextRef)context {
+    for (NSInteger i = 0; i < points.count; i++) {
+        NSValue *value = points[i];
+        if (i % 2 == 0) {
+            CGContextBeginPath(context);
+            CGContextMoveToPoint(context, value.CGPointValue.x, value.CGPointValue.y);
+        } else {
+            CGContextAddLineToPoint(context, value.CGPointValue.x, value.CGPointValue.y);
+            CGContextStrokePath(context);
+        }
+    }
+}
+
+/// Ensure tableView doesn't show through when new stock is added
 - (BOOL) isOpaque {
     return YES;
 } 

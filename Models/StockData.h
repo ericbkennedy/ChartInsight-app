@@ -3,49 +3,38 @@
 @interface StockData : NSObject<DataFetcherDelegate>
 
 @property (nonatomic) NSInteger oldestBarShown;
-@property (nonatomic) NSInteger monthCount;
-@property (nonatomic) NSInteger movingAvg1Count;
-@property (nonatomic) NSInteger movingAvg2Count;
-@property (nonatomic) NSInteger bbCount;
-@property (nonatomic) NSInteger hollowRedCount;
-@property (nonatomic) NSInteger filledGreenCount;
 @property (nonatomic) CGFloat xFactor;
 @property (nonatomic) CGFloat yFloor;
 @property (nonatomic) CGFloat yFactor;
 @property (nonatomic) CGFloat barUnit;
-@property (nonatomic) CGFloat *fundamentalAlignments;
-@property (nonatomic) CGPoint *monthLines;
+@property (nonatomic, strong) NSMutableArray <NSNumber *> *fundamentalAlignments; // contains CGFloat
+@property (nonatomic, strong) NSMutableArray <NSValue *> *monthLines; // value = CGPoint
 
 @property (nonatomic) double maxVolume;
 @property (nonatomic) BOOL      ready;
 @property (nonatomic) BOOL      busy;
-@property (nonatomic) NSInteger pointCount;
-@property (nonatomic) NSInteger redPointCount;
 @property (nonatomic) NSInteger lastMonth;
-@property (nonatomic) NSInteger year;
-@property (nonatomic) NSInteger redBarCount;
-@property (nonatomic) NSInteger whiteBarCount;
-@property (nonatomic) NSInteger blackCount;
-@property (nonatomic) NSInteger redCount;
+@property (strong, nonatomic) NSDate *oldest;
 @property (nonatomic) NSInteger oldestReport;
 @property (nonatomic) NSInteger oldestReportInView;
+@property (strong, nonatomic) NSDate *newest;   // newest date loaded, not the newest date shown
 @property (nonatomic) NSInteger newestReport;
 @property (nonatomic) NSInteger newestReportInView;
-@property (nonatomic) CGPoint  *points;
-@property (nonatomic) CGPoint  *redPoints;
-@property (nonatomic) CGPoint  *movingAvg1;
-@property (nonatomic) CGPoint  *movingAvg2;
-@property (nonatomic) CGPoint  *ubb;
-@property (nonatomic) CGPoint  *mbb;
-@property (nonatomic) CGPoint  *lbb;
-@property (nonatomic) CGPoint  *grids;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *points;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *redPoints;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *movingAvg1;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *movingAvg2;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *upperBollingerBand;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *middleBollingerBand;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *lowerBollingerBand;
 
-@property (nonatomic) CGRect  *greenBars;
-@property (nonatomic) CGRect  *filledGreenBars;
-@property (nonatomic) CGRect  *hollowRedBars;
-@property (nonatomic) CGRect  *redBars;
-@property (nonatomic) CGRect  *redVolume;
-@property (nonatomic) CGRect  *blackVolume;
+// CGRect values
+@property (nonatomic, strong) NSMutableArray <NSValue *> *greenBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *filledGreenBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *hollowRedBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *redBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *redVolume;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *blackVolume;
 
 @property (strong, nonatomic) Stock *stock;
 @property (strong, nonatomic) NSMutableArray *monthLabels;
@@ -58,14 +47,7 @@
 @property (strong, nonatomic) NSDecimalNumber *scaledLow;
 @property (strong, nonatomic) NSDecimalNumber *lastPrice;
 
-
-@property (nonatomic) CGContextRef offscreenContext;
-@property (strong, nonatomic) NSDateComponents *days;
 @property (strong, nonatomic) NSDecimalNumber *chartBase;
-@property (strong, nonatomic) NSMutableArray *reportBarIndex;
-
-@property (strong, nonatomic) NSDate *oldest;
-@property (strong, nonatomic) NSDate *newest;   // newest date loaded, not the newest date shown
 
 @property (nonatomic, assign) id delegate;
 
