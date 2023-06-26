@@ -167,6 +167,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
     if (self.stocks.count > 0) {
         stockData = [self.stocks objectAtIndex:0];
+        [stockData copyArrayValues];
         
         CGContextSetStrokeColor(_layerContext, monthLineColor);        
         CGContextSetLineWidth(_layerContext, 1.0);   // in pixels not points
@@ -209,6 +210,9 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     for(NSInteger s = self.stocks.count - 1; s >= 0; s--) {    // go backwards so stock[0] draws on top
         
         stockData = [self.stocks objectAtIndex:s];
+        if (s > 0) { // Already copied above in order to render monthLines
+            [stockData copyArrayValues];
+        }
         
         if (stockData.oldestBarShown <= 0) {
             continue; // nothing to draw, so skip it
@@ -294,8 +298,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         }
         
         switch (stockData.stock.chartType) {
-            case ChartTypeOHLC:
-            case ChartTypeHLC:
+            case ChartTypeOhlc:
+            case ChartTypeHlc:
                 CGContextSetBlendMode(_layerContext, kCGBlendModeNormal);
                 // now that blend mode is set, fall through to next case to render lines
             case ChartTypeCandle:
@@ -448,7 +452,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                 continue;
             }
             
-            if (stockData.oldestBarShown > 0 && stockData.fundamentalKeys.count > 0) {
+            if (stockData.oldestBarShown > 0 && stockData.fundamentalAlignments.count > 0) {
                 CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
 
                 NSInteger r = stockData.newestReportInView;

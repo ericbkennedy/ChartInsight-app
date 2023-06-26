@@ -8,8 +8,8 @@
 
 import Foundation
 
-@objc enum ChartType: Int {
-    case OHLC, HLC, Candle, Close
+@objc enum ChartType: Int, CaseIterable {
+    case ohlc, hlc, candle, close
 }
 
 @objcMembers
@@ -22,7 +22,7 @@ class Stock: NSObject {
                               UIColor.init(red: 0.6, green: 0.6, blue: 0.6, alpha: 1.0)] // gray
     
     var id: Int = 0
-    var chartType: ChartType = .Close
+    var chartType: ChartType = .close
     var comparisonStockId: Int = 0
     var hasFundamentals: Bool = true
     var color: UIColor = .red {
@@ -74,7 +74,7 @@ class Stock: NSObject {
 
         if let upColor = UIColor.init(hex: hexString) {
             self.upColor = upColor
-            if hexString == "009900" && chartType != .Close {
+            if hexString == "009900" && chartType != .close {
                 color = .red // upColor is green so other bars should be red
             } else {
                 color = upColor

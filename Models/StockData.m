@@ -998,7 +998,6 @@
         oldestClose = self.periodData[a].close;
         xRaw += _xFactor;            // keep track of the unaligned value or the chart will end too soon
     }
-    [self copyArrayValues];
     self.ready = YES;
 }
 
@@ -1006,22 +1005,24 @@
 /// This is primarily needed for intraday updates which can return fast enough (especially in the simulator) to be ready
 /// to mutate the array values while ScrollChartView is iterating through the arrays.
 - (void) copyArrayValues {
-    self.blackVolume = [NSArray arrayWithArray:self.tmpBlackVolume];
-    self.filledGreenBars = [NSArray arrayWithArray:self.tmpFilledGreenBars];
-    self.fundamentalAlignments = [NSArray arrayWithArray:self.tmpFundamentalAlignments];
-    self.greenBars = [NSArray arrayWithArray:self.tmpGreenBars];
-    self.hollowRedBars = [NSArray arrayWithArray:self.tmpHollowRedBars];
-    self.upperBollingerBand = [NSArray arrayWithArray:self.tmpUpperBollingerBand];
-    self.middleBollingerBand = [NSArray arrayWithArray:self.tmpMiddleBollingerBand];
-    self.lowerBollingerBand = [NSArray arrayWithArray:self.tmpLowerBollingerBand];
-    self.monthLines = [NSArray arrayWithArray:self.tmpMonthLines];
-    self.monthLabels = [NSArray arrayWithArray:self.tmpMonthLabels];
-    self.movingAvg1 = [NSArray arrayWithArray:self.tmpMovingAvg1];
-    self.movingAvg2 = [NSArray arrayWithArray:self.tmpMovingAvg2];
-    self.points = [NSArray arrayWithArray:self.tmpPoints];
-    self.redBars = [NSArray arrayWithArray:self.tmpRedBars];
-    self.redPoints = [NSArray arrayWithArray:self.tmpRedPoints];
-    self.redVolume = [NSArray arrayWithArray:self.tmpRedVolume];
+    dispatch_barrier_sync(concurrentQueue, ^{
+        self.blackVolume = [NSArray arrayWithArray:self.tmpBlackVolume];
+        self.filledGreenBars = [NSArray arrayWithArray:self.tmpFilledGreenBars];
+        self.fundamentalAlignments = [NSArray arrayWithArray:self.tmpFundamentalAlignments];
+        self.greenBars = [NSArray arrayWithArray:self.tmpGreenBars];
+        self.hollowRedBars = [NSArray arrayWithArray:self.tmpHollowRedBars];
+        self.upperBollingerBand = [NSArray arrayWithArray:self.tmpUpperBollingerBand];
+        self.middleBollingerBand = [NSArray arrayWithArray:self.tmpMiddleBollingerBand];
+        self.lowerBollingerBand = [NSArray arrayWithArray:self.tmpLowerBollingerBand];
+        self.monthLines = [NSArray arrayWithArray:self.tmpMonthLines];
+        self.monthLabels = [NSArray arrayWithArray:self.tmpMonthLabels];
+        self.movingAvg1 = [NSArray arrayWithArray:self.tmpMovingAvg1];
+        self.movingAvg2 = [NSArray arrayWithArray:self.tmpMovingAvg2];
+        self.points = [NSArray arrayWithArray:self.tmpPoints];
+        self.redBars = [NSArray arrayWithArray:self.tmpRedBars];
+        self.redPoints = [NSArray arrayWithArray:self.tmpRedPoints];
+        self.redVolume = [NSArray arrayWithArray:self.tmpRedVolume];
+    });
 }
 
 @end

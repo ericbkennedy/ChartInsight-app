@@ -78,6 +78,11 @@
 
 - (void) updateLayer:(NSDecimalNumber *)maxPercentChange forceRecompute:(BOOL)force;
 
+/// Create a readonly copy of the values mutated on a background thread by computeChart for use on the mainThread
+/// This is primarily needed for intraday updates which can return fast enough (especially in the simulator) to be ready
+/// to mutate the array values while ScrollChartView is iterating through the arrays.
+- (void) copyArrayValues;
+
 // Note this takes doubles even on 32 bit platforms because a double modulo function is used
 - (double) pxAlign:(double)raw alignTo:(double)alignTo;
 
