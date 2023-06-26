@@ -7,8 +7,8 @@
 @property (nonatomic) CGFloat yFloor;
 @property (nonatomic) CGFloat yFactor;
 @property (nonatomic) CGFloat barUnit;
-@property (nonatomic, strong) NSMutableArray <NSNumber *> *fundamentalAlignments; // contains CGFloat
-@property (nonatomic, strong) NSMutableArray <NSValue *> *monthLines; // value = CGPoint
+@property (nonatomic, strong) NSArray <NSNumber *> *fundamentalAlignments; // contains CGFloat
+@property (nonatomic, strong) NSArray <NSValue *> *monthLines; // value = CGPoint
 
 @property (nonatomic) double maxVolume;
 @property (nonatomic) BOOL      ready;
@@ -20,24 +20,24 @@
 @property (strong, nonatomic) NSDate *newest;   // newest date loaded, not the newest date shown
 @property (nonatomic) NSInteger newestReport;
 @property (nonatomic) NSInteger newestReportInView;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *points;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *redPoints;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *movingAvg1;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *movingAvg2;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *upperBollingerBand;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *middleBollingerBand;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *lowerBollingerBand;
+@property (nonatomic, strong) NSArray <NSValue *> *points;
+@property (nonatomic, strong) NSArray <NSValue *> *redPoints;
+@property (nonatomic, strong) NSArray <NSValue *> *movingAvg1;
+@property (nonatomic, strong) NSArray <NSValue *> *movingAvg2;
+@property (nonatomic, strong) NSArray <NSValue *> *upperBollingerBand;
+@property (nonatomic, strong) NSArray <NSValue *> *middleBollingerBand;
+@property (nonatomic, strong) NSArray <NSValue *> *lowerBollingerBand;
 
 // CGRect values
-@property (nonatomic, strong) NSMutableArray <NSValue *> *greenBars;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *filledGreenBars;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *hollowRedBars;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *redBars;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *redVolume;
-@property (nonatomic, strong) NSMutableArray <NSValue *> *blackVolume;
+@property (nonatomic, strong) NSArray <NSValue *> *greenBars;
+@property (nonatomic, strong) NSArray <NSValue *> *filledGreenBars;
+@property (nonatomic, strong) NSArray <NSValue *> *hollowRedBars;
+@property (nonatomic, strong) NSArray <NSValue *> *redBars;
+@property (nonatomic, strong) NSArray <NSValue *> *redVolume;
+@property (nonatomic, strong) NSArray <NSValue *> *blackVolume;
 
 @property (strong, nonatomic) Stock *stock;
-@property (strong, nonatomic) NSMutableArray *monthLabels;
+@property (strong, nonatomic) NSArray <NSString *> *monthLabels;
 @property (strong, nonatomic) NSCalendar *gregorian;
 @property (strong, nonatomic) NSDecimalNumber *percentChange;  // only for this stock
 @property (strong, nonatomic) NSDecimalNumber *chartPercentChange;  // for all stocks

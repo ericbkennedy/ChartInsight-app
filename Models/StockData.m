@@ -13,6 +13,25 @@
 @property (nonatomic, copy) NSDictionary<NSString*, NSArray<NSDecimalNumber*>*> *fundamentalColumns;
 @property (nonatomic, strong) DataFetcher *fetcher;
 @property (nonatomic, strong) FundamentalFetcher *fundamentalFetcher;
+
+// Use tmp arrays for background recalculation and copy to public NSArray version
+@property (nonatomic, strong) NSMutableArray <NSNumber *> *tmpFundamentalAlignments; // contains CGFloat
+@property (nonatomic, strong) NSMutableArray <NSString *> *tmpMonthLabels;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpMonthLines; // value = CGPoint
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpPoints;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpRedPoints;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpMovingAvg1;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpMovingAvg2;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpUpperBollingerBand;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpMiddleBollingerBand;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpLowerBollingerBand;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpGreenBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpFilledGreenBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpHollowRedBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpRedBars;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpRedVolume;
+@property (nonatomic, strong) NSMutableArray <NSValue *> *tmpBlackVolume;
+
 @end
 
 @implementation StockData
@@ -90,23 +109,40 @@
     self.dailyData = [NSMutableArray array];
     self.periodData = self.dailyData;
     
-    [self setMonthLabels:[NSMutableArray arrayWithCapacity:50]];
+    // Public properties are copies of tmp* mutable versions to allow concurrent recalculation
+    self.monthLabels = [NSArray array];
+    self.blackVolume = [NSArray array];
+    self.filledGreenBars = [NSArray array];
+    self.fundamentalAlignments = [NSArray array];
+    self.greenBars = [NSArray array];
+    self.hollowRedBars = [NSArray array];
+    self.upperBollingerBand = [NSArray array];
+    self.middleBollingerBand = [NSArray array];
+    self.lowerBollingerBand = [NSArray array];
+    self.monthLines = [NSArray array];
+    self.movingAvg1 = [NSArray array];
+    self.movingAvg2 = [NSArray array];
+    self.points = [NSArray array];
+    self.redBars = [NSArray array];
+    self.redPoints = [NSArray array];
+    self.redVolume = [NSArray array];
     
-    self.blackVolume = [NSMutableArray array];
-    self.filledGreenBars = [NSMutableArray array];
-    self.fundamentalAlignments = [NSMutableArray array];
-    self.greenBars = [NSMutableArray array];
-    self.hollowRedBars = [NSMutableArray array];
-    self.upperBollingerBand = [NSMutableArray array];
-    self.middleBollingerBand = [NSMutableArray array];
-    self.lowerBollingerBand = [NSMutableArray array];
-    self.monthLines = [NSMutableArray array];
-    self.movingAvg1 = [NSMutableArray array];
-    self.movingAvg2 = [NSMutableArray array];
-    self.points = [NSMutableArray array];
-    self.redBars = [NSMutableArray array];
-    self.redPoints = [NSMutableArray array];
-    self.redVolume = [NSMutableArray array];
+    self.tmpMonthLabels = [NSMutableArray array];
+    self.tmpBlackVolume = [NSMutableArray array];
+    self.tmpFilledGreenBars= [NSMutableArray array];
+    self.tmpFundamentalAlignments = [NSMutableArray array];
+    self.tmpGreenBars = [NSMutableArray array];
+    self.tmpHollowRedBars = [NSMutableArray array];
+    self.tmpUpperBollingerBand = [NSMutableArray array];
+    self.tmpMiddleBollingerBand = [NSMutableArray array];
+    self.tmpLowerBollingerBand = [NSMutableArray array];
+    self.tmpMonthLines = [NSMutableArray array];
+    self.tmpMovingAvg1 = [NSMutableArray array];
+    self.tmpMovingAvg2 = [NSMutableArray array];
+    self.tmpPoints = [NSMutableArray array];
+    self.tmpRedBars = [NSMutableArray array];
+    self.tmpRedPoints = [NSMutableArray array];
+    self.tmpRedVolume = [NSMutableArray array];
     
     [self setLastPrice:[NSDecimalNumber zero]];
     return self;
@@ -663,20 +699,21 @@
 }
 
 - (void) clearChart {
-    [self.monthLines removeAllObjects];
-    [self.greenBars removeAllObjects];
-    [self.filledGreenBars removeAllObjects];
-    [self.hollowRedBars removeAllObjects];
-    [self.redBars removeAllObjects];
-    [self.redVolume removeAllObjects];
-    [self.blackVolume removeAllObjects];
-    [self.points removeAllObjects];
-    [self.redPoints removeAllObjects];
-    [self.movingAvg1 removeAllObjects];
-    [self.movingAvg2 removeAllObjects];
-    [self.upperBollingerBand removeAllObjects];
-    [self.middleBollingerBand removeAllObjects];
-    [self.lowerBollingerBand removeAllObjects];
+    [self.tmpMonthLines removeAllObjects];
+    [self.tmpMonthLabels removeAllObjects];
+    [self.tmpGreenBars removeAllObjects];
+    [self.tmpFilledGreenBars removeAllObjects];
+    [self.tmpHollowRedBars removeAllObjects];
+    [self.tmpRedBars removeAllObjects];
+    [self.tmpRedVolume removeAllObjects];
+    [self.tmpBlackVolume removeAllObjects];
+    [self.tmpPoints removeAllObjects];
+    [self.tmpRedPoints removeAllObjects];
+    [self.tmpMovingAvg1 removeAllObjects];
+    [self.tmpMovingAvg2 removeAllObjects];
+    [self.tmpUpperBollingerBand removeAllObjects];
+    [self.tmpMiddleBollingerBand removeAllObjects];
+    [self.tmpLowerBollingerBand removeAllObjects];
 }
 
 - (NSString *) monthName:(NSInteger)month {
@@ -790,12 +827,12 @@
                 break;
             }
             
-            self.fundamentalAlignments[r] = [NSNumber numberWithFloat:((oldestValidBar - barAlignment + 1) * self.xFactor + xRaw)];
+            self.tmpFundamentalAlignments[r] = [NSNumber numberWithFloat:((oldestValidBar - barAlignment + 1) * self.xFactor + xRaw)];
             r++;
         } while (r <= self.oldestReport);
         
         if (barAlignment < 0) {
-            self.fundamentalAlignments[r] = [NSNumber numberWithFloat:((oldestValidBar - lastBarAlignment + 1) * self.xFactor + xRaw)];
+            self.tmpFundamentalAlignments[r] = [NSNumber numberWithFloat:((oldestValidBar - lastBarAlignment + 1) * self.xFactor + xRaw)];
         }
         
         self.oldestReportInView = r;
@@ -817,18 +854,14 @@
 
     volumeFactor = self.maxVolume/volumeHeight;
 
-    // If we lack older data, estimate lastClose using oldest open
-    [self.monthLabels removeAllObjects];
-    
-    NSString *label;
-    
+    // If we lack older data, estimate lastClose using oldest open    
     self.lastMonth = self.periodData[oldestValidBar].month;
 
     for (NSInteger a = oldestValidBar; a >= _newestBarShown; a--) {
         barCenter = [self pxAlign:xRaw alignTo:0.5]; // pixel context
         
         if (self.periodData[a].month != self.lastMonth) {
-            label = [self monthName:self.periodData[a].month];
+            NSString *label = [self monthName:self.periodData[a].month];
             if (self.periodData[a].month == 1) {
                 if (self.periodCount <  self.dailyData.count || self.xFactor < 4) { // not enough room
                     label = [[NSString stringWithFormat:@"%ld", (long)self.periodData[a].year] substringFromIndex:2];
@@ -843,9 +876,9 @@
             }
 
             if (label.length > 0) {
-                [self.monthLabels addObject:label];
-                [self.monthLines addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - 2, sparklineHeight)]];
-                [self.monthLines addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - 2, volumeBase)]];
+                [self.tmpMonthLabels addObject:label];
+                [self.tmpMonthLines addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - 2, sparklineHeight)]];
+                [self.tmpMonthLines addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - 2, volumeBase)]];
             }
             
         }
@@ -855,27 +888,27 @@
             
             if (oldestClose > self.periodData[a].close) { // green bar
                 if (self.stock.chartType == 0) { // include open
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - _xFactor/2, _yFloor - _yFactor * self.periodData[a].open)]];
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - _xFactor/2, _yFloor - _yFactor * self.periodData[a].open)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
                 }
                 
-                [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
-                [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
+                [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
+                [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
                 
-                [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
-                [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * self.periodData[a].close)]];
+                [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
+                [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * self.periodData[a].close)]];
                 
             } else {    // red bar
                 if (self.stock.chartType == 0) { // include open
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - self.xFactor/2, _yFloor - _yFactor * self.periodData[a].open)]];
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter - self.xFactor/2, _yFloor - _yFactor * self.periodData[a].open)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
                 }
                 
-                [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
-                [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
+                [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
+                [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
                 
-                [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
-                [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * self.periodData[a].close)]];
+                [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
+                [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter + _xFactor/2, _yFloor - _yFactor * self.periodData[a].close)]];
             }
             
         } else if (self.stock.chartType == 2 ) { // candlestick
@@ -893,44 +926,44 @@
                 if (oldestClose < self.periodData[a].close) { // filled green bar
                     
                     NSValue *rect = [NSValue valueWithCGRect:CGRectMake(barCenter - _xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight)];
-                    [self.filledGreenBars addObject:rect];
+                    [self.tmpFilledGreenBars addObject:rect];
                     
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
                     
                 } else {
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
 
-                    [self.redBars addObject:[NSValue valueWithCGRect:CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight)]];
+                    [self.tmpRedBars addObject:[NSValue valueWithCGRect:CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight)]];
                 }
                 
             } else {
                 
                 if (oldestClose > self.periodData[a].close) { // red hollow bar
                     
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
                     
-                    [self.hollowRedBars addObject:[NSValue valueWithCGRect:CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight)]];
+                    [self.tmpHollowRedBars addObject:[NSValue valueWithCGRect:CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * self.xFactor, barHeight)]];
                     
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
-                    [self.redPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
+                    [self.tmpRedPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
                     
                 } else {
                     
-                    [self.greenBars addObject:[NSValue valueWithCGRect:CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * _xFactor, barHeight)]];
+                    [self.tmpGreenBars addObject:[NSValue valueWithCGRect:CGRectMake(barCenter - self.xFactor * 0.4, _yFloor - _yFactor * self.periodData[a].open, 0.8 * _xFactor, barHeight)]];
                     
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].high)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
                     
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
-                    [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].open)]];
+                    [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].low)]];
                 }
             }
             
         } else if (self.stock.chartType == 3 ) { // Close
-            [self.points addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
+            [self.tmpPoints addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].close)]];
         }
 
         // It may seem inefficient to check the BOOL and the CGFloat value, but this is optimal
@@ -938,17 +971,17 @@
         // that's why the counts must be reset after each redraw instead of when recalculating the indicators
         
         if (sma50 && self.periodData[a].movingAvg1 > 0.) {
-            [self.movingAvg1 addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].movingAvg1)]];
+            [self.tmpMovingAvg1 addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].movingAvg1)]];
         }
         
         if (sma200 && self.periodData[a].movingAvg2 > 0.) {
-            [self.movingAvg2 addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].movingAvg2)]];
+            [self.tmpMovingAvg2 addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].movingAvg2)]];
         }
         
         if (bb20 && self.periodData[a].mbb > 0.) {
-            [self.upperBollingerBand addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * (self.periodData[a].mbb + 2*self.periodData[a].stdev))]];
-            [self.middleBollingerBand addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].mbb)]];
-            [self.lowerBollingerBand addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * (self.periodData[a].mbb - 2*self.periodData[a].stdev))]];
+            [self.tmpUpperBollingerBand addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * (self.periodData[a].mbb + 2*self.periodData[a].stdev))]];
+            [self.tmpMiddleBollingerBand addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * self.periodData[a].mbb)]];
+            [self.tmpLowerBollingerBand addObject:[NSValue valueWithCGPoint:CGPointMake(barCenter, _yFloor - _yFactor * (self.periodData[a].mbb - 2*self.periodData[a].stdev))]];
         }
         
         if (self.periodData[a].volume <= 0) {
@@ -956,16 +989,39 @@
         } else {
             NSValue *rect = [NSValue valueWithCGRect:CGRectMake(barCenter - _xFactor/2, volumeBase, _xFactor, - self.periodData[a].volume/volumeFactor)];
             if (oldestClose > self.periodData[a].close) {
-                [self.redVolume addObject:rect];
+                [self.tmpRedVolume addObject:rect];
             } else { 
-                [self.blackVolume addObject:rect];
+                [self.tmpBlackVolume addObject:rect];
             }
         }
     
         oldestClose = self.periodData[a].close;
         xRaw += _xFactor;            // keep track of the unaligned value or the chart will end too soon
     }
+    [self copyArrayValues];
     self.ready = YES;
+}
+
+/// Create a readonly copy of the values mutated on a background thread by computeChart for use on the mainThread
+/// This is primarily needed for intraday updates which can return fast enough (especially in the simulator) to be ready
+/// to mutate the array values while ScrollChartView is iterating through the arrays.
+- (void) copyArrayValues {
+    self.blackVolume = [NSArray arrayWithArray:self.tmpBlackVolume];
+    self.filledGreenBars = [NSArray arrayWithArray:self.tmpFilledGreenBars];
+    self.fundamentalAlignments = [NSArray arrayWithArray:self.tmpFundamentalAlignments];
+    self.greenBars = [NSArray arrayWithArray:self.tmpGreenBars];
+    self.hollowRedBars = [NSArray arrayWithArray:self.tmpHollowRedBars];
+    self.upperBollingerBand = [NSArray arrayWithArray:self.tmpUpperBollingerBand];
+    self.middleBollingerBand = [NSArray arrayWithArray:self.tmpMiddleBollingerBand];
+    self.lowerBollingerBand = [NSArray arrayWithArray:self.tmpLowerBollingerBand];
+    self.monthLines = [NSArray arrayWithArray:self.tmpMonthLines];
+    self.monthLabels = [NSArray arrayWithArray:self.tmpMonthLabels];
+    self.movingAvg1 = [NSArray arrayWithArray:self.tmpMovingAvg1];
+    self.movingAvg2 = [NSArray arrayWithArray:self.tmpMovingAvg2];
+    self.points = [NSArray arrayWithArray:self.tmpPoints];
+    self.redBars = [NSArray arrayWithArray:self.tmpRedBars];
+    self.redPoints = [NSArray arrayWithArray:self.tmpRedPoints];
+    self.redVolume = [NSArray arrayWithArray:self.tmpRedVolume];
 }
 
 @end
