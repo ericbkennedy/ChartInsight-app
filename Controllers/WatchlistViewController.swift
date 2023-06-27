@@ -104,7 +104,7 @@ class WatchlistViewController: UITableViewController {
         navStockButtonToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
 
         if needsReload {
-            reload(keepExistingComparison: true)
+            reload(keepExistingComparison: false) // handles case when user deletes the currently visible stock
             needsReload = false
         }
         
@@ -218,8 +218,8 @@ class WatchlistViewController: UITableViewController {
         
         let pinchMidpoint = recognizer.location(in: view).x - scrollChartView.layer.position.x - 5
         
-        scrollChartView.resizeChartImage(2.0, withCenter: pinchMidpoint)
-        scrollChartView.resizeChart(2.0)
+        scrollChartView.scaleChartImage(2.0, withCenter: pinchMidpoint)
+        scrollChartView.scaleChart(2.0)
     }
     
     /// Display an enlarged screenshot of the chart under the user's finger in the magnifier subview
@@ -287,9 +287,9 @@ class WatchlistViewController: UITableViewController {
         } else if recognizer.state == .changed {
             pinchCount += 1
             pinchMidpointSum = pinchMidpointSum / pinchCount // avg smooths touch errors
-            scrollChartView.resizeChartImage(recognizer.scale, withCenter: pinchMidpoint)
+            scrollChartView.scaleChartImage(recognizer.scale, withCenter: pinchMidpoint)
         } else {
-            scrollChartView.resizeChart(recognizer.scale)
+            scrollChartView.scaleChart(recognizer.scale)
         }
     }
     
@@ -477,7 +477,9 @@ class WatchlistViewController: UITableViewController {
     
     /// On iPad, this presents the viewController in a popover with an arrow to the button. On iPhone, it appears as a modal
     func popoverPush(viewController: UIViewController, from button: UIBarButtonItem) {
-        popOverNav = UINavigationController(rootViewController: viewController)
+        popOverNav = UINavigationController(rootViewController: viewController)        
+        let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
+        popOverNav.overrideUserInterfaceStyle = isDarkMode ? .dark : .light
         popOverNav.modalPresentationStyle = .popover
         popOverNav.popoverPresentationController?.sourceView = view
         popOverNav.popoverPresentationController?.barButtonItem = button

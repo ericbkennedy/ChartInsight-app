@@ -4,7 +4,7 @@ This app was originally created in 2012 for the first retina iPad and is being r
 
 ## App Structure
 
-Since this app was built prior to SwiftUI, it follows the typical MVC pattern of UIKit apps. The code for rendering multiple stock charts is in Views/ScrollChartView.* with  Controllers/RootViewController.* managing the list of stocks and the panning and zooming interactions on the ScrollChartView.
+To speed up the rewrite to Swift from Objective-C, the MVC structure of the 2012 app remains. I am planning on refactoring it to MVVM-C once the rewrite to Swift is complete. WatchlistViewController manages the list of stocks and forwards pinch and pan gestures to the ScrollChartView to scale the chart. Price data is loaded by StockData (via DataFetcher and FundamentalFetcher) and the chart elements are computed on a background concurrent queue and then copied for ScrollChartView to render on the main thread.
 
 Another tab will be added to this app to show stocks with buying by insiders or leading investors who file 13-F filings.
 

@@ -25,6 +25,7 @@ class ChartStyleControl: UIControl {
         didSet(oldValue) {
             if oldValue != selectedIndex { // remove shadow from old button and add to new
                 buttons[oldValue].layer.shadowOpacity = 0
+                buttons[oldValue].backgroundColor = UIColor.clear
                 addShadow(to: buttons[selectedIndex])
             }
         }
@@ -62,6 +63,7 @@ class ChartStyleControl: UIControl {
         stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: stackView.spacing).isActive = true
         stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -1 * stackView.spacing).isActive = true
         createSegments(for: currentChartType)
+        backgroundColor = UIColor.systemBackground
     }
     
     /// Add segments to StackView by rendering images and creating a button for each image.
@@ -105,7 +107,7 @@ class ChartStyleControl: UIControl {
     }
     
     func addShadow(to button: UIButton) {
-        button.layer.backgroundColor = UIColor.systemBackground.cgColor
+        button.backgroundColor = UIColor.systemBackground
         button.layer.shadowColor = UIColor.darkGray.cgColor
         button.layer.shadowRadius = 2
         button.layer.shadowOffset = CGSize(width: 0, height: 0)

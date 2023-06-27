@@ -26,6 +26,10 @@ import Foundation
     var mbb: Double = -1.0
     var stdev: Double = -1.0
     
+    enum MonthShortName: String, CaseIterable {
+        case Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
+    }
+    
     static func == (lhs: BarData, rhs: BarData) -> Bool {
         
         if lhs.year == rhs.year && lhs.month == rhs.month && lhs.day == rhs.day {
@@ -37,6 +41,15 @@ import Foundation
     func dateIntFromBar() -> Int {
 
         return year * 10000 + month * 100 + day;
+    }
+    
+    /// Returns a short month name for this bar with a trailing space to append the year as space allows
+    func monthName() -> String {
+        var monthName = ""
+        if month >= 0 && month <= 12 {
+            monthName = MonthShortName.allCases[month - 1].rawValue
+        }
+        return monthName + " "
     }
     
     /// If CSV line contains yyyy-mm-dd,open,high,low,close,volume then a new BarData object will be returned

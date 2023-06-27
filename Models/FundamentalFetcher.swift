@@ -18,7 +18,7 @@ import Foundation
 class FundamentalFetcher: NSObject {
     var isLoadingData: Bool = false
     var ticker: String = ""
-    var delegate: DataFetcherDelegate? = nil
+    weak var delegate: DataFetcherDelegate? = nil
     var year:    [Int] = []
     var month:   [Int] = []
     var day:     [Int] = []
@@ -35,9 +35,9 @@ class FundamentalFetcher: NSObject {
         delegate = withDelegate
                 
         if let url = formatRequestURL(keys: stock.fundamentalList) {
-            Task {
+            Task { [weak self] in
                 do {
-                    try await fetch(from: url)
+                    try await self?.fetch(from: url)
                 } catch {
                     print("Error \(error)")
                 }

@@ -29,25 +29,12 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 @implementation ScrollChartView
 
 - (void) dealloc {
-    
-    for(StockData *stock in self.stocks) {
-        [stock release];
-    }
-    [_stocks release];
-    [_numberFormatter release];
-    
-    CGLayerRelease(_layerRef); 
+    CGLayerRelease(_layerRef); // Release CGLayerRef since it isn't managed by ARC
     [super dealloc];
 }
 
-- (void) removeStockAtIndex:(NSInteger)i {
-
-    if (i < self.stocks.count) {
-        [self.stocks removeObjectAtIndex:i];
-    }
-}
-
-- (void) resetDimensions {
+/// Adjusts _svWidth chart area to allow one right axis per stock
+- (void) updateDimensions {
     _svHeight = self.bounds.size.height;
     _maxWidth = self.bounds.size.width;
     _scaledWidth = _maxWidth;
@@ -82,7 +69,6 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
         BigNumberFormatter *newNumberFormatter = [[BigNumberFormatter alloc] init];
         [self setNumberFormatter:newNumberFormatter];
-        [newNumberFormatter release];
 
         [self setChartPercentChange:[NSDecimalNumber zero]];
         
@@ -106,29 +92,30 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     [self.stocks removeAllObjects];
 }
 
+/// Redraw charts without loading any data if a stock color, chart type or technical changes
 -(void) redrawCharts {
     for (StockData *s in self.stocks) {
-        [s updateLayer: self.chartPercentChange forceRecompute:YES];
+        [s recompute:self.chartPercentChange forceRecompute:YES];
     }
     [self renderCharts];
 }
 
-
-/* Called by StockData when saved rows are insuffient */
+/// Called by StockData when saved rows are insuffient
 - (void) showProgressIndicator {
     [self.progressIndicator startAnimating];
 }
 
-/* Called by StockData when fundamental API returns before historical API */
+/// Called by StockData when fundamental API returns before historical API
 - (void) stopProgressIndicator {
     [self.progressIndicator stopAnimating];
 }
 
+/// Render charts for the stocks in scrollChartView.comparison and fetch data as needed
 - (void) loadChart {
 
     [self setChartPercentChange:[NSDecimalNumber zero]];
     
-    [self resetDimensions];     // this IS necessary for first load
+    [self updateDimensions];     // adjusts chart area to allow one right axis per stock
     
     self.sparklineKeys = self.comparison.sparklineKeys;
     
@@ -177,12 +164,13 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         NSInteger monthLabelIndex = 0;
         CGFloat offset = 10 *  self.layer.contentsScale;
          
-        for (NSInteger m = 0; m < stockData.monthLines.count; m++) {
-            CGPoint topPoint = stockData.monthLines[m].CGPointValue;
+        for (NSInteger m = 0; m < stockData.chartElements.monthLines.count; m++) {
+            NSValue *monthPointValue = stockData.chartElements.monthLines[m];
+            CGPoint topPoint = monthPointValue.CGPointValue;
 
             m++; // 2nd point is chartbase
-            
-            p = stockData.monthLines[m].CGPointValue;
+            monthPointValue = stockData.chartElements.monthLines[m];
+            p = monthPointValue.CGPointValue;
             
             CGContextBeginPath(_layerContext);
             CGContextMoveToPoint(_layerContext, topPoint.x, topPoint.y);
@@ -192,8 +180,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
 
             monthLabelIndex = floorf(m/2);
             
-            if (monthLabelIndex < [[stockData monthLabels] count]) {
-                label = [[stockData monthLabels] objectAtIndex:monthLabelIndex];
+            if (monthLabelIndex < stockData.chartElements.monthLabels.count) {
+                label = stockData.chartElements.monthLabels[monthLabelIndex];
                 [self showString:label atPoint:CGPointMake(p.x, p.y + offset) withColor:stockData.stock.upColor];
             }
         }
@@ -236,22 +224,22 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
         CGContextSetLineWidth(_layerContext, 1.0);   // pIXELs
                 
-        if (stockData.movingAvg1.count > 2) {
+        if (stockData.chartElements.movingAvg1.count > 2) {
             CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.colorInverseHalfAlpha.CGColor);
-            [self strokeLineFromPoints:stockData.movingAvg1 context:_layerContext];
+            [self strokeLineFromPoints:stockData.chartElements.movingAvg1 context:_layerContext];
         }
         
-        if (stockData.movingAvg2.count > 2) {
+        if (stockData.chartElements.movingAvg2.count > 2) {
             CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
-            [self strokeLineFromPoints:stockData.movingAvg2 context:_layerContext];
+            [self strokeLineFromPoints:stockData.chartElements.movingAvg2 context:_layerContext];
         }
 
-        if (stockData.upperBollingerBand.count > 2) {
+        if (stockData.chartElements.upperBollingerBand.count > 2) {
             CGContextSetLineDash(_layerContext, 0., dashPattern, 2);
             CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
-            [self strokeLineFromPoints:stockData.upperBollingerBand context:_layerContext];
-            [self strokeLineFromPoints:stockData.middleBollingerBand context:_layerContext];
-            [self strokeLineFromPoints:stockData.lowerBollingerBand context:_layerContext];
+            [self strokeLineFromPoints:stockData.chartElements.upperBollingerBand context:_layerContext];
+            [self strokeLineFromPoints:stockData.chartElements.middleBollingerBand context:_layerContext];
+            [self strokeLineFromPoints:stockData.chartElements.lowerBollingerBand context:_layerContext];
 
             CGContextSetLineDash(_layerContext, 0, NULL, 0);    // reset to solid
         }
@@ -263,37 +251,37 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         CGContextSetFillColorWithColor(_layerContext, stockData.stock.color.CGColor);
         CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.color.CGColor);
         
-        [self strokeLinesFromPoints:stockData.redPoints context:_layerContext];
+        [self strokeLinesFromPoints:stockData.chartElements.redPoints context:_layerContext];
         
-        for (NSValue *value in stockData.hollowRedBars) {
+        for (NSValue *value in stockData.chartElements.hollowRedBars) {
             CGContextStrokeRect(_layerContext, value.CGRectValue);
         }
 
-        for (NSValue *value in stockData.redBars) {
+        for (NSValue *value in stockData.chartElements.redBars) {
             CGContextFillRect(_layerContext, value.CGRectValue);
         }
                 
         CGContextSetStrokeColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
         
-        if (stockData.greenBars.count > 0) {
-            for (NSValue *value in stockData.greenBars) {
+        if (stockData.chartElements.greenBars.count > 0) {
+            for (NSValue *value in stockData.chartElements.greenBars) {
                 CGContextStrokeRect(_layerContext, value.CGRectValue);
             }
             
             CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
             
-            for (NSValue *value in stockData.filledGreenBars) {
+            for (NSValue *value in stockData.chartElements.filledGreenBars) {
                 CGContextFillRect(_layerContext, value.CGRectValue);
             }
         }
         
         CGContextSetFillColorWithColor(_layerContext, stockData.stock.colorHalfAlpha.CGColor);
-        for (NSValue *value in stockData.redVolume) {
+        for (NSValue *value in stockData.chartElements.redVolume) {
             CGContextFillRect(_layerContext, value.CGRectValue);
         }
         
         CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
-        for (NSValue *value in stockData.blackVolume) {
+        for (NSValue *value in stockData.chartElements.blackVolume) {
             CGContextFillRect(_layerContext, value.CGRectValue);
         }
         
@@ -303,11 +291,11 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                 CGContextSetBlendMode(_layerContext, kCGBlendModeNormal);
                 // now that blend mode is set, fall through to next case to render lines
             case ChartTypeCandle:
-                [self strokeLinesFromPoints:stockData.points context:_layerContext];
+                [self strokeLinesFromPoints:stockData.chartElements.points context:_layerContext];
                 break;
             case ChartTypeClose:
                 CGContextSetLineJoin(_layerContext, kCGLineJoinRound);
-                [self strokeLineFromPoints:stockData.points context:_layerContext];
+                [self strokeLineFromPoints:stockData.chartElements.points context:_layerContext];
                 break;
         }
             
@@ -344,10 +332,10 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         NSDecimalNumber *range = [[stockData maxHigh] decimalNumberBySubtracting:[stockData scaledLow]];
         
         NSDecimalNumber *increment, *avoidLabel, *nextLabel, *two;
-        two = [[[NSDecimalNumber alloc] initWithInt:2] autorelease];
+        two = [[NSDecimalNumber alloc] initWithInt:2];
 
         if ([range doubleValue] > 1000) {
-            increment = [[[NSDecimalNumber alloc] initWithInt:10000] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithInt:10000];
             
             while ([[range decimalNumberByDividingBy:increment withBehavior:self.roundDown] doubleValue] < 4.) {   
                 // too many labels
@@ -355,7 +343,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             }
             
         } else if ([range doubleValue] > 20) {
-            increment = [[[NSDecimalNumber alloc] initWithInt:5] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithInt:5];
             
             while ([[range decimalNumberByDividingBy:increment withBehavior:self.roundDown] doubleValue] > 10.) {   
                 // too many labels
@@ -363,17 +351,17 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             }
             
         } else if ([range doubleValue] > 10) {
-            increment = [[[NSDecimalNumber alloc] initWithInt:2] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithInt:2];
         } else if ([range doubleValue] > 5) {
-            increment = [[[NSDecimalNumber alloc] initWithInt:1] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithInt:1];
         } else if ([range doubleValue] > 2.5) {
-            increment = [[[NSDecimalNumber alloc] initWithDouble:0.5] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithDouble:0.5];
         } else if ([range doubleValue] > 1) {
-            increment = [[[NSDecimalNumber alloc] initWithDouble:0.25] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithDouble:0.25];
         } else if ([range doubleValue] > 0.5) {
-            increment = [[[NSDecimalNumber alloc] initWithDouble:0.1] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithDouble:0.1];
         } else {
-            increment = [[[NSDecimalNumber alloc] initWithDouble:0.05] autorelease];
+            increment = [[NSDecimalNumber alloc] initWithDouble:0.05];
         }
         
         avoidLabel = stockData.lastPrice;
@@ -416,7 +404,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         }
     }
     
-    NSDecimalNumber *sparkHeight = [[[NSDecimalNumber alloc] initWithDouble:(90)] autorelease];
+    NSDecimalNumber *sparkHeight = [[NSDecimalNumber alloc] initWithDouble:90];
     double qWidth = _xFactor * 60;   // use xFactor to avoid having to divide by barUnit
   
     double h = 0., yNegativeAdjustment = 0., y = [sparkHeight doubleValue], yLabel = 20;
@@ -451,20 +439,21 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             if ([stockData.stock.fundamentalList rangeOfString:key].length < 3) {
                 continue;
             }
+            NSMutableArray <NSNumber *> *fundamentalAlignments = stockData.chartElements.fundamentalAlignments;
             
-            if (stockData.oldestBarShown > 0 && stockData.fundamentalAlignments.count > 0) {
+            if (stockData.oldestBarShown > 0 && fundamentalAlignments.count > 0) {
                 CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColorHalfAlpha.CGColor);
 
                 NSInteger r = stockData.newestReportInView;
                 if (title == nil) {
                     title = [(AppDelegate *)[[UIApplication sharedApplication] delegate] titleForKey:key];
-                    CGFloat x = MIN(_pxWidth + 5, stockData.fundamentalAlignments[r].floatValue + 10);
+                    CGFloat x = MIN(_pxWidth + 5, fundamentalAlignments[r].floatValue + 10);
                     CGContextSetFillColorWithColor(_layerContext, stockData.stock.upColor.CGColor);
                     UIColor *stockColor = [UIColor colorWithCGColor:stockData.stock.upColor.CGColor];
                     [self showString:title atPoint:CGPointMake(x, yLabel) withColor:stockColor];
                 }
             
-                for (/* r = newestReportInView  */; r < stockData.oldestReportInView && stockData.fundamentalAlignments[r] > 0; r++) {
+                for (/* r = newestReportInView  */; r < stockData.oldestReportInView && fundamentalAlignments[r] > 0; r++) {
                     
                     reportValue = [stockData fundamentalValueForReport:r metric:key];
             
@@ -472,10 +461,10 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                         continue;
                     }
                                         
-                    if (r + 1 < stockData.fundamentalAlignments.count) { // can calculate bar width to older report
-                        qWidth = stockData.fundamentalAlignments[r].floatValue - stockData.fundamentalAlignments[r + 1].floatValue - 3;
+                    if (r + 1 < fundamentalAlignments.count) { // can calculate bar width to older report
+                        qWidth = fundamentalAlignments[r].floatValue - fundamentalAlignments[r + 1].floatValue - 3;
                     } else { // no older reports so use default fundamental bar width
-                        qWidth = MIN(stockData.fundamentalAlignments[r].floatValue, stockData.xFactor * 60/_barUnit) ;
+                        qWidth = MIN(fundamentalAlignments[r].floatValue, stockData.xFactor * 60/_barUnit) ;
                     }
                     h = [[reportValue decimalNumberByMultiplyingBy:sparklineYFactor] doubleValue];
                     
@@ -495,13 +484,13 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     }
                     
                     CGContextSetBlendMode(_layerContext, kCGBlendModeNormal);
-                    CGContextFillRect(_layerContext, CGRectMake(stockData.fundamentalAlignments[r].floatValue, y, -qWidth, -h));
+                    CGContextFillRect(_layerContext, CGRectMake(fundamentalAlignments[r].floatValue, y, -qWidth, -h));
                                         
                     if (_barUnit < 5. && stocksWithFundamentals == 1) {     // don't show labels for monthly or comparison charts
                         label = [self.numberFormatter stringFromNumber:reportValue maxDigits:2*_xFactor];
                         CGContextSetBlendMode(_layerContext, kCGBlendModePlusLighter);
                     
-                        labelPosition.x = stockData.fundamentalAlignments[r].floatValue - 11.5 * label.length - 10;
+                        labelPosition.x = fundamentalAlignments[r].floatValue - 11.5 * label.length - 10;
                         [self showString:label atPoint:CGPointMake(labelPosition.x, labelPosition.y) withColor:metricColor];
                     }
                 }                
@@ -535,8 +524,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
 }
 
-/* Transforms chart during pinch/zoom gesture and to calculate scaleShift for final shiftRedraw */
-- (void) resizeChartImage:(CGFloat)newScale withCenter:(CGFloat)touchMidpoint {
+/// Horizontally scale chart image during pinch/zoom gesture and calculate scaleShift for final shiftRedraw
+- (void) scaleChartImage:(CGFloat)newScale withCenter:(CGFloat)touchMidpoint {
     
     CGFloat scaleFactor = _xFactor * newScale;
     
@@ -560,8 +549,25 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     [self setNeedsDisplay];
 }
 
-// Uses scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
-- (void) resizeChart:(CGFloat)newScale {
+/// Check if a stock has less price data available so the caller can limit all stocks to that shorter date range
+- (NSInteger) maxSupportedPeriodsForComparison:(NSInteger *)oldestBarShown {
+    NSInteger maxSupportedPeriods = 0;
+    for (StockData *stockData in self.stocks) {
+        if (*oldestBarShown == 0) {
+            *oldestBarShown = stockData.oldestBarShown;
+        }
+        NSInteger periodCountAtNewScale = [stockData maxPeriodSupportedForBarUnit:_barUnit];
+        
+        if (maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale) {
+            maxSupportedPeriods = periodCountAtNewScale;
+        }
+    }
+    return maxSupportedPeriods;
+}
+
+/// Complete pinch/zoom transformation by rerendering the chart with the newScale
+/// Uses scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
+- (void) scaleChart:(CGFloat)newScale {
     
     _scaledWidth = _maxWidth;     // reset buffer output width after temporary transformation
     
@@ -592,17 +598,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     _scaleShift = 0.;
     
     // Check if a stock has less price data available and limit all stocks to that shorter date range
-    NSInteger maxSupportedPeriods = 0, currentOldestShown = 0;
-    for (StockData *stockData in self.stocks) {
-        if (currentOldestShown == 0) {
-            currentOldestShown = stockData.oldestBarShown;
-        }
-        NSInteger periodCountAtNewScale = [stockData maxPeriodSupportedForBarUnit:_barUnit];
-        
-        if (maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale) {
-            maxSupportedPeriods = periodCountAtNewScale;
-        }
-    }
+    NSInteger currentOldestShown = 0;
+    NSInteger maxSupportedPeriods = [self maxSupportedPeriodsForComparison:&currentOldestShown];
         
     if (newXfactor == _xFactor) {
         return; // prevent strange pan when zoom hits max or mix
@@ -644,7 +641,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
     
     for(StockData *stock in self.stocks) {
-        [stock updateLayer: self.chartPercentChange forceRecompute:NO];
+        [stock recompute:self.chartPercentChange forceRecompute:NO];
     }
     
     [self renderCharts];
@@ -675,8 +672,8 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     NSInteger maxSupportedPeriods = 0, currentOldestShown = 0;
     
     for(StockData *stock in self.stocks) {
-        if (maxSupportedPeriods == 0 || maxSupportedPeriods > stock.periodCount) {
-            maxSupportedPeriods = stock.periodCount;
+        if (maxSupportedPeriods == 0 || maxSupportedPeriods > stock.periodData.count) {
+            maxSupportedPeriods = stock.periodData.count;
         }
         if (currentOldestShown == 0) {
             currentOldestShown = stock.oldestBarShown;
@@ -687,7 +684,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         } else if (barsShifted > 0) { // users panning to older dates
             if (currentOldestShown + barsShifted >= maxSupportedPeriods) { // already at max
                 outOfBars = YES;
-            } else if (barsShifted < stock.periodCount - stock.newestBarShown) {
+            } else if (barsShifted < stock.periodData.count - stock.newestBarShown) {
                 outOfBars = NO;
             }
         } else if (barsShifted < 0 && stock.oldestBarShown - barsShifted > MIN_BARS_SHOWN) {
@@ -709,15 +706,16 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
 
     for(StockData *stock in self.stocks) {
-        [stock updateLayer: self.chartPercentChange forceRecompute:NO];
+        [stock recompute:self.chartPercentChange forceRecompute:NO];
     }
     
     [self renderCharts];
 }
 
+/// Create rendering context to match scrollChartViews.bounds. Called on initial load and after rotation
 - (void) resize {
     
-	[self resetDimensions];
+	[self updateDimensions];
     CGLayerRelease(_layerRef);       // release old context and get a new one
     [self createLayerContext];
     
@@ -735,7 +733,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
     
     for(StockData *stock in self.stocks) {
-        [stock updateLayer: self.chartPercentChange forceRecompute:NO];
+        [stock recompute:self.chartPercentChange forceRecompute:NO];
     }
     
     [self renderCharts];
@@ -831,7 +829,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                     CGContextSetShadow(lensContext, CGSizeMake(.5, .5), 0.75);
                     [self.numberFormatter setMaximumFractionDigits: (bar.high > 100 ? 0 : 2)];
                     
-                    label = [stockData monthName:bar.month];
+                    label = bar.monthName;
                     
                     if (_barUnit < 19) {
                         label = [label stringByAppendingFormat:@"%ld", bar.day];
@@ -930,8 +928,14 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     }
     
     if (chartsReady == [self.stocks count]) {
+        // Check if a stock has less price data available and limit all stocks to that shorter date range
+        NSInteger currentOldestShown = 0;
+        NSInteger maxSupportedPeriods = [self maxSupportedPeriodsForComparison:&currentOldestShown];
+                
         for(StockData *stock in self.stocks) {
-            [stock updateLayer: self.chartPercentChange forceRecompute:NO];
+            if (stock.oldestBarShown > maxSupportedPeriods) {
+                stock.oldestBarShown = maxSupportedPeriods;
+            }
         }
         
         [self.layer removeAllAnimations];

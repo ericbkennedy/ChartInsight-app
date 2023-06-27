@@ -143,13 +143,13 @@ class ChartOptionsController: UITableViewController {
                 onOffSwitch.tag = indexPath.row
                 cell.accessoryView = onOffSwitch
                 if indexPath.row == 0 {
-                    config.text = "50 Day Simple Moving Average"
+                    config.text = "50 Period Simple Moving Avg"
                     if let image = image(isMovingAverage: true, color: stock.colorInverseHalfAlpha) {
                         config.image = image
                     }
                     onOffSwitch.isOn = stock.technicalList.contains(TechnicalType.sma50.rawValue)
                 } else if indexPath.row == 1 {
-                    config.text = "200 Day Simple Moving Average"
+                    config.text = "200 Period Simple Moving Avg"
                     if let image = image(isMovingAverage: true, color: stock.upColorHalfAlpha) {
                         config.image = image
                     }

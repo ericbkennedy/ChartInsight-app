@@ -39,7 +39,7 @@ class DataFetcher: NSObject {
     @objc var isLoadingData: Bool = false
     var countBars: Int = 0
     var barsFromDB: Int = 0
-    @objc var delegate: DataFetcherDelegate? = nil
+    @objc weak var delegate: DataFetcherDelegate? = nil
     @objc var ticker: String = ""
     @objc var stockId: Int = 0
     @objc var requestNewest: Date = Date()
@@ -95,11 +95,11 @@ class DataFetcher: NSObject {
         guard let url = URL(string: urlString) else { return }
         isLoadingData = true
         
-        Task {
+        Task { [weak self] in
             do {
-                try await fetchIntraday(from: url)
+                try await self?.fetchIntraday(from: url)
             } catch {
-                self.handleError(error)
+                self?.handleError(error)
             }
         }
     }
@@ -320,6 +320,7 @@ class DataFetcher: NSObject {
     
     /// called by StockData when a stock is removed or the chart is cleared before switching stocks
     @objc func invalidateAndCancel() {
+        print("\(ticker) DataFetcher invalidateAndCancel")
         ephemeralSession.invalidateAndCancel()
         delegate = nil
     }
