@@ -332,7 +332,7 @@ class WatchlistViewController: UITableViewController {
             reload(keepExistingComparison: true)
         }
         updateNavStockButtonToolbar()
-        popContainer()
+        dismissPopover()
     }
     
     /// Reload the stock comparison list in the tableView and redraw the scrollChartView
@@ -390,7 +390,7 @@ class WatchlistViewController: UITableViewController {
         
         scrollChartView.comparison.add(stock)
         reload(keepExistingComparison: true)
-        popContainer()
+        dismissPopover()
     }
     
     /// Add toggleListButton and buttons for each stock in this comparison
@@ -447,10 +447,8 @@ class WatchlistViewController: UITableViewController {
                 
         for stock in scrollChartView.comparison.stockList {
             if stock.id == stockId {
-                let chartOptionsController = ChartOptionsController(style: .grouped)
+                let chartOptionsController = ChartOptionsController(stock: stock, delegate: self)
                 chartOptionsController.sparklineKeys = scrollChartView.comparison.sparklineKeys()
-                chartOptionsController.stock = stock
-                chartOptionsController.delegate = self
                 popoverPush(viewController: chartOptionsController, from: button)
                 break
             }
@@ -488,7 +486,7 @@ class WatchlistViewController: UITableViewController {
     }
     
     /// remove the topmost iPhone UIViewController or iPad UIPopoverController
-    @objc func popContainer() {
+    @objc func dismissPopover() {
         popOverNav.dismiss(animated: true)
     }
 }

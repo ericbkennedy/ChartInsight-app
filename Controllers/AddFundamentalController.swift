@@ -74,7 +74,7 @@ class AddFundamentalController: UITableViewController {
         
         let metricKey = item[0]
         self.navigationController?.popViewController(animated: false)
-        delegate?.addedFundamental(metricKey)
+        delegate?.addedFundamental(key: metricKey)
     }
     
 }

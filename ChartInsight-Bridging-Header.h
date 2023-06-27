@@ -5,6 +5,5 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import "ChartOptionsController.h" // delegate for AddFundamentalController
 #import "ScrollChartView.h"
 #import "sqlite3.h"
