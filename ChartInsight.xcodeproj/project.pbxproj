@@ -26,8 +26,6 @@
 		80A48AA42A49F686001E5E04 /* ChartStyleControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A48AA32A49F686001E5E04 /* ChartStyleControl.swift */; };
 		80AA23252A4902EB004F95F0 /* ChartOptionsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80AA23242A4902EB004F95F0 /* ChartOptionsController.swift */; };
 		80AA23262A4902EB004F95F0 /* ChartOptionsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80AA23242A4902EB004F95F0 /* ChartOptionsController.swift */; };
-		80B858B12A4B849900139EBA /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A72A4B849900139EBA /* StockData.m */; };
-		80B858B22A4B849900139EBA /* StockData.m in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A72A4B849900139EBA /* StockData.m */; };
 		80B858B32A4B849900139EBA /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A82A4B849900139EBA /* DBActor.swift */; };
 		80B858B42A4B849900139EBA /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A82A4B849900139EBA /* DBActor.swift */; };
 		80B858B52A4B849900139EBA /* FundamentalFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A92A4B849900139EBA /* FundamentalFetcher.swift */; };
@@ -44,6 +42,8 @@
 		80B858C02A4B849900139EBA /* DataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AF2A4B849900139EBA /* DataFetcher.swift */; };
 		80B858C12A4B849900139EBA /* ChartElements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858B02A4B849900139EBA /* ChartElements.swift */; };
 		80B858C22A4B849900139EBA /* ChartElements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858B02A4B849900139EBA /* ChartElements.swift */; };
+		80B858C42A4BEC0200139EBA /* StockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858C32A4BEC0200139EBA /* StockData.swift */; };
+		80B858C52A4BEC0200139EBA /* StockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858C32A4BEC0200139EBA /* StockData.swift */; };
 		80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */; };
 		80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */; };
 		80E586EE2A433E6100A380AA /* ProgressIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E586ED2A433E6100A380AA /* ProgressIndicator.swift */; };
@@ -85,16 +85,15 @@
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
 		80A48AA32A49F686001E5E04 /* ChartStyleControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartStyleControl.swift; sourceTree = "<group>"; };
 		80AA23242A4902EB004F95F0 /* ChartOptionsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartOptionsController.swift; sourceTree = "<group>"; };
-		80B858A72A4B849900139EBA /* StockData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StockData.m; sourceTree = "<group>"; };
 		80B858A82A4B849900139EBA /* DBActor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DBActor.swift; sourceTree = "<group>"; };
 		80B858A92A4B849900139EBA /* FundamentalFetcher.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FundamentalFetcher.swift; sourceTree = "<group>"; };
 		80B858AA2A4B849900139EBA /* Comparison.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Comparison.swift; sourceTree = "<group>"; };
-		80B858AB2A4B849900139EBA /* StockData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StockData.h; sourceTree = "<group>"; };
 		80B858AC2A4B849900139EBA /* Stock.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
 		80B858AD2A4B849900139EBA /* BarData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
 		80B858AE2A4B849900139EBA /* BigNumberFormatter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigNumberFormatter.swift; sourceTree = "<group>"; };
 		80B858AF2A4B849900139EBA /* DataFetcher.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataFetcher.swift; sourceTree = "<group>"; };
 		80B858B02A4B849900139EBA /* ChartElements.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartElements.swift; sourceTree = "<group>"; };
+		80B858C32A4BEC0200139EBA /* StockData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StockData.swift; sourceTree = "<group>"; };
 		80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Bridging-Header.h"; sourceTree = "<group>"; };
 		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartInsightTests.swift; sourceTree = "<group>"; };
@@ -212,8 +211,7 @@
 				80B858A92A4B849900139EBA /* FundamentalFetcher.swift */,
 				80B858AC2A4B849900139EBA /* Stock.swift */,
 				80B858B02A4B849900139EBA /* ChartElements.swift */,
-				80B858AB2A4B849900139EBA /* StockData.h */,
-				80B858A72A4B849900139EBA /* StockData.m */,
+				80B858C32A4BEC0200139EBA /* StockData.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -348,7 +346,7 @@
 				802E48D52A46278B00D02E8F /* WatchlistViewController.swift in Sources */,
 				80B858B92A4B849900139EBA /* Stock.swift in Sources */,
 				8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */,
-				80B858B12A4B849900139EBA /* StockData.m in Sources */,
+				80B858C42A4BEC0200139EBA /* StockData.swift in Sources */,
 				801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */,
 				80E586EE2A433E6100A380AA /* ProgressIndicator.swift in Sources */,
 				80E587362A435DE800A380AA /* SceneDelegate.swift in Sources */,
@@ -362,11 +360,11 @@
 				80B858B62A4B849900139EBA /* FundamentalFetcher.swift in Sources */,
 				80B858C02A4B849900139EBA /* DataFetcher.swift in Sources */,
 				80E587342A435BB700A380AA /* AppDelegate.swift in Sources */,
-				80B858B22A4B849900139EBA /* StockData.m in Sources */,
 				80B858BC2A4B849900139EBA /* BarData.swift in Sources */,
 				80B858C22A4B849900139EBA /* ChartElements.swift in Sources */,
 				80E587372A435DE800A380AA /* SceneDelegate.swift in Sources */,
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
+				80B858C52A4BEC0200139EBA /* StockData.swift in Sources */,
 				802E48D62A46278B00D02E8F /* WatchlistViewController.swift in Sources */,
 				80B858B82A4B849900139EBA /* Comparison.swift in Sources */,
 				80AA23262A4902EB004F95F0 /* ChartOptionsController.swift in Sources */,

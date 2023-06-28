@@ -1,6 +1,5 @@
 #import "ScrollChartView.h"
-#import "ChartInsight-Swift.h" // for Stock and BigNumberFormatter
-#import "StockData.h"
+#import "ChartInsight-Swift.h"
 
 const CGFloat magnifierSize = 100.; // both width and height
 const CGFloat dashPattern[2] = {1.0, 1.5};
@@ -122,18 +121,15 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     _sparklineHeight = 100 * [self.sparklineKeys count];
     
     for (Stock *stock in self.comparison.stockList) {
-        StockData *stockData = [[StockData alloc] init];
+        StockData *stockData = [[StockData alloc] initWithStock:stock
+                                                      gregorian:_gregorian
+                                                       delegate:self
+                                                 oldestBarShown:[self maxBarOffset]];
         [self.stocks addObject:stockData];
-        stockData.stock = stock;
-        
-        stockData.oldestBarShown = [self maxBarOffset];
-        
-        [stockData setDelegate:self];
-        [stockData setGregorian:self.gregorian];
 
         stockData.barUnit = _barUnit;
         stockData.xFactor = _xFactor * _barUnit;
-        [stockData setPxHeight:_pxHeight withSparklineHeight:_sparklineHeight];
+        [stockData setPxHeight:_pxHeight sparklineHeight:_sparklineHeight];
         [stockData fetchStockData];
     }
 }
@@ -154,7 +150,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
     if (self.stocks.count > 0) {
         stockData = [self.stocks objectAtIndex:0];
-        [stockData copyArrayValues];
+        [stockData copyChartElements];
         
         CGContextSetStrokeColor(_layerContext, monthLineColor);        
         CGContextSetLineWidth(_layerContext, 1.0);   // in pixels not points
@@ -199,7 +195,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
         stockData = [self.stocks objectAtIndex:s];
         if (s > 0) { // Already copied above in order to render monthLines
-            [stockData copyArrayValues];
+            [stockData copyChartElements];
         }
         
         if (stockData.oldestBarShown <= 0) {
@@ -556,7 +552,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         if (*oldestBarShown == 0) {
             *oldestBarShown = stockData.oldestBarShown;
         }
-        NSInteger periodCountAtNewScale = [stockData maxPeriodSupportedForBarUnit:_barUnit];
+        NSInteger periodCountAtNewScale = [stockData maxPeriodSupportedWithBarUnit:_barUnit];
         
         if (maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale) {
             maxSupportedPeriods = periodCountAtNewScale;
@@ -632,7 +628,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
             [stockData updateHighLow];      // must be a separate call to handle shifting
         }
         
-        [stockData setPxHeight:_pxHeight withSparklineHeight:_sparklineHeight];
+        [stockData setPxHeight:_pxHeight sparklineHeight:_sparklineHeight];
         
         percentChange = [stockData shiftRedraw:shiftBars withBars:[self maxBarOffset]];
         if ([percentChange compare: self.chartPercentChange] == NSOrderedDescending) {
@@ -722,7 +718,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
     [self setChartPercentChange:[NSDecimalNumber zero]];
     
     for(StockData *stock in self.stocks) {
-        [stock setPxHeight:_pxHeight withSparklineHeight:_sparklineHeight];
+        [stock setPxHeight:_pxHeight sparklineHeight:_sparklineHeight];
         stock.xFactor = _xFactor * _barUnit;
         [stock setNewestBarShown:(stock.oldestBarShown - [self maxBarOffset])];
         [stock updateHighLow];
@@ -809,8 +805,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
         
             _pressedBarIndex = stockData.oldestBarShown - roundf(centerX/(_xFactor * _barUnit));        // only overwrite pressedBarIndex if its valid
             
-            BOOL upClose = YES;
-            BarData *bar = [stockData barAtIndex:_pressedBarIndex setUpClose:&upClose];
+            BarData *bar = [stockData barAt:_pressedBarIndex];
             
             if (bar != nil) {
                 CGFloat barHigh = stockData.yFloor - stockData.yFactor * bar.high;
@@ -822,7 +817,7 @@ const CGFloat dashPatern[2] =  {1.0,  3.0};
                                                    CGColorCreateCopyWithAlpha(backgroundColor.CGColor, 0.25));
                     CGContextFillRect(lensContext, CGRectMake(0., 0., magnifierSize, magnifierSize));
                     
-                    UIColor *strokeColor = (upClose ? stockData.stock.upColor : stockData.stock.color);
+                    UIColor *strokeColor = bar.upClose ? stockData.stock.upColor : stockData.stock.color;
                     
                     CGContextSetStrokeColorWithColor(lensContext, strokeColor.CGColor);
                     CGContextSetLineWidth(lensContext, UIScreen.mainScreen.scale);

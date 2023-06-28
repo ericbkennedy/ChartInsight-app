@@ -246,7 +246,8 @@ class DataFetcher: NSObject {
         await DBActor.shared.save(fetchedData, stockId: stockId)
     }
     
-    @MainActor func historicalDataLoaded(barDataArray: [BarData]) {
+    /// Call StockData delegate and have it update the bar data on a background thread
+    func historicalDataLoaded(barDataArray: [BarData]) async {
         guard barDataArray.count > 0 else {
             // should be a failure condition
             print("\(ticker) empty historicalDataLoaded \(barDataArray)")
