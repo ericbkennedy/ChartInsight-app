@@ -17,9 +17,12 @@
 		0BB7F523183C31B90040F1C6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */; };
 		0BB7F525183C31B90040F1C6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0BB7F524183C31B90040F1C6 /* UIKit.framework */; };
 		801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801191872A42734B001C6ADD /* AddFundamentalController.swift */; };
+		80278A762A4CE3240051CFBE /* ScrollChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A752A4CE3240051CFBE /* ScrollChartView.swift */; };
+		80278A772A4CE3240051CFBE /* ScrollChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A752A4CE3240051CFBE /* ScrollChartView.swift */; };
+		80278A792A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */; };
+		80278A7A2A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */; };
 		802E48D52A46278B00D02E8F /* WatchlistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802E48D42A46278B00D02E8F /* WatchlistViewController.swift */; };
 		802E48D62A46278B00D02E8F /* WatchlistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802E48D42A46278B00D02E8F /* WatchlistViewController.swift */; };
-		809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 809576F72A2A8FF600766030 /* ScrollChartView.m */; };
 		8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */; };
 		8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB112A422FB4003E11E0 /* SettingsViewController.swift */; };
 		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
@@ -77,9 +80,9 @@
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		801191872A42734B001C6ADD /* AddFundamentalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundamentalController.swift; sourceTree = "<group>"; };
+		80278A752A4CE3240051CFBE /* ScrollChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollChartView.swift; sourceTree = "<group>"; };
+		80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderer.swift; sourceTree = "<group>"; };
 		802E48D42A46278B00D02E8F /* WatchlistViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistViewController.swift; sourceTree = "<group>"; };
-		809576F62A2A8FF600766030 /* ScrollChartView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollChartView.h; sourceTree = "<group>"; };
-		809576F72A2A8FF600766030 /* ScrollChartView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ScrollChartView.m; sourceTree = "<group>"; };
 		8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extensions.swift"; sourceTree = "<group>"; };
 		8097DB112A422FB4003E11E0 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
@@ -194,8 +197,8 @@
 			children = (
 				80E586ED2A433E6100A380AA /* ProgressIndicator.swift */,
 				80A48AA32A49F686001E5E04 /* ChartStyleControl.swift */,
-				809576F62A2A8FF600766030 /* ScrollChartView.h */,
-				809576F72A2A8FF600766030 /* ScrollChartView.m */,
+				80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */,
+				80278A752A4CE3240051CFBE /* ScrollChartView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -337,11 +340,12 @@
 				809F32352A36C7430018526F /* AddStockController.swift in Sources */,
 				80B858C12A4B849900139EBA /* ChartElements.swift in Sources */,
 				8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */,
+				80278A792A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */,
 				80A48AA42A49F686001E5E04 /* ChartStyleControl.swift in Sources */,
 				80B858BF2A4B849900139EBA /* DataFetcher.swift in Sources */,
 				80B858B32A4B849900139EBA /* DBActor.swift in Sources */,
 				80AA23252A4902EB004F95F0 /* ChartOptionsController.swift in Sources */,
-				809576F92A2A8FF600766030 /* ScrollChartView.m in Sources */,
+				80278A762A4CE3240051CFBE /* ScrollChartView.swift in Sources */,
 				80B858BD2A4B849900139EBA /* BigNumberFormatter.swift in Sources */,
 				802E48D52A46278B00D02E8F /* WatchlistViewController.swift in Sources */,
 				80B858B92A4B849900139EBA /* Stock.swift in Sources */,
@@ -358,6 +362,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				80B858B62A4B849900139EBA /* FundamentalFetcher.swift in Sources */,
+				80278A7A2A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */,
 				80B858C02A4B849900139EBA /* DataFetcher.swift in Sources */,
 				80E587342A435BB700A380AA /* AppDelegate.swift in Sources */,
 				80B858BC2A4B849900139EBA /* BarData.swift in Sources */,
@@ -369,6 +374,7 @@
 				80B858B82A4B849900139EBA /* Comparison.swift in Sources */,
 				80AA23262A4902EB004F95F0 /* ChartOptionsController.swift in Sources */,
 				80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */,
+				80278A772A4CE3240051CFBE /* ScrollChartView.swift in Sources */,
 				80B858BE2A4B849900139EBA /* BigNumberFormatter.swift in Sources */,
 				80B858BA2A4B849900139EBA /* Stock.swift in Sources */,
 				80B858B42A4B849900139EBA /* DBActor.swift in Sources */,

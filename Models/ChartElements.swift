@@ -12,49 +12,48 @@
 
 import Foundation
 
-@objcMembers
 class ChartElements: NSObject, NSCopying {
-    var monthLabels: NSMutableArray
-    var monthLines:  NSMutableArray  // contains CGPoint in NSValue
+    var monthLabels: [String]
+    var monthLines:  [CGPoint]
  
     // fundamentalColumns are a property of StockData because it is loaded once and doesn't change
     // fundamentalAlignments must be updated frequently as the user pans or zooms
-    var fundamentalAlignments: NSMutableArray // contains CGFloat
+    var fundamentalAlignments: [CGFloat]
     
-    var points:              NSMutableArray  // contains CGPoint in NSValue
-    var redPoints:           NSMutableArray  // contains CGPoint in NSValue
-    var movingAvg1:          NSMutableArray  // contains CGPoint in NSValue
-    var movingAvg2:          NSMutableArray  // contains CGPoint in NSValue
-    var upperBollingerBand:  NSMutableArray  // contains CGPoint in NSValue
-    var middleBollingerBand: NSMutableArray  // contains CGPoint in NSValue
-    var lowerBollingerBand:  NSMutableArray  // contains CGPoint in NSValue
-    var greenBars:           NSMutableArray  // contains CGRect in NSValue
-    var filledGreenBars:     NSMutableArray  // contains CGRect in NSValue
-    var hollowRedBars:       NSMutableArray  // contains CGRect in NSValue
-    var redBars:             NSMutableArray  // contains CGRect in NSValue
-    var redVolume:           NSMutableArray  // contains CGRect in NSValue
-    var blackVolume:         NSMutableArray  // contains CGRect in NSValue
+    var points:              [CGPoint]
+    var redPoints:           [CGPoint]
+    var movingAvg1:          [CGPoint]
+    var movingAvg2:          [CGPoint]
+    var upperBollingerBand:  [CGPoint]
+    var middleBollingerBand: [CGPoint]
+    var lowerBollingerBand:  [CGPoint]
+    var greenBars:           [CGRect]
+    var filledGreenBars:     [CGRect]
+    var hollowRedBars:       [CGRect]
+    var redBars:             [CGRect]
+    var redVolume:           [CGRect]
+    var blackVolume:         [CGRect]
     
     convenience override init() {
-        self.init(monthLabels: NSMutableArray(),
-                  monthLines: NSMutableArray(),
-                  fundamentalAlignments: NSMutableArray(),
-                  points: NSMutableArray(),
-                  redPoints: NSMutableArray(),
-                  movingAvg1: NSMutableArray(),
-                  movingAvg2: NSMutableArray(),
-                  upperBollingerBand: NSMutableArray(),
-                  middleBollingerBand: NSMutableArray(),
-                  lowerBollingerBand: NSMutableArray(),
-                  greenBars: NSMutableArray(),
-                  filledGreenBars: NSMutableArray(),
-                  hollowRedBars: NSMutableArray(),
-                  redBars: NSMutableArray(),
-                  redVolume: NSMutableArray(),
-                  blackVolume: NSMutableArray())
+        self.init(monthLabels: [],
+                  monthLines: [],
+                  fundamentalAlignments: [],
+                  points: [],
+                  redPoints: [],
+                  movingAvg1: [],
+                  movingAvg2: [],
+                  upperBollingerBand: [],
+                  middleBollingerBand: [],
+                  lowerBollingerBand: [],
+                  greenBars: [],
+                  filledGreenBars: [],
+                  hollowRedBars: [],
+                  redBars: [],
+                  redVolume: [],
+                  blackVolume: [])
     }
     
-    init(monthLabels: NSMutableArray, monthLines: NSMutableArray, fundamentalAlignments: NSMutableArray, points: NSMutableArray, redPoints: NSMutableArray, movingAvg1: NSMutableArray, movingAvg2: NSMutableArray, upperBollingerBand: NSMutableArray, middleBollingerBand: NSMutableArray, lowerBollingerBand: NSMutableArray, greenBars: NSMutableArray, filledGreenBars: NSMutableArray, hollowRedBars: NSMutableArray, redBars: NSMutableArray, redVolume: NSMutableArray, blackVolume: NSMutableArray) {
+    init(monthLabels: [String], monthLines: [CGPoint], fundamentalAlignments: [CGFloat], points: [CGPoint], redPoints: [CGPoint], movingAvg1: [CGPoint], movingAvg2: [CGPoint], upperBollingerBand: [CGPoint], middleBollingerBand: [CGPoint], lowerBollingerBand: [CGPoint], greenBars: [CGRect], filledGreenBars: [CGRect], hollowRedBars: [CGRect], redBars: [CGRect], redVolume: [CGRect], blackVolume: [CGRect]) {
         self.monthLabels = monthLabels
         self.monthLines = monthLines
         self.fundamentalAlignments = fundamentalAlignments
@@ -74,42 +73,42 @@ class ChartElements: NSObject, NSCopying {
     }
     
     func clear() {
-        monthLabels.removeAllObjects()
+        monthLabels.removeAll(keepingCapacity: true)
         // Don't remove fundamentalAlignments since the alignments will get updated
-        monthLines.removeAllObjects()
-        points.removeAllObjects()
-        redPoints.removeAllObjects()
-        movingAvg1.removeAllObjects()
-        movingAvg2.removeAllObjects()
-        upperBollingerBand.removeAllObjects()
-        middleBollingerBand.removeAllObjects()
-        lowerBollingerBand.removeAllObjects()
-        greenBars.removeAllObjects()
-        filledGreenBars.removeAllObjects()
-        hollowRedBars.removeAllObjects()
-        redBars.removeAllObjects()
-        redVolume.removeAllObjects()
-        blackVolume.removeAllObjects()
+        monthLines.removeAll(keepingCapacity: true)
+        points.removeAll(keepingCapacity: true)
+        redPoints.removeAll(keepingCapacity: true)
+        movingAvg1.removeAll(keepingCapacity: true)
+        movingAvg2.removeAll(keepingCapacity: true)
+        upperBollingerBand.removeAll(keepingCapacity: true)
+        middleBollingerBand.removeAll(keepingCapacity: true)
+        lowerBollingerBand.removeAll(keepingCapacity: true)
+        greenBars.removeAll(keepingCapacity: true)
+        filledGreenBars.removeAll(keepingCapacity: true)
+        hollowRedBars.removeAll(keepingCapacity: true)
+        redBars.removeAll(keepingCapacity: true)
+        redVolume.removeAll(keepingCapacity: true)
+        blackVolume.removeAll(keepingCapacity: true)
     }
     
     /// Return a copy of all of the arrays and their elements so rendering can use these values while the user pans to trigger recomputation
     func copy(with zone: NSZone? = nil) -> Any {
-        let copy = ChartElements(monthLabels: NSMutableArray(array: monthLabels),
-                                 monthLines: NSMutableArray(array: monthLines),
-                                 fundamentalAlignments: NSMutableArray(array: fundamentalAlignments),
-                                 points: NSMutableArray(array: points),
-                                 redPoints: NSMutableArray(array: redPoints),
-                                 movingAvg1: NSMutableArray(array: movingAvg1),
-                                 movingAvg2: NSMutableArray(array: movingAvg2),
-                                 upperBollingerBand: NSMutableArray(array: upperBollingerBand),
-                                 middleBollingerBand: NSMutableArray(array: middleBollingerBand),
-                                 lowerBollingerBand: NSMutableArray(array: lowerBollingerBand),
-                                 greenBars: NSMutableArray(array: greenBars),
-                                 filledGreenBars: NSMutableArray(array: filledGreenBars),
-                                 hollowRedBars: NSMutableArray(array: hollowRedBars),
-                                 redBars: NSMutableArray(array: redBars),
-                                 redVolume: NSMutableArray(array: redVolume),
-                                 blackVolume: NSMutableArray(array: blackVolume))
+        let copy = ChartElements(monthLabels: Array(monthLabels),
+                                 monthLines: Array(monthLines),
+                                 fundamentalAlignments: Array(fundamentalAlignments),
+                                 points: Array(points),
+                                 redPoints: Array(redPoints),
+                                 movingAvg1: Array(movingAvg1),
+                                 movingAvg2: Array(movingAvg2),
+                                 upperBollingerBand: Array(upperBollingerBand),
+                                 middleBollingerBand: Array(middleBollingerBand),
+                                 lowerBollingerBand: Array(lowerBollingerBand),
+                                 greenBars: Array(greenBars),
+                                 filledGreenBars: Array(filledGreenBars),
+                                 hollowRedBars: Array(hollowRedBars),
+                                 redBars: Array(redBars),
+                                 redVolume: Array(redVolume),
+                                 blackVolume: Array(blackVolume))
         return copy
     }
 }

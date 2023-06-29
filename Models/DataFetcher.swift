@@ -254,6 +254,7 @@ class DataFetcher: NSObject {
             delegate?.fetcherFailed("Empty response")
             return
         }
+        isLoadingData = false // allows StockData to request intraday data if needed
         self.delegate?.fetcherLoadedHistoricalData(barDataArray)
     }
     
@@ -321,7 +322,6 @@ class DataFetcher: NSObject {
     
     /// called by StockData when a stock is removed or the chart is cleared before switching stocks
     @objc func invalidateAndCancel() {
-        print("\(ticker) DataFetcher invalidateAndCancel")
         ephemeralSession.invalidateAndCancel()
         delegate = nil
     }

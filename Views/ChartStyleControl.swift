@@ -90,8 +90,7 @@ class ChartStyleControl: UIControl {
             oldButton.removeFromSuperview()  // will also remove from stackView
         }
         
-        for i in 0 ..< images.count {
-            let image = images[i]
+        for (i, image) in images.enumerated() {
             let button = UIButton(type: .custom)
             button.frame = CGRectMake(0, 0, 36, 36)
             button.tag = i

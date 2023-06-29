@@ -79,4 +79,106 @@ import Foundation
         }
         return nil
     }
+    
+    /// Calculate weekly high, low, close and volume starting from startDate using calendar to advance a week at at time
+    static func groupByWeek(_ dailyData: [BarData], calendar: Calendar, startDate: Date) -> [BarData] {
+        var startDate = startDate // will be updated in repeat while loop
+        var dayIndex = 0
+        var weekIndex = 0
+        var periodData: [BarData] = []
+
+        repeat {
+            let weeklyBar = BarData()
+            periodData.append(weeklyBar)
+            weeklyBar.close = dailyData[dayIndex].close
+            weeklyBar.adjClose = dailyData[dayIndex].adjClose
+            weeklyBar.high = dailyData[dayIndex].high
+            weeklyBar.low = dailyData[dayIndex].low
+            weeklyBar.volume = dailyData[dayIndex].volume
+            weeklyBar.movingAvg1 = 0.0
+            weeklyBar.movingAvg2 = 0.0
+            weeklyBar.mbb = 0.0
+            weeklyBar.stdev = 0.0
+            
+            var componentsToSubtract = DateComponents()
+            let weekdayComponents = calendar.component(.weekday, from: startDate)
+                        
+            // Get the previous Friday, convert it into an NSInteger and then group all dates LARGER than it into the current week
+            // Friday is weekday 6 in Gregorian calendar, so subtract current weekday and -1 to get previous Friday
+            componentsToSubtract.day = -1 - weekdayComponents
+            let lastFriday = calendar.date(byAdding: componentsToSubtract, to: startDate)!
+
+            let lastFridayY = calendar.component(.year, from: lastFriday)
+            let lastFridayM = calendar.component(.month, from: lastFriday)
+            let lastFridayD = calendar.component(.day, from: lastFriday)
+            
+            let lastFridayDateInt: Int = 10000 * lastFridayY + 100 * lastFridayM + lastFridayD
+            
+            dayIndex += 1
+            while dayIndex < dailyData.count &&
+                    dailyData[dayIndex].dateIntFromBar() > lastFridayDateInt {
+
+                if dailyData[dayIndex].high > weeklyBar.high {
+                    weeklyBar.high = dailyData[dayIndex].high
+                }
+                if dailyData[dayIndex].low < weeklyBar.low {
+                    weeklyBar.low = dailyData[dayIndex].low
+                }
+                weeklyBar.volume += dailyData[dayIndex].volume
+                dayIndex += 1
+            }
+            
+            weeklyBar.year = dailyData[dayIndex - 1].year
+            weeklyBar.month = dailyData[dayIndex - 1].month
+            weeklyBar.day = dailyData[dayIndex - 1].day
+            weeklyBar.open = dailyData[dayIndex - 1].open
+            
+            startDate = lastFriday
+            weekIndex += 1
+        } while dayIndex < dailyData.count // continue loop
+        
+        return periodData
+    }
+    
+    /// Calculate monthly high, low, close and volume
+    static func groupByMonth(_ dailyData: [BarData]) -> [BarData] {
+        var dayIndex = 0
+        var monthIndex = 0
+        var periodData: [BarData] = []
+        repeat {
+            let monthlyBar = BarData()
+            periodData.append(monthlyBar)
+            
+            monthlyBar.close = dailyData[dayIndex].close
+            monthlyBar.adjClose = dailyData[dayIndex].adjClose
+            monthlyBar.high = dailyData[dayIndex].high
+            monthlyBar.low = dailyData[dayIndex].low
+            monthlyBar.volume = dailyData[dayIndex].volume
+            monthlyBar.year = dailyData[dayIndex].year
+            monthlyBar.month = dailyData[dayIndex].month
+            monthlyBar.movingAvg1 = 0.0
+            monthlyBar.movingAvg2 = 0.0
+            monthlyBar.mbb = 0.0
+            monthlyBar.stdev = 0.0
+            
+            dayIndex += 1
+            while dayIndex < dailyData.count && dailyData[dayIndex].month == monthlyBar.month {
+                if dailyData[dayIndex].high > monthlyBar.high {
+                    monthlyBar.high = dailyData[dayIndex].high
+                }
+                if dailyData[dayIndex].low < monthlyBar.low {
+                    monthlyBar.low = dailyData[dayIndex].low
+                }
+                monthlyBar.volume += dailyData[dayIndex].volume
+                dayIndex += 1
+            }
+            
+            monthlyBar.open = dailyData[dayIndex - 1].open
+            monthlyBar.day = dailyData[dayIndex - 1].day
+            monthIndex += 1
+        } while dayIndex < dailyData.count // continue loop
+        
+        return periodData
+    }
+    
 }

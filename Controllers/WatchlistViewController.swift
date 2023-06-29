@@ -224,9 +224,7 @@ class WatchlistViewController: UITableViewController {
     
     /// Display an enlarged screenshot of the chart under the user's finger in the magnifier subview
     @objc func magnify(recognizer: UILongPressGestureRecognizer) {
-        if recognizer.state == .began {
-            scrollChartView.resetPressedBar()
-        } else if recognizer.state == .ended {
+        if recognizer.state == .ended {
             magnifier.isHidden = true
             return
         }
@@ -242,16 +240,15 @@ class WatchlistViewController: UITableViewController {
                                      magnifierWidth,
                                      magnifierHeight)
         
-        magnifier.layer.borderColor = UIColor.lightGray.cgColor
-        magnifier.layer.borderWidth = 1
-        magnifier.layer.cornerRadius = midpoint
-        magnifier.layer.masksToBounds = true
-        
-        // Note that this always returns some image, even when the user moves to the Y axis labels
-        // the lift-up behavior should only show a context menu when the user lifts up while a bar is selected
-        // SCC can handle this by setting pressedBar = nil during magnifyBarAtX
-        magnifier.image = scrollChartView.magnifyBarAt(x: xPress, y: yPress)
-        magnifier.isHidden = false
+        if let image = scrollChartView.magnifyBar(x: xPress, y: yPress) {
+            // Note that this returns an image even when the user moves to the Y axis labels        
+            magnifier.image = image
+            magnifier.layer.borderColor = UIColor.lightGray.cgColor
+            magnifier.layer.borderWidth = 1
+            magnifier.layer.cornerRadius = midpoint
+            magnifier.layer.masksToBounds = true
+            magnifier.isHidden = false
+        }
     }
     
     /// User panned to change the chart dates. Calculate shift in date bars shown and tell scrollChartView to redraw the chart.
@@ -295,16 +292,14 @@ class WatchlistViewController: UITableViewController {
     
     /// Called by ChartOptionsController when chart color or type changes
     @objc func redraw(withStock: Stock) {
-        if scrollChartView.comparison != nil {
-            scrollChartView.comparison.saveToDb()
-            if let barButtonItems = navStockButtonToolbar.items {
-                for button in barButtonItems {
-                    if button.tag == withStock.id {
-                        button.tintColor = withStock.upColor
-                    }
+        scrollChartView.comparison.saveToDb()
+        if let barButtonItems = navStockButtonToolbar.items {
+            for button in barButtonItems {
+                if button.tag == withStock.id {
+                    button.tintColor = withStock.upColor
                 }
-                scrollChartView.redrawCharts()
             }
+            scrollChartView.redrawCharts()
         }
     }
     
@@ -341,14 +336,15 @@ class WatchlistViewController: UITableViewController {
         Task {
             list = await Comparison.listAll()
             tableView.reloadData()
-            
-            var comparisonToChart: Comparison? = nil
-            if keepExistingComparison {
-                comparisonToChart = scrollChartView.comparison
-            } else if (list.count > 0) {
-                comparisonToChart = list[0]
-            }
-            if comparisonToChart != nil {
+    
+            if keepExistingComparison || list.count > 0 {
+                let comparisonToChart: Comparison
+                if keepExistingComparison {
+                   comparisonToChart = scrollChartView.comparison
+                } else {
+                    comparisonToChart = list[0]
+                }
+                
                 scrollChartView.clearChart()
                 progressIndicator.startAnimating()
                 scrollChartView.comparison = comparisonToChart
@@ -370,7 +366,7 @@ class WatchlistViewController: UITableViewController {
     /// Called by AddStockController when a new stock is added
     func insert(stock: Stock, isNewComparison: Bool) {
 
-        if isNewComparison || scrollChartView.comparison == nil {
+        if isNewComparison || scrollChartView.comparison.stockList.isEmpty {
             scrollChartView.comparison = Comparison()
             stock.upColor = Stock.chartColors[0] // lightGreen
             stock.color = .red
@@ -398,7 +394,7 @@ class WatchlistViewController: UITableViewController {
         var buttons: [UIBarButtonItem] = [toggleListButton]
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
         
-        if scrollChartView.comparison != nil {
+        if scrollChartView.comparison.stockList.isEmpty == false {
             for stock in scrollChartView.comparison.stockList {
                 let tickerButton = UIBarButtonItem(title: stock.ticker,
                                                    style: .plain,
