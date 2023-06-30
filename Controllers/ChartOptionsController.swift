@@ -40,21 +40,16 @@ class ChartOptionsController: UITableViewController {
     init(stock: Stock, delegate: WatchlistViewController) {
         self.stock = stock
         self.delegate = delegate
-        typeSegmentedControl = ChartStyleControl(type: .chartType, frame: segmentFrame)
-        colorSegmentedControl = ChartStyleControl(type: .color, frame: segmentFrame)
+        typeSegmentedControl = ChartStyleControl(type: .chartType, frame: segmentFrame, stock: stock)
+        colorSegmentedControl = ChartStyleControl(type: .color, frame: segmentFrame, stock: stock)
         super.init(style: .plain)
         typeSegmentedControl.delegate = self
         colorSegmentedControl.delegate = self
     }
     
     ///  Initializer required by parent class for use with storyboards
-    required init?(coder aDecoder: NSCoder) {
-        self.stock = Stock()
-        typeSegmentedControl = ChartStyleControl(type: .chartType, frame: segmentFrame)
-        typeSegmentedControl.currentChartType = stock.chartType
-        colorSegmentedControl = ChartStyleControl(type: .color, frame: segmentFrame)
-        colorSegmentedControl.currentChartType = stock.chartType
-        super.init(coder: aDecoder)
+    required convenience init?(coder aDecoder: NSCoder) {
+        self.init(stock: Stock(), delegate: WatchlistViewController())
     }
     
     override func viewDidLoad() {

@@ -12,10 +12,9 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     /// Non-alphabetical order of metrics achieved with array of categories which contains array of metric details
-    @objc var metrics: [[[String]]] = []
-    @objc var metricDictionary: [String:[String]] = [:]
+    var metrics: [[[String]]] = []
+    var metricDictionary: [String:[String]] = [:]
         
-    @objc(titleForKey:)
     func title(for key: String) -> String {
         if let item = metricDictionary[key] {
             return item[1]
@@ -23,7 +22,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ""
     }
 
-    @objc(descriptionForKey:)
     func description(for key: String) -> String {
         if let item = metricDictionary[key] {
             return item[2]
@@ -68,7 +66,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
 
-    @objc func darkMode() -> Bool {
+    func darkMode() -> Bool {
         return UserDefaults.standard.bool(forKey: "darkMode")
     }
 

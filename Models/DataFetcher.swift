@@ -8,7 +8,7 @@
 
 import Foundation
 
-@objc protocol DataFetcherDelegate {
+protocol DataFetcherDelegate {
     /// FundamentalFetcher calls StockData with the columns parsed out of the API
     func fetcherLoadedFundamentals(_ columns: [String: [NSDecimalNumber]])
     
@@ -36,24 +36,24 @@ enum ServiceError: Error {
 
 class DataFetcher: NSObject {
     var fetchedData: [BarData] = []
-    @objc var isLoadingData: Bool = false
+    var isLoadingData: Bool = false
     var countBars: Int = 0
     var barsFromDB: Int = 0
-    @objc weak var delegate: DataFetcherDelegate? = nil
-    @objc var ticker: String = ""
-    @objc var stockId: Int = 0
-    @objc var requestNewest: Date = Date()
-    @objc var requestOldest: Date = Date(timeIntervalSinceReferenceDate: 0)
-    @objc var lastClose:     Date = Date(timeIntervalSinceReferenceDate: 0)
-    @objc var nextClose:     Date = Date(timeIntervalSinceReferenceDate: 0)
-    @objc var oldestDate:    Date = Date(timeIntervalSinceReferenceDate: 0)
+    weak var delegate: StockData? = nil
+    var ticker: String = ""
+    var stockId: Int = 0
+    var requestNewest: Date = Date()
+    var requestOldest: Date = Date(timeIntervalSinceReferenceDate: 0)
+    var lastClose:     Date = Date(timeIntervalSinceReferenceDate: 0)
+    var nextClose:     Date = Date(timeIntervalSinceReferenceDate: 0)
+    var oldestDate:    Date = Date(timeIntervalSinceReferenceDate: 0)
     var lastIntradayFetch: Date = Date(timeIntervalSinceReferenceDate: 0)
     var lastOfflineError:  Date = Date(timeIntervalSinceReferenceDate: 0)
     var dateFormatter:     DateFormatter = DateFormatter()
-    @objc var gregorian: Calendar? = nil
+    var gregorian: Calendar? = nil
     var ephemeralSession: URLSession = URLSession(configuration: .ephemeral) // skip web cache
 
-    @objc override init() {
+    override init() {
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // 1996-12-19T16:39:57-08:00
         dateFormatter.dateFormat = "yyyyMMdd'T'HH':'mm':'ss'Z'";  // Z means UTC time
         dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
@@ -61,7 +61,7 @@ class DataFetcher: NSObject {
     }
 
     /// Full text search is much faster if startDates are kept as strings until the user selects a stock
-    @objc func setRequestOldestWith(startString: String) {
+    func setRequestOldestWith(startString: String) {
         if let date = dateFormatter.date(from: "\(startString)T20:00:00Z") {
             requestOldest = date
         } else {
@@ -69,7 +69,7 @@ class DataFetcher: NSObject {
         }
     }
     
-    @objc func shouldFetchIntradayQuote() -> Bool {
+    func shouldFetchIntradayQuote() -> Bool {
         let BEFORE_OPEN: TimeInterval = 23000.0
         let AFTER_CLOSE: TimeInterval = -3600.0
         let secondsUntilClose = nextClose.timeIntervalSinceNow
@@ -81,7 +81,7 @@ class DataFetcher: NSObject {
         return false
     }
     
-    @objc func fetchIntradayQuote() {
+    func fetchIntradayQuote() {
         if (isLoadingData) {
             print("loadingData = true so skipping Intraday fetch")
         } else if (isRecent(lastOfflineError)) {
@@ -173,7 +173,6 @@ class DataFetcher: NSObject {
     }
     
     /// StockData will call this with the currentNewest date (or .distantPast) if self.nextClose is today or in the past.
-    @objc(fetchNewerThanDate:)
     func fetchNewerThanDate(currentNewest: Date) {
         
         if currentNewest.compare(.distantPast) == .orderedDescending {
@@ -258,7 +257,6 @@ class DataFetcher: NSObject {
         self.delegate?.fetcherLoadedHistoricalData(barDataArray)
     }
     
-    @objc(dateFromBar:)
     func date(from bar: BarData) -> Date {
         let dateString = String(format: "%ld%02ld%02ldT20:00:00Z", bar.year, bar.month, bar.day)
         let date = dateFormatter.date(from: dateString);
@@ -321,7 +319,7 @@ class DataFetcher: NSObject {
     }
     
     /// called by StockData when a stock is removed or the chart is cleared before switching stocks
-    @objc func invalidateAndCancel() {
+    func invalidateAndCancel() {
         ephemeralSession.invalidateAndCancel()
         delegate = nil
     }

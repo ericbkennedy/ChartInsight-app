@@ -10,7 +10,7 @@
 
 import Foundation
 
-@objcMembers class BarData: NSObject {
+class BarData {
     
     var year: NSInteger = 0
     var month: NSInteger = 0

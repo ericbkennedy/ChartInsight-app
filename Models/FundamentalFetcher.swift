@@ -14,25 +14,24 @@
 
 import Foundation
 
-@objcMembers
 class FundamentalFetcher: NSObject {
     var isLoadingData: Bool = false
     var ticker: String = ""
-    weak var delegate: DataFetcherDelegate? = nil
+    weak var delegate: StockData? = nil
     var year:    [Int] = []
     var month:   [Int] = []
     var day:     [Int] = []
     var columns: [String: [NSDecimalNumber]] = [:]
     var barAlignments: [Int] = [] // set later by StockData to align dates
     
-    func getFundamentals(for stock: Stock, withDelegate: DataFetcherDelegate) {
+    func getFundamentals(for stock: Stock, delegate: StockData) {
         guard isLoadingData == false else {
             print("Already loading data")
             return
         }
         isLoadingData = true
         ticker = stock.ticker
-        delegate = withDelegate
+        self.delegate = delegate
                 
         if let url = formatRequestURL(keys: stock.fundamentalList) {
             Task { [weak self] in

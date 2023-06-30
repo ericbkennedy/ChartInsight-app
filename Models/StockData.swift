@@ -23,48 +23,48 @@ protocol StockDataDelegate {
 }
 
 class StockData: NSObject, DataFetcherDelegate {
-    @objc var stock: Stock
-    @objc var gregorian: Calendar
+    var stock: Stock
+    var gregorian: Calendar
     @objc weak var delegate: ScrollChartView?
     
-    @objc var newestBarShown: Int {
+    var newestBarShown: Int {
         didSet {
             if newestBarShown < 0 {
                 newestBarShown = 0
             }
         }
     }
-    @objc var oldestBarShown: Int
-    @objc var xFactor: CGFloat
-    @objc var yFloor: CGFloat
-    @objc var yFactor: CGFloat
-    @objc var barUnit: CGFloat
+    var oldestBarShown: Int
+    var xFactor: CGFloat
+    var yFloor: CGFloat
+    var yFactor: CGFloat
+    var barUnit: CGFloat
 
     /// ready == true if StockData has been loaded, computed and copied into chartElements.
-    @objc var ready = false
+    var ready = false
     /// busy == true if it is currently recomputing chartElements.
     /// Can be busy but ready if chartElements was previously computed.
     private var busy = false
-    @objc var maxHigh: NSDecimalNumber
-    @objc var minLow: NSDecimalNumber
-    @objc var scaledLow: NSDecimalNumber
-    @objc var lastPrice: NSDecimalNumber
-    @objc var percentChange: NSDecimalNumber
+    var maxHigh: NSDecimalNumber
+    var minLow: NSDecimalNumber
+    var scaledLow: NSDecimalNumber
+    var lastPrice: NSDecimalNumber
+    var percentChange: NSDecimalNumber
     private var chartPercentChange: NSDecimalNumber
 
     private var oldest: Date
     private var newest: Date // newest loaded, not the newest shown
     // Fundamental reports
-    @objc var oldestReportInView: Int
-    @objc var newestReportInView: Int
+    var oldestReportInView: Int
+    var newestReportInView: Int
     private var oldestReport: Int
     private var newestReport: Int
     private var fundamentalColumns: [String: [NSDecimalNumber]]
     
-    @objc var chartElements: ChartElements       // public for ScrollChartView rendering
+    var chartElements: ChartElements       // public for ScrollChartView rendering
     private var tmpElements: ChartElements // private for background computation
     private var dailyData: [BarData]
-    @objc var periodData: [BarData] // points to dailyData or dailyData grouped by week or month
+    var periodData: [BarData] // points to dailyData or dailyData grouped by week or month
     private var fetcher: DataFetcher?
     private var fundamentalFetcher: FundamentalFetcher?
     private var sma50:  Bool
@@ -103,7 +103,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
     
     /// Request historical stock data price from DB and then remote server
-    @objc func fetchStockData() {
+    func fetchStockData() {
         if let fetcher = fetcher {
             calculateMovingAverages()
             fetcher.requestNewest = Date()
@@ -119,13 +119,13 @@ class StockData: NSObject, DataFetcherDelegate {
             if stock.fundamentalList.count > 4 {
                 delegate?.showProgressIndicator()
                 fundamentalFetcher = FundamentalFetcher()
-                fundamentalFetcher?.getFundamentals(for: stock, withDelegate: self)
+                fundamentalFetcher?.getFundamentals(for: stock, delegate: self)
             }
         }
     }
     
     /// FundamentalFetcher calls StockData with the columns parsed out of the API
-    @objc func fetcherLoadedFundamentals(_ columns: [String : [NSDecimalNumber]]) {
+    func fetcherLoadedFundamentals(_ columns: [String : [NSDecimalNumber]]) {
         fundamentalColumns = columns
         
         if busy == false && periodData.count > 0 {
@@ -142,7 +142,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
     
     /// Price data for bar under user's finger during long press
-    @objc func bar(at index: Int) -> BarData? {
+    func bar(at index: Int) -> BarData? {
         guard index >= 0 && index < periodData.count else { return nil }
         let bar = periodData[index]
         bar.upClose = true
@@ -157,7 +157,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
     
     /// Update values used to scale price data: pxHeight, sparklineHeight, volumeHeight, volumeBase, chartHeight
-    @objc func setPxHeight(_ h: Double, sparklineHeight s: Double) {
+    func setPxHeight(_ h: Double, sparklineHeight s: Double) {
         sparklineHeight = s
         pxHeight = h - sparklineHeight
         volumeHeight = 40 * UIScreen.main.scale
@@ -166,7 +166,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
     
     /// Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
-    @objc func invalidateAndCancel() {
+    func invalidateAndCancel() {
         // fundamentalFetcher uses the sharedSession so don't invalidate it
         fundamentalFetcher?.delegate = nil
         fundamentalFetcher = nil // will trigger deinit on fundamentalFetcher
@@ -195,7 +195,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
     
     /// Returns all fundamental metric keys or [] if fundamentals aren't loaded
-    @objc func fundamentalKeys() -> [String] {
+    func fundamentalKeys() -> [String] {
         if !fundamentalColumns.isEmpty {
             return Array(fundamentalColumns.keys)
         }
@@ -203,7 +203,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
 
     /// Metric value (or .notANumber) for a report index and metric key
-    @objc func fundamentalValue(forReport report: Int, metric: String) -> NSDecimalNumber {
+    func fundamentalValue(forReport report: Int, metric: String) -> NSDecimalNumber {
         if !fundamentalColumns.isEmpty {
             if let valuesForMetric = fundamentalColumns[metric], report < valuesForMetric.count {
                 return valuesForMetric[report]
@@ -305,7 +305,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
     
     /// Called after shiftRedraw shifts self.oldestBarShown and newestBarShown during scrolling
-    @objc func updateHighLow() {
+    func updateHighLow() {
         if periodData.count == 0 {
             NSLog("No bars, so exiting")
             return
@@ -314,7 +314,7 @@ class StockData: NSObject, DataFetcherDelegate {
         if oldestBarShown <= 0 {
             print("Resetting oldestBarShown \(oldestBarShown) to MIN(50, \(periodData.count))")
             oldestBarShown = min(50, periodData.count)
-            newestBarShown = min(0, oldestBarShown - 5) // ensures newestBarShown < oldestBarShown in for loop
+            newestBarShown = 0 // ensures newestBarShown < oldestBarShown in for loop
         } else if oldestBarShown >= periodData.count {
             oldestBarShown = periodData.count - 1
         }
@@ -365,7 +365,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
 
     /// User panned chart by barsShifted
-    @objc func shiftRedraw(_ barsShifted: Int, withBars screenBarWidth: Int) -> NSDecimalNumber {
+    func shiftRedraw(_ barsShifted: Int, withBars screenBarWidth: Int) -> NSDecimalNumber {
          if oldestBarShown + barsShifted >= periodData.count {
              print("early return because oldestBarShown \(oldestBarShown) + barsShifted \(barsShifted) > \(periodData.count) barCount")
              return percentChange
@@ -404,7 +404,7 @@ class StockData: NSObject, DataFetcherDelegate {
      }
     
     /// Determines if the percent change has increased and we need to redraw/
-    @objc func recompute(_ maxPercentChange: NSDecimalNumber, forceRecompute force: Bool) {
+    func recompute(_ maxPercentChange: NSDecimalNumber, forceRecompute force: Bool) {
         
         calculateMovingAverages()
         let pctDifference = maxPercentChange.subtracting(self.chartPercentChange).doubleValue
@@ -471,12 +471,12 @@ class StockData: NSObject, DataFetcherDelegate {
     
     /// Return the number of bars at the newBarUnit scale to check if one stock in a comparison
     /// will limit the date range that can be charted in the comparison
-    @objc func maxPeriodSupported(barUnit: CGFloat) -> Int {
+    func maxPeriodSupported(barUnit: CGFloat) -> Int {
         return Int(floor(Double(dailyData.count) / barUnit));
     }
 
     /// User zoomed in or out so rescale dailyData by the updated barUnit
-    @objc func updatePeriodDataByDayWeekOrMonth() {
+    func updatePeriodDataByDayWeekOrMonth() {
         if barUnit == 1.0 {
             periodData = dailyData
         } else if barUnit > 5 { // monthly
@@ -562,7 +562,7 @@ class StockData: NSObject, DataFetcherDelegate {
     
     /// Center a stroked line in the center of a pixel.  From a point context, it can be at 0.25, 0.333, 0.5, 0.666, or 0.75
     /// bitmap graphics always use pixel context, so they always have alignTo=0.5
-    @objc func pxAlign(_ input: Double, alignTo: Double) -> Double {
+    func pxAlign(_ input: Double, alignTo: Double) -> Double {
         var intPart = 0.0
         if modf(input, &intPart) != alignTo { // modf separates integer and fractional parts
             return intPart + alignTo
@@ -809,7 +809,7 @@ class StockData: NSObject, DataFetcherDelegate {
     /// Create a readonly copy of the values mutated on a background thread by computeChart for use on the mainThread
     /// This is primarily needed for intraday updates which can return fast enough (especially in the simulator) to be ready
     /// to mutate the array values while ScrollChartView is iterating through the arrays.
-    @objc func copyChartElements() {
+    func copyChartElements() {
         concurrentQueue?.sync(flags: .barrier) {
             chartElements = tmpElements.copy() as! ChartElements // copy() returns an Any
         }

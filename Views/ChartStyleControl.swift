@@ -16,6 +16,7 @@ enum ChartStyleControlType {
 }
 
 class ChartStyleControl: UIControl {
+    let stock: Stock
     let stackView = UIStackView(frame: CGRectMake(0, 0, 320, 44))
     var delegate: ChartOptionsController?
     var type: ChartStyleControlType
@@ -23,7 +24,7 @@ class ChartStyleControl: UIControl {
     var buttons: [UIButton] = []
     var selectedIndex: Int = 0 {
         didSet(oldValue) {
-            if oldValue != selectedIndex { // remove shadow from old button and add to new
+            if buttons.count > 0 && oldValue != selectedIndex { // remove shadow from old button and add to new
                 buttons[oldValue].layer.shadowOpacity = 0
                 buttons[oldValue].backgroundColor = UIColor.clear
                 addShadow(to: buttons[selectedIndex])
@@ -40,19 +41,10 @@ class ChartStyleControl: UIControl {
         }
     }
     
-    init(type: ChartStyleControlType, frame: CGRect) {
+    init(type: ChartStyleControlType, frame: CGRect, stock: Stock) {
         self.type = type
+        self.stock = stock
         super.init(frame: frame)
-        createSubviews()
-    }
-    
-    required init?(coder aDecoder: NSCoder) {
-        type = .color
-        super.init(coder: aDecoder)
-        createSubviews()
-    }
-
-    func createSubviews() {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .horizontal
         stackView.distribution = .equalSpacing
@@ -66,6 +58,10 @@ class ChartStyleControl: UIControl {
         backgroundColor = UIColor.systemBackground
     }
     
+    required convenience init?(coder aDecoder: NSCoder) {
+        self.init(type: .color, frame: .zero, stock: Stock())
+    }
+    
     /// Add segments to StackView by rendering images and creating a button for each image.
     /// ChartOptionsController calls this method on the color ChartStyleControl
     /// when the user taps the other ChartStyleControl to change the chartType.
@@ -73,15 +69,21 @@ class ChartStyleControl: UIControl {
         currentChartType = newChartType
         var images: [UIImage] = []
         if type == .chartType {
-            for chartType in ChartType.allCases {
+            for (i, chartType) in ChartType.allCases.enumerated() {
                 if let miniChart = image(chartType: chartType, colorIndex: 0, showLabel: true) {
                     images.append(miniChart)
                 }
+                if stock.chartType == chartType {
+                    selectedIndex = i
+                }
             }
         } else {
-            for i in 0 ..< Stock.chartColors.count {
+            for (i, color) in Stock.chartColors.enumerated() {
                 if let miniChart = image(chartType: currentChartType, colorIndex: i) {
                     images.append(miniChart)
+                }
+                if stock.hasUpColor(otherColor: color) {
+                    selectedIndex = i
                 }
             }
         }

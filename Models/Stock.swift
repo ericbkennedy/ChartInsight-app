@@ -7,12 +7,12 @@
 //
 
 import Foundation
+import UIKit
 
-@objc enum ChartType: Int, CaseIterable {
+enum ChartType: Int, CaseIterable {
     case ohlc, hlc, candle, close
 }
 
-@objcMembers
 class Stock: NSObject {
     static let chartColors = [UIColor.init(red:   0, green: 0.6, blue:   0, alpha: 1.0), // green
                               UIColor.init(red:   0, green: 0.6, blue: 1.0, alpha: 1.0), // blue
@@ -89,7 +89,6 @@ class Stock: NSObject {
         return upColor.hexString
     }
     
-    @objc(hasUpColor:)
     func hasUpColor(otherColor: UIColor) -> Bool {
 
         if upColor.hexString == otherColor.hexString {

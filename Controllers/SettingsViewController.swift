@@ -12,10 +12,9 @@ public enum SectionType: Int {
     case nightMode, stockList
 }
 
-@objcMembers
 class SettingsViewController: UITableViewController {
     
-    @objc var delegate: WatchlistViewController? = nil
+    var delegate: WatchlistViewController? = nil
     var list: [Comparison] = []
     let cellID = "settingsCell"
     

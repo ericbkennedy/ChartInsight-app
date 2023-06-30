@@ -291,7 +291,7 @@ class WatchlistViewController: UITableViewController {
     }
     
     /// Called by ChartOptionsController when chart color or type changes
-    @objc func redraw(withStock: Stock) {
+    func redraw(withStock: Stock) {
         scrollChartView.comparison.saveToDb()
         if let barButtonItems = navStockButtonToolbar.items {
             for button in barButtonItems {
@@ -304,7 +304,7 @@ class WatchlistViewController: UITableViewController {
     }
     
     /// Called by ChartOptionsController when the user adds new fundamental metrics
-    @objc func reload(withStock: Stock) {
+    func reload(withStock: Stock) {
         scrollChartView.comparison.saveToDb()
         scrollChartView.clearChart()
         progressIndicator.startAnimating()

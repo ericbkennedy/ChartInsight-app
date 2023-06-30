@@ -10,7 +10,6 @@
 
 import Foundation
 
-@objcMembers
 class ProgressIndicator: UIView {
     var progressView = UIProgressView()
     var timer: Timer? = nil
@@ -77,7 +76,7 @@ class ProgressIndicator: UIView {
         }
     }
     
-    func updateActivityIndicator(incomingTimer: Timer) {
+    @objc func updateActivityIndicator(incomingTimer: Timer) {
         var progressAchieved = progressView.progress
         if progressAchieved == 1.0 {
             isHidden = true

@@ -18,7 +18,6 @@ class BigNumberFormatter : NumberFormatter {
     
     // Format string for bars of financial metrics like revenue which can be in the billions
     // maxDigits < 4 will set maximumFractionDigits=0 and avoid showing decimal point
-    @objc(stringFromNumber:maxDigits:)
     func string(number: NSDecimalNumber, maxDigits: Float) -> String? {
         
         let thousand = NSDecimalNumber(mantissa: 1, exponent: 3, isNegative: false)

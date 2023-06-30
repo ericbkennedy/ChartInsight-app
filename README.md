@@ -1,10 +1,10 @@
 # ChartInsight iPad and iPhone app
 
-This app was originally created in 2012 for the first retina iPad and is being rewritten from Objective-C to Swift. While most financial apps require cumbersome drop-downs to adjust date ranges, this app supports intuitive zooming and panning. Easily zoom between daily, weekly and monthly charts. The financial data for the app is parsed from XML filings from the Security and Exchange Commission and is provided as-is with no warranty.
+This app was originally created in 2012 for the first retina iPad and was rewritten from Objective-C to Swift. While most financial apps require cumbersome drop-downs to adjust date ranges, this app supports intuitive zooming and panning. Easily zoom between daily, weekly and monthly charts. The financial data for the app is parsed from XML filings from the Security and Exchange Commission and is provided as-is with no warranty.
 
 ## App Structure
 
-To speed up the rewrite to Swift from Objective-C, the MVC structure of the 2012 app remains. I am planning on refactoring it to MVVM-C once the rewrite to Swift is complete. WatchlistViewController manages the list of stocks and forwards pinch and pan gestures to the ScrollChartView to scale the chart. Price data is loaded by StockData (via DataFetcher and FundamentalFetcher) and the chart elements are computed on a background concurrent queue and then copied for ScrollChartView to render on the main thread.
+WatchlistViewController manages the list of stocks and forwards pinch and pan gestures to the ScrollChartView to scale the chart. Price data is loaded by StockData (via DataFetcher and FundamentalFetcher) and the chart elements are computed on a background concurrent queue and then copied for ChartRender to render on the main thread.
 
 Another tab will be added to this app to show stocks with buying by insiders or leading investors who file 13-F filings.
 

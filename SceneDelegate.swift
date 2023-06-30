@@ -81,15 +81,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // to restore the scene back to its current state.
     }
 
-    /// Use dark color scheme if isOn
+    /// Switch color scheme with darkMode when isOn == true
     func darkMode(isOn: Bool) {
         UserDefaults.standard.setValue(isOn, forKey: "darkMode")
         
         tabBarController.overrideUserInterfaceStyle = isOn ? .dark : .light
     }
-    
-    @objc func darkMode() -> Bool {
-        return UserDefaults.standard.bool(forKey: "darkMode")
-    }
-
 }

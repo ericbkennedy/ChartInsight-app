@@ -12,8 +12,8 @@ let sections = ["Income Statement", "Cash Flow", "Balance Sheet"]
 
 class AddFundamentalController: UITableViewController {
 
-    @objc var delegate: ChartOptionsController? = nil
-    @objc var metrics: [[[String]]] = [] // set by ChartOptionsController
+    var delegate: ChartOptionsController? = nil
+    var metrics: [[[String]]] = [] // set by ChartOptionsController
     let cellID = "metricCell"
     
     required init?(coder aDecoder: NSCoder) {

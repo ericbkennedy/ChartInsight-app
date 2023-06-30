@@ -102,7 +102,6 @@ struct ChartRenderer {
                 context.setLineDash(phase: 0, lengths: []) // reset to solid
             }
 
-            context.setStrokeColor(stockData.stock.upColor.cgColor)
             context.setLineWidth(1.0 * contentsScale)
 
             context.setFillColor(stockData.stock.color.cgColor)
@@ -116,10 +115,10 @@ struct ChartRenderer {
             
             if stockData.chartElements.greenBars.count > 0 {
                 context.setStrokeColor(stockData.stock.upColor.cgColor)
+                context.setFillColor(stockData.stock.upColor.cgColor)
                 for greenBars in stockData.chartElements.greenBars {
                     context.stroke(greenBars)
                 }
-                context.setFillColor(stockData.stock.upColor.cgColor)
                 context.fill(stockData.chartElements.filledGreenBars)
             }
 
@@ -129,6 +128,7 @@ struct ChartRenderer {
             context.setFillColor(stockData.stock.upColorHalfAlpha.cgColor)
             context.fill(stockData.chartElements.blackVolume)
 
+            context.setStrokeColor(stockData.stock.upColor.cgColor)
             switch stockData.stock.chartType {
             case .ohlc, .hlc:
                 context.setBlendMode(.normal)
@@ -247,7 +247,7 @@ struct ChartRenderer {
                         
             if let title = (UIApplication.shared.delegate as? AppDelegate)?.title(for: key) {
                 let x = pxWidth - magnifierSize
-                chartText.append(string(title, at: CGPoint(x: x, y: yLabel), with: UIColor.label))
+                chartText.append(string(title, at: CGPoint(x: x, y: yLabel), with: UIColor.systemGray))
             }
             
             let minBarHeightForLabel: CGFloat = 25 // if fundamental bar is shorter then this, put metric value above the bar

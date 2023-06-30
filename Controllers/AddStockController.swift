@@ -10,8 +10,8 @@ import Foundation
 
 class AddStockController: UITableViewController, UISearchBarDelegate {
     
-    @objc var delegate: WatchlistViewController? = nil
-    @objc var isNewComparison: Bool = false
+    var delegate: WatchlistViewController? = nil
+    var isNewComparison: Bool = false
     var list: [Stock] = []
     var searchBar = UISearchBar()
     let cellID = "stockCell"
