@@ -62,7 +62,6 @@ import Foundation
                 let toURL = URL(fileURLWithPath: destinationPath)
                 try fileManager.copyItem(at: fromURL, to: toURL)
             }
-            print(destinationPath)
             
             let list = comparisonList()
             await MainActor.run {
@@ -216,7 +215,43 @@ import Foundation
         return list
     }
     
-     func save(comparison: Comparison) {
+    /// Returns a stock with the provided ticker or nil if not found
+    func getStock(ticker: String) -> Stock? {
+        var db: sqlite3ptr = nil
+        var statement: sqlite3ptr = nil
+        
+        guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return nil }
+       
+        let sql = "SELECT rowid,ticker,name,startDate,hasFundamentals FROM stock WHERE ticker=?"
+       
+        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return nil }
+        
+        sqlite3_bind_text(statement, 1, NSString(string: ticker).utf8String, -1, SQLITE_TRANSIENT)
+        
+        if (SQLITE_ROW == sqlite3_step(statement)) {
+            let stock = Stock()
+            stock.id = Int(sqlite3_column_int(statement, 0))
+            
+            stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(1))))
+            stock.name = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(2))))
+            // Faster search results UI if string to date conversion happens after user selects the stock
+            stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(3))))
+            
+            stock.hasFundamentals = 0 < Int(sqlite3_column_int(statement, Int32(4)))
+            if (stock.hasFundamentals == false) { // Banks aren't supported and ETFs don't report XML financials
+                stock.fundamentalList = "";
+            }
+            sqlite3_finalize(statement)
+            sqlite3_close(db)
+            return stock
+        }
+        sqlite3_finalize(statement)
+        sqlite3_close(db)
+        return nil;
+    }
+    
+    /// Save a stock as part of a new comparison (if comparison.id == 0) or add to an existing comparison
+    func save(comparison: Comparison) {
         var db: sqlite3ptr = nil
  
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
@@ -271,6 +306,7 @@ import Foundation
        sqlite3_close(db);
     }
     
+    /// Delete all stock from a comparison and the comparison row itself
     func delete(comparison: Comparison) {
         var db: sqlite3ptr = nil
                 
@@ -300,6 +336,7 @@ import Foundation
         
     }
     
+    /// Delete stock from a comparison -- caller should call delete(comparison:) to delete the last stock in a comparison
     func delete(stock: Stock) -> Bool {
         var db: sqlite3ptr = nil
         var isDeleted = false
@@ -322,7 +359,8 @@ import Foundation
         return isDeleted
     }
     
-    func comparisonList() -> [Comparison] {
+    /// Load all comparisons or only those with the provided ticker
+    func comparisonList(ticker: String = "") -> [Comparison] {
         var list: [Comparison] = []
         var db: sqlite3ptr = nil
         
@@ -341,9 +379,18 @@ import Foundation
             case fundamentalList
             case technicalList
         }
-        let sql = "SELECT K.rowid, CS.rowid, stockId, ticker, startDate, hasFundamentals, chartType, color, fundamentals, technicals FROM comparison K JOIN comparisonStock CS on K.rowid = CS.comparisonId JOIN stock ON stock.rowid = stockId ORDER BY K.rowid, CS.rowId"
+        var sql = "SELECT K.rowid, CS.rowid, stockId, ticker, startDate, hasFundamentals, chartType, color, fundamentals, technicals FROM comparison K JOIN comparisonStock CS on K.rowid = CS.comparisonId JOIN stock ON stock.rowid = stockId "
+        
+        if ticker.count > 0 {
+            sql += " WHERE stock.ticker = ? "
+        }
+        sql += " ORDER BY K.rowid, CS.rowId"
         
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return list }
+
+        if ticker.count > 0 {
+            sqlite3_bind_text(statement, 1, NSString(string: ticker).utf8String, -1, SQLITE_TRANSIENT)
+        }
         
         var comparison: Comparison? = nil
         var lastComparisonId = 0

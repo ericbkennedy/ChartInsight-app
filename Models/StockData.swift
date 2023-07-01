@@ -287,7 +287,7 @@ class StockData: NSObject, DataFetcherDelegate {
            fundamentalFetcher.columns.count > 0 {
             
             var i = 0
-            for r in 0 ..< fundamentalFetcher.year.count {
+            for r in 0 ..< fundamentalFetcher.reportCount() {
                 let lastReportYear = fundamentalFetcher.year[r]
                 let lastReportMonth = fundamentalFetcher.month[r]
                 
@@ -307,7 +307,6 @@ class StockData: NSObject, DataFetcherDelegate {
     /// Called after shiftRedraw shifts self.oldestBarShown and newestBarShown during scrolling
     func updateHighLow() {
         if periodData.count == 0 {
-            NSLog("No bars, so exiting")
             return
         }
         
@@ -745,7 +744,7 @@ class StockData: NSObject, DataFetcherDelegate {
         if let fundamentalFetcher = fundamentalFetcher,
             fundamentalFetcher.isLoadingData == false && fundamentalFetcher.columns.count > 0 {
             
-            oldestReport = fundamentalFetcher.year.count - 1
+            oldestReport = fundamentalFetcher.reportCount() - 1
             
             newestReport = 0
             var lastBarAlignment = 0
@@ -755,15 +754,14 @@ class StockData: NSObject, DataFetcherDelegate {
                 lastBarAlignment = fundamentalFetcher.barAlignmentFor(report: r)
                 
                 if newestReport > 0 && lastBarAlignment == -1 {
-                    // NSLog("ran out of trading data after report \(newestReport)")
+                    print("ran out of trading data after report \(newestReport)")
                 } else if lastBarAlignment > 0 && lastBarAlignment <= newestBarShown {
-                    // NSLog("lastBarAlignment \(lastBarAlignment) <= \(newestBarShown) so newestReport = \(r)")
+                    print("lastBarAlignment \(lastBarAlignment) <= \(newestBarShown) so newestReport = \(r)")
                     newestReport = r
                 }
                 
                 if lastBarAlignment > oldestValidBar || lastBarAlignment == -1 {
                     oldestReport = r       // first report just out of view
-                    // NSLog("lastBarAlignment \(lastBarAlignment) > \(oldestValidBar) oldestValidBar or not defined")
                     break
                 }
             }
@@ -781,8 +779,13 @@ class StockData: NSObject, DataFetcherDelegate {
             
             // Avoid showing any previous pixel alignments prior to user pan or zoom
             let offscreen: Int = -1
-            for i in 0 ..< tmpElements.fundamentalAlignments.count {
-                tmpElements.fundamentalAlignments[i] = CGFloat(offscreen)
+            
+            if tmpElements.fundamentalAlignments.isEmpty {
+                tmpElements.fundamentalAlignments = Array(repeating: CGFloat(offscreen), count: fundamentalFetcher.reportCount())
+            } else { // reset to offscreen value
+                for i in 0 ..< tmpElements.fundamentalAlignments.count {
+                    tmpElements.fundamentalAlignments[i] = CGFloat(offscreen)
+                }
             }
             var barAlignment = offscreen
             lastBarAlignment = offscreen
@@ -798,10 +801,6 @@ class StockData: NSObject, DataFetcherDelegate {
                 r += 1
             } while r <= oldestReport
             
-            if barAlignment < 0 {
-                let xPosition = Double(oldestValidBar - barAlignment + 1) * xFactor + xRaw
-                tmpElements.fundamentalAlignments.insert(xPosition, at: r)
-            }
             oldestReportInView = r
         }
     }

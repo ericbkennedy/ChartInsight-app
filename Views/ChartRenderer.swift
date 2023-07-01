@@ -245,11 +245,9 @@ struct ChartRenderer {
                 }
             }
                         
-            if let title = (UIApplication.shared.delegate as? AppDelegate)?.title(for: key) {
-                let x = pxWidth - magnifierSize
-                chartText.append(string(title, at: CGPoint(x: x, y: yLabel), with: UIColor.systemGray))
-            }
-            
+            let x = pxWidth - magnifierSize
+            chartText.append(string(Metrics.shared.title(for: key), at: CGPoint(x: x, y: yLabel), with: UIColor.systemGray))
+
             let minBarHeightForLabel: CGFloat = 25 // if fundamental bar is shorter then this, put metric value above the bar
             
             for stockData in stocks where stockData.stock.fundamentalList.contains(key) {
@@ -268,11 +266,13 @@ struct ChartRenderer {
                             continue
                         }
                         
-                        if r + 1 < fundamentalAlignments.count { // can calculate bar width to older report
+                        if r + 1 < fundamentalAlignments.count && fundamentalAlignments[r + 1] > 0 {
+                            // can calculate bar width to older report
                             qWidth = fundamentalAlignments[r] - fundamentalAlignments[r + 1] - 3
                         } else { // no older reports so use default fundamental bar width
                             qWidth = min(fundamentalAlignments[r], stockData.xFactor * 60 / barUnit)
                         }
+                        
                         h = reportValue.multiplying(by: sparklineYFactor).doubleValue
                         
                         var metricColor = UIColor.black
@@ -319,7 +319,7 @@ struct ChartRenderer {
         var backgroundColor = UIColor.white
         var textColor = UIColor.black
 
-        if let appDelegate = UIApplication.shared.delegate as? AppDelegate, appDelegate.darkMode() {
+        if UserDefaults.standard.bool(forKey: "darkMode") {
             backgroundColor = UIColor.black // reverse colors
             textColor = UIColor.white
         }

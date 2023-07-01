@@ -13,14 +13,14 @@ import Foundation
 class ProgressIndicator: UIView {
     var progressView = UIProgressView()
     var timer: Timer? = nil
-    var activeDownloads: Float = 0  // 1000 * active requests
-    var progressNumerator: Float = 0 // divide by activeDownloads
+    var activeDownloads: Double = 0
+    var progressNumerator: Double = 0 // divide by activeDownloads to get progress
     
     override init(frame: CGRect) {
         super.init(frame: frame)
         progressView.frame = frame
         progressView.progressViewStyle = .bar
-        isOpaque = false // only show when animating
+        isHidden = true  // only show when animating
         addSubview(progressView)
     }
     
@@ -30,72 +30,69 @@ class ProgressIndicator: UIView {
         
     func reset() {
         timer?.invalidate()
+        isHidden = true
         activeDownloads = 0
         progressNumerator = 0
     }
     
+    /// Update progressView with ratio of progressNumerator divided by activeDownloads
+    func updateDownloadProgress() {
+        progressView.setProgress(Float(progressNumerator / activeDownloads), animated: true)
+    }
+    
     func startAnimating() {
-        activeDownloads += 1000
+        activeDownloads += 1
         if (timer == nil) {
             isHidden = false
-            timer = Timer(fireAt: Date(timeIntervalSinceNow: 0.1),
-                          interval: 0.1,
-                          target: self, selector: #selector(updateActivityIndicator),
-                          userInfo: nil, repeats: true)
-            if timer != nil {
-                RunLoop.main.add(timer!, forMode: .common)
-                RunLoop.main.add(timer!, forMode: .tracking)
-            }
+            let timer = Timer.scheduledTimer(timeInterval: 0.1,
+                                         target: self,
+                                         selector: #selector(updateActivityIndicator),
+                                         userInfo: nil,
+                                         repeats: true)
+            RunLoop.main.add(timer, forMode: .common)
         }
         
-        progressView.setProgress(progressNumerator/activeDownloads, animated: false)
+        updateDownloadProgress()
         isHidden = false
     }
     
     func stopAnimating() {
-        var progressAchieved = progressView.progress
-        if activeDownloads >= 1000.0 {
+        if activeDownloads >= 1 {
             // When a download completes, subtract its share of progress
             // (progressNumerator/activeDownloads) and remove from activeDownloads
             progressNumerator -= progressNumerator/activeDownloads
-            activeDownloads -= 1000.0
+            activeDownloads -= 1
             
             var progressCalc: Float = 1.0
             if activeDownloads > 0 {
-                progressCalc = progressNumerator / activeDownloads
+                progressCalc = Float(progressNumerator / activeDownloads)
             }
             progressView.setProgress(progressCalc, animated: true)
         } else {
-            while progressAchieved < 1 {
-                progressAchieved += 0.25
-                progressView.setProgress(progressAchieved, animated: true)
-            }
+            progressView.setProgress(1.0, animated: true)
             isHidden = true
+            // reset progress to zero before it is shown again to avoid backwards animation
+            progressView.setProgress(0.0, animated: false)
             timer?.invalidate()
             timer = nil
         }
     }
     
     @objc func updateActivityIndicator(incomingTimer: Timer) {
-        var progressAchieved = progressView.progress
-        if progressAchieved == 1.0 {
+        if progressView.progress == 1.0 {
             isHidden = true
             timer?.invalidate()
             timer = nil
         } else {
             if activeDownloads <= 1 || progressNumerator > activeDownloads {
-                while progressAchieved < 1 {
-                    progressAchieved += 0.25
-                    progressView.setProgress(progressAchieved, animated: true)
-                }
+                progressView.setProgress(1.0, animated: true)
             } else if progressView.progress < 0.7 {
-                progressNumerator = progressNumerator + 15
-                progressAchieved = progressNumerator / activeDownloads
+                progressNumerator = progressNumerator + 0.015
+                updateDownloadProgress()
             } else {
-                progressNumerator += 1
-                progressAchieved = progressNumerator / activeDownloads
+                progressNumerator += 0.001
+                updateDownloadProgress()
             }
-            progressView.setProgress(progressAchieved, animated: true)
         }
     }
     

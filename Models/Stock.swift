@@ -80,8 +80,7 @@ class Stock: NSObject {
                 color = upColor
             }
         } else {
-            print("Error converting \(hexString) to UIColor so using pink")
-            color = .systemPink
+            color = .red // default: when color == red, upColor is green
         }
     }
     

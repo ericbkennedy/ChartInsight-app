@@ -8,7 +8,7 @@
 
 import Foundation
 
-class Comparison: NSObject {
+class Comparison {
     
     var id: Int = 0
     var stockList: [Stock] = []
@@ -26,14 +26,12 @@ class Comparison: NSObject {
      
         var sortedMetrics: [String] = []
         
-        if let delegate = UIApplication.shared.delegate as? AppDelegate {
-            for category in delegate.metrics {
-                for metric in category {
-                    if metric.count > 0 {
-                        let metricKey = String(metric[0])
-                        if fundamentalKeys.contains(metricKey) {
-                            sortedMetrics.append(metricKey)
-                        }
+        for category in Metrics.shared.metrics {
+            for metric in category {
+                if metric.count > 0 {
+                    let metricKey = String(metric[0])
+                    if fundamentalKeys.contains(metricKey) {
+                        sortedMetrics.append(metricKey)
                     }
                 }
             }

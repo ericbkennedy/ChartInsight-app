@@ -13,9 +13,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     let tabBarController = UITabBarController()
     var watchlistViewController = WatchlistViewController()
+    var webViewController = WebViewController()
     var settingsViewController = SettingsViewController(style: .plain)
 
     var watchlistNavigationController: UINavigationController?
+    var webNavigationController: UINavigationController?
     var settingsNavigationController: UINavigationController?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
@@ -36,11 +38,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         settingsViewController.delegate = watchlistViewController; // will refresh comparison list after deletion
         watchlistNavigationController = UINavigationController(rootViewController: watchlistViewController)
         watchlistNavigationController?.title = "Watchlist"
+        
+        webNavigationController = UINavigationController(rootViewController: webViewController)
+        webNavigationController?.tabBarItem.image = UIImage(systemName: "sparkle.magnifyingglass")
+        webNavigationController?.title = "ChartInsight.com"
+        webViewController.delegate = watchlistViewController // Users can add stocks found on chartinsight.com
         watchlistNavigationController?.tabBarItem.image = UIImage(systemName: "chart.xyaxis.line")
+        
         settingsNavigationController = UINavigationController(rootViewController: settingsViewController)
         settingsNavigationController?.title = "Settings"
         settingsNavigationController?.tabBarItem.image = UIImage(systemName: "gear")
-        tabBarController.viewControllers = [watchlistNavigationController!, settingsNavigationController!]
+        
+        tabBarController.viewControllers = [watchlistNavigationController!, webNavigationController!, settingsNavigationController!]
         tabBarController.tabBar.backgroundColor = UIColor.systemBackground
         
         window.rootViewController = tabBarController

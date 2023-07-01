@@ -119,7 +119,7 @@ class ChartOptionsController: UITableViewController {
                     cell.accessoryView = nil
                 } else if indexPath.row < listedMetricKeys.count {
                     cell.selectionStyle = .none
-                    config.text = title(for: listedMetricKeys[indexPath.row])
+                    config.text = Metrics.shared.title(for: listedMetricKeys[indexPath.row])
                     if let image = image(isMovingAverage: false, color: stock.upColorHalfAlpha) {
                         config.image = image
                     }
@@ -262,23 +262,9 @@ class ChartOptionsController: UITableViewController {
         return img
     }
     
-    func metrics() -> [[[String]]] {
-        if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
-            return appDelegate.metrics
-        }
-        return [[[]]]
-    }
-    
-    func title(for key: String) -> String {
-        if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
-            return appDelegate.title(for: key)
-        }
-        return ""
-    }
-    
     /// Update the array of metric keys and parallel array listedMetricsEnabled indicating if the metric is enabled.
     func updateListedMetrics() {
-        for category in metrics() {
+        for category in Metrics.shared.metrics {
             for metric in category {
                 let key = metric[0]
                 if listedMetricKeyString.contains(key) {
@@ -327,7 +313,7 @@ class ChartOptionsController: UITableViewController {
         let addFundamentalController = AddFundamentalController(style: .plain)
         addFundamentalController.delegate = self
         var otherMetrics: [[[String]]] = []
-        for category in metrics() {
+        for category in Metrics.shared.metrics {
             var availableMetrics: [[String]] = []
             for metric in category {
                 let key = metric[0]

@@ -142,6 +142,16 @@ class WatchlistViewController: UITableViewController {
         return addStockToolbar
     }
     
+    /// Called by WebViewController when user wants to switch from the WebView to an existing comparison in the list
+    func load(comparisonToChart: Comparison) {
+        for (index, comparison) in list.enumerated() {
+            if comparison.id == comparisonToChart.id {
+                loadComparison(listIndex: index);
+                break
+            }
+        }
+    }
+    
     /// Called when app first loads (with listIndex == 0) or when user taps a tableView row
     func loadComparison(listIndex: Int) {
         scrollChartView.clearChart()

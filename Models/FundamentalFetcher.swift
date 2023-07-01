@@ -25,10 +25,7 @@ class FundamentalFetcher: NSObject {
     var barAlignments: [Int] = [] // set later by StockData to align dates
     
     func getFundamentals(for stock: Stock, delegate: StockData) {
-        guard isLoadingData == false else {
-            print("Already loading data")
-            return
-        }
+        guard isLoadingData == false else { return }
         isLoadingData = true
         ticker = stock.ticker
         self.delegate = delegate
@@ -99,6 +96,11 @@ class FundamentalFetcher: NSObject {
         } else {
             print("FundamentalFetcher failed")
         }
+    }
+    
+    // The year, month and day arrays all have the same count
+    func reportCount() -> Int {
+        return year.count
     }
 
     func setBarAlignment(_ barIndex: Int, report: Int) {
