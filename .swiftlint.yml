@@ -1,0 +1,15 @@
+line_length: 
+    warning: 150
+    ignores_comments: true
+file_length:
+    warning: 700
+type_body_length:
+    warning: 550
+function_body_length:
+    warning: 120
+cyclomatic_complexity:
+    warning: 23
+    error: 24
+large_tuple:
+    warning: 4
+    error: 5

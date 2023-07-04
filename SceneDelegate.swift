@@ -20,40 +20,39 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var webNavigationController: UINavigationController?
     var settingsNavigationController: UINavigationController?
 
+    /// Configure and attach the UIWindow to the provided UIWindowScene `scene`
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
-        
+
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
-        
+
         window.overrideUserInterfaceStyle = isDarkMode ? .dark : .light
         window.backgroundColor = UIColor.systemBackground
-        
+
         Task {
-            await DBActor.shared.update(delegate: watchlistViewController);   // copy db to documents and/or update existing db
+            await DBActor.shared.update(delegate: watchlistViewController)   // copy db to documents and/or update existing db
         }
-        
-        settingsViewController.delegate = watchlistViewController; // will refresh comparison list after deletion
+
+        settingsViewController.delegate = watchlistViewController // will refresh comparison list after deletion
         watchlistNavigationController = UINavigationController(rootViewController: watchlistViewController)
         watchlistNavigationController?.title = "Watchlist"
-        
+
         webNavigationController = UINavigationController(rootViewController: webViewController)
         webNavigationController?.tabBarItem.image = UIImage(systemName: "sparkle.magnifyingglass")
         webNavigationController?.title = "ChartInsight.com"
         webViewController.delegate = watchlistViewController // Users can add stocks found on chartinsight.com
         watchlistNavigationController?.tabBarItem.image = UIImage(systemName: "chart.xyaxis.line")
-        
+
         settingsNavigationController = UINavigationController(rootViewController: settingsViewController)
         settingsNavigationController?.title = "Settings"
         settingsNavigationController?.tabBarItem.image = UIImage(systemName: "gear")
-        
+
         tabBarController.viewControllers = [watchlistNavigationController!, webNavigationController!, settingsNavigationController!]
         tabBarController.tabBar.backgroundColor = UIColor.systemBackground
-        
+
         window.rootViewController = tabBarController
-        
+
         window.makeKeyAndVisible()
         self.window = window
     }
@@ -62,7 +61,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Called as the scene is being released by the system.
         // This occurs shortly after the scene enters the background, or when its session is discarded.
         // Release any resources associated with this scene that can be re-created the next time the scene connects.
-        // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
@@ -73,7 +71,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneWillResignActive(_ scene: UIScene) {
         // Called when the scene will move from an active state to an inactive state.
         // This may occur due to temporary interruptions (ex. an incoming phone call).
-        
+
         // Hide magnified chart and invalidate any progressIndicator.timer
         watchlistViewController.magnifier.isHidden = true
         watchlistViewController.progressIndicator.timer?.invalidate()
@@ -93,7 +91,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// Switch color scheme with darkMode when isOn == true
     func darkMode(isOn: Bool) {
         UserDefaults.standard.setValue(isOn, forKey: "darkMode")
-        
+
         tabBarController.overrideUserInterfaceStyle = isOn ? .dark : .light
     }
 }

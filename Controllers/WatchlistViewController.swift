@@ -14,14 +14,14 @@
 import Foundation
 
 class WatchlistViewController: UITableViewController {
-    var progressIndicator = ProgressIndicator(frame: CGRectMake(0, 0, 320, 4))
-    var magnifier = UIImageView(frame: CGRectMake(0, 0, 100, 100))
+    var progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: 320, height: 4))
+    var magnifier = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
     var needsReload: Bool = false // set by SettingsViewController after a comparison is deleted
-    
+
     enum ZPosition: CGFloat {
         case tableView, scrollChartView, magnifier, progressIndicator
     }
-    
+
     private let cellID = "cellId"
     private let padding = 6.0
     private var width: CGFloat = 0
@@ -43,37 +43,37 @@ class WatchlistViewController: UITableViewController {
     private var addStockButton = UIBarButtonItem(systemItem: .add)
     private var toggleListButton = UIBarButtonItem(image: UIImage(named: "toggleList"))
     private var navStockButtonToolbar = UIToolbar() // will be navigationItem.titleView
-    
+
     private var scrollChartView = ScrollChartView()
-    
+
     private var list: [Comparison] = []
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-                
+
         tableView.dataSource = self
         tableView.delegate = self
         tableView.separatorStyle = .none
         tableView.sectionHeaderTopPadding = 1 // aligns upper border with ScrollChartView divider
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
-        
+
         tableViewWidthVisible = UIDevice.current.userInterfaceIdiom == .phone ? 66 : 100
         rowHeight = UIDevice.current.userInterfaceIdiom == .phone ? 40 : 44
-                
+
         scrollChartView.layer.anchorPoint = .zero // allows bounds = frame
-        scrollChartView.layer.position = CGPointMake(tableViewWidthVisible, 0)
+        scrollChartView.layer.position = CGPoint(x: tableViewWidthVisible, y: 0)
         scrollChartView.layer.zPosition = ZPosition.scrollChartView.rawValue
         view.addSubview(scrollChartView)
-        
+
         doubleTapRecognizer.numberOfTapsRequired = 2
         doubleTapRecognizer.addTarget(self, action: #selector(doubleTap))
         scrollChartView.addGestureRecognizer(doubleTapRecognizer)
-        
+
         magnifier.isHidden = true
         magnifier.layer.contentsScale = UIScreen.main.scale
         magnifier.layer.zPosition = ZPosition.magnifier.rawValue
         view.addSubview(magnifier)
-        
+
         longPressRecognizer.minimumPressDuration = 0.5
         longPressRecognizer.addTarget(self, action: #selector(magnify))
         scrollChartView.addGestureRecognizer(longPressRecognizer)
@@ -83,22 +83,22 @@ class WatchlistViewController: UITableViewController {
 
         pinchGestureRecognizer.addTarget(self, action: #selector(handlePinch))
         scrollChartView.addGestureRecognizer(pinchGestureRecognizer)
-        
+
         toggleListButton.target = self
         toggleListButton.action = #selector(toggleList)
         addStockButton.target = self
         addStockButton.action = #selector(addStock)
         addStockToolbar.items = [addStockButton]
     }
-    
+
     /// Update subviews now that frame size is available
     override func viewWillAppear(_ animated: Bool) {
 
         if isNewFrameSize(newSize: view.frame.size) {
             resizeSubviews(newSize: view.frame.size)
         }
-        navStockButtonToolbar.frame = CGRectMake(0, 0, width, toolbarHeight)
-        
+        navStockButtonToolbar.frame = CGRect(x: 0, y: 0, width: width, height: toolbarHeight)
+
         // Remove toolbar background and top border
         navStockButtonToolbar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
         navStockButtonToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
@@ -107,16 +107,16 @@ class WatchlistViewController: UITableViewController {
             reload(keepExistingComparison: false) // handles case when user deletes the currently visible stock
             needsReload = false
         }
-        
+
         updateNavStockButtonToolbar()
         navigationItem.titleView = navStockButtonToolbar
         view.layer.setNeedsDisplay()
     }
-    
+
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return self.list.count
     }
-    
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
         var config = cell.defaultContentConfiguration()
@@ -126,32 +126,31 @@ class WatchlistViewController: UITableViewController {
         cell.contentConfiguration = config
         return cell
     }
-    
+
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if list.count > indexPath.row {
             loadComparison(listIndex: indexPath.row)
         }
     }
-    
+
     override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         return rowHeight
     }
-    
+
     /// "+" add button in tableView header (wrapped in a UIToolbar)
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         return addStockToolbar
     }
-    
+
     /// Called by WebViewController when user wants to switch from the WebView to an existing comparison in the list
     func load(comparisonToChart: Comparison) {
-        for (index, comparison) in list.enumerated() {
-            if comparison.id == comparisonToChart.id {
-                loadComparison(listIndex: index);
-                break
-            }
+        for (index, comparison) in list.enumerated() where comparison.id == comparisonToChart.id {
+            tableView.selectRow(at: IndexPath(row: index, section: 0), animated: false, scrollPosition: .middle)
+            loadComparison(listIndex: index)
+            break
         }
     }
-    
+
     /// Called when app first loads (with listIndex == 0) or when user taps a tableView row
     func loadComparison(listIndex: Int) {
         scrollChartView.clearChart()
@@ -160,7 +159,7 @@ class WatchlistViewController: UITableViewController {
         scrollChartView.loadChart()
         updateNavStockButtonToolbar()
     }
-    
+
     /// Find the keyWindow and get the safeAreaInsets for the notch and other unsafe areas
     private func getSafeAreaInsets() -> UIEdgeInsets {
         for scene in UIApplication.shared.connectedScenes {
@@ -172,48 +171,48 @@ class WatchlistViewController: UITableViewController {
         }
         return .zero
     }
-    
+
     /// Determine if the frame size has changed and subviews must be resized
     func isNewFrameSize(newSize: CGSize) -> Bool {
         let newWidth = newSize.width
         var newHeight = newSize.height - padding
         let safeAreaInsets = getSafeAreaInsets()
-        
+
         toolbarHeight = 44
         statusBarHeight = 20
         if safeAreaInsets.top > statusBarHeight {
             statusBarHeight = safeAreaInsets.top
         }
-        
+
         newHeight = newSize.height - statusBarHeight - 2 * toolbarHeight - padding - safeAreaInsets.bottom
-        
-        if (newHeight != height) {
+
+        if newHeight != height {
             width = newWidth
             height = newHeight
             return true
         }
         return false
     }
-    
+
     func resizeSubviews(newSize: CGSize) {
-        navStockButtonToolbar.frame = CGRectMake(0, 0, newSize.width, toolbarHeight)
+        navStockButtonToolbar.frame = CGRect(x: 0, y: 0, width: newSize.width, height: toolbarHeight)
         tableView.reloadData()
-        
+
         let delta = scrollChartView.bounds.size.width - newSize.width
         let shiftBars = Int(scrollChartView.layer.contentsScale
                               * delta/(scrollChartView.xFactor * scrollChartView.barUnit))
-        
+
         scrollChartView.updateMaxPercentChange(withBarsShifted: -shiftBars) // shiftBars are + when delta is -
-        scrollChartView.bounds = CGRectMake(0, 0, width, height) // isNewFrameSize calculated height
+        scrollChartView.bounds = CGRect(x: 0, y: 0, width: width, height: height) // isNewFrameSize calculated height
         scrollChartView.resize()
-        
+
         // ProgressIndicator doesn't resize by changing the frame property so create a new instance
-        progressIndicator = ProgressIndicator(frame: CGRectMake(0, 0, width - tableViewWidthVisible, 4))
+        progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: width - tableViewWidthVisible, height: 4))
         progressIndicator.layer.zPosition = ZPosition.progressIndicator.rawValue
         scrollChartView.addSubview(progressIndicator)
         scrollChartView.progressIndicator = progressIndicator
     }
-    
+
     /// Device rotated (supported only on iPad) so update width and height properties and resize subviews
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
@@ -221,36 +220,36 @@ class WatchlistViewController: UITableViewController {
             resizeSubviews(newSize: size)
         }
     }
-    
+
     /// User double tapped to zoom in
     @objc func doubleTap(recognizer: UITapGestureRecognizer) {
         recognizer.cancelsTouchesInView = true
-        
+
         let pinchMidpoint = recognizer.location(in: view).x - scrollChartView.layer.position.x - 5
-        
+
         scrollChartView.scaleChartImage(2.0, withCenter: pinchMidpoint)
         scrollChartView.scaleChart(2.0)
     }
-    
+
     /// Display an enlarged screenshot of the chart under the user's finger in the magnifier subview
     @objc func magnify(recognizer: UILongPressGestureRecognizer) {
         if recognizer.state == .ended {
             magnifier.isHidden = true
             return
         }
- 
+
         let xPress = recognizer.location(in: scrollChartView).x - padding
         let yPress = recognizer.location(in: scrollChartView).y
         let midpoint: CGFloat = 50
         let magnifierWidth: CGFloat = 2 * midpoint
         let magnifierHeight: CGFloat = 2 * midpoint
-        
-        magnifier.frame = CGRectMake(recognizer.location(in: view).x - midpoint,
-                                     yPress - magnifierHeight,
-                                     magnifierWidth,
-                                     magnifierHeight)
-        
-        if let image = scrollChartView.magnifyBar(x: xPress, y: yPress) {
+
+        magnifier.frame = CGRect(x: recognizer.location(in: view).x - midpoint,
+                                 y: yPress - magnifierHeight,
+                                 width: magnifierWidth,
+                                 height: magnifierHeight)
+
+        if let image = scrollChartView.magnifyBar(xPress: xPress, yPress: yPress) {
             // Note that this returns an image even when the user moves to the Y axis labels        
             magnifier.image = image
             magnifier.layer.borderColor = UIColor.lightGray.cgColor
@@ -260,7 +259,7 @@ class WatchlistViewController: UITableViewController {
             magnifier.isHidden = false
         }
     }
-    
+
     /// User panned to change the chart dates. Calculate shift in date bars shown and tell scrollChartView to redraw the chart.
     @objc func handlePan(recognizer: UIPanGestureRecognizer) {
         recognizer.cancelsTouchesInView = true
@@ -273,7 +272,7 @@ class WatchlistViewController: UITableViewController {
         } else if recognizer.state == .began {
             lastShift = 0
         }
-        
+
         currentShift = recognizer.translation(in: view).x
         delta = (currentShift - lastShift) * UIScreen.main.scale
         deltaBars = Int(delta/(scrollChartView.xFactor * scrollChartView.barUnit))
@@ -282,7 +281,7 @@ class WatchlistViewController: UITableViewController {
             lastShift = currentShift
         }
     }
-    
+
     /// While the user is pinching the chart, have scrollChartView.resizeChartImage() horizontally
     /// When the gesture ends, have scrollChartView redraw the chart with the new scale.
     @objc func handlePinch(recognizer: UIPinchGestureRecognizer) {
@@ -293,26 +292,24 @@ class WatchlistViewController: UITableViewController {
             pinchMidpointSum = 0.0
         } else if recognizer.state == .changed {
             pinchCount += 1
-            pinchMidpointSum = pinchMidpointSum / pinchCount // avg smooths touch errors
+            pinchMidpointSum /= pinchCount // avg smooths touch errors
             scrollChartView.scaleChartImage(recognizer.scale, withCenter: pinchMidpoint)
         } else {
             scrollChartView.scaleChart(recognizer.scale)
         }
     }
-    
+
     /// Called by ChartOptionsController when chart color or type changes
     func redraw(withStock: Stock) {
         scrollChartView.comparison.saveToDb()
         if let barButtonItems = navStockButtonToolbar.items {
-            for button in barButtonItems {
-                if button.tag == withStock.id {
-                    button.tintColor = withStock.upColor
-                }
+            for button in barButtonItems where button.tag == withStock.id {
+                button.tintColor = withStock.upColor
             }
             scrollChartView.redrawCharts()
         }
     }
-    
+
     /// Called by ChartOptionsController when the user adds new fundamental metrics
     func reload(withStock: Stock) {
         scrollChartView.comparison.saveToDb()
@@ -321,13 +318,13 @@ class WatchlistViewController: UITableViewController {
         updateNavStockButtonToolbar()
         scrollChartView.loadChart()
     }
-    
+
     /// Called after user taps the Trash icon in ChartOptionsController to delete a stock in a comparison
     @objc func deleteStock(_ stock: Stock) {
         let stockCountBeforeDeletion = scrollChartView.comparison.stockList.count
 
         scrollChartView.comparison.delete(stock: stock)
-        
+
         if stockCountBeforeDeletion <= 1 {
             // delete comparison
             scrollChartView.comparison.deleteFromDb()
@@ -339,14 +336,14 @@ class WatchlistViewController: UITableViewController {
         updateNavStockButtonToolbar()
         dismissPopover()
     }
-    
+
     /// Reload the stock comparison list in the tableView and redraw the scrollChartView
     @MainActor
     func reload(keepExistingComparison: Bool) {
         Task {
             list = await Comparison.listAll()
             tableView.reloadData()
-    
+
             if keepExistingComparison || list.count > 0 {
                 let comparisonToChart: Comparison
                 if keepExistingComparison {
@@ -354,7 +351,7 @@ class WatchlistViewController: UITableViewController {
                 } else {
                     comparisonToChart = list[0]
                 }
-                
+
                 scrollChartView.clearChart()
                 progressIndicator.startAnimating()
                 scrollChartView.comparison = comparisonToChart
@@ -363,7 +360,7 @@ class WatchlistViewController: UITableViewController {
             }
         }
     }
-    
+
     /// Callback after async comparisonList reload
     func update(list: [Comparison]) {
         self.list = list
@@ -372,7 +369,7 @@ class WatchlistViewController: UITableViewController {
             loadComparison(listIndex: 0)
         }
     }
-    
+
     /// Called by AddStockController when a new stock is added
     func insert(stock: Stock, isNewComparison: Bool) {
 
@@ -384,26 +381,25 @@ class WatchlistViewController: UITableViewController {
             // Skip colors already used by other stocks in this comparison or use gray
             var otherColors = Stock.chartColors
             for otherStock in scrollChartView.comparison.stockList {
-                for i in 0 ..< otherColors.count - 1 {  // end before last color (gray)
-                    if otherStock.hasUpColor(otherColor: otherColors[i]) {
-                        otherColors.remove(at: i)
-                    }
+                // end before lastIndex to always keep gray as an option
+                for index in 0 ..< otherColors.count - 1 where otherStock.hasUpColor(otherColor: otherColors[index]) {
+                    otherColors.remove(at: index)
                 }
             }
             stock.upColor = otherColors[0]
             stock.color = otherColors[0]
         }
-        
+
         scrollChartView.comparison.add(stock)
         reload(keepExistingComparison: true)
         dismissPopover()
     }
-    
+
     /// Add toggleListButton and buttons for each stock in this comparison
     func updateNavStockButtonToolbar() {
         var buttons: [UIBarButtonItem] = [toggleListButton]
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
-        
+
         if scrollChartView.comparison.stockList.isEmpty == false {
             for stock in scrollChartView.comparison.stockList {
                 let tickerButton = UIBarButtonItem(title: stock.ticker,
@@ -415,22 +411,24 @@ class WatchlistViewController: UITableViewController {
                 buttons.append(tickerButton)
             }
             let maxComparisonCount = UIDevice.current.userInterfaceIdiom == .pad ? 6 : 3
-            
+
             if scrollChartView.comparison.stockList.count < maxComparisonCount {
                 let compareButton = UIBarButtonItem(title: "+ compare",
                                                     style: .plain,
                                                     target: self,
                                                     action: #selector(compareStock))
                 // Reduce font size of "+ compare" text
-                compareButton.setTitleTextAttributes([ NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10) ], for: .normal)
-                compareButton.setTitleTextAttributes([ NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10) ], for: .highlighted)
+                compareButton.setTitleTextAttributes([NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10)],
+                                                     for: .normal)
+                compareButton.setTitleTextAttributes([NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10)],
+                                                     for: .highlighted)
                 buttons.append(compareButton)
             }
         }
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
         navStockButtonToolbar.items = buttons
     }
-    
+
     /// User clicked the "+" add button in the header of the tableView to create a new stock comparison
     @objc func addStock(button: UIBarButtonItem) {
         let addStockController = AddStockController(style: .plain)
@@ -438,7 +436,7 @@ class WatchlistViewController: UITableViewController {
         addStockController.isNewComparison = true
         popoverPush(viewController: addStockController, from: button)
     }
-    
+
     /// User clicked the "compare" button in the navStockButtonToolbar to add a stock to the current comparison
     @objc func compareStock(button: UIBarButtonItem) {
         let addStockController = AddStockController(style: .plain)
@@ -446,53 +444,49 @@ class WatchlistViewController: UITableViewController {
         addStockController.isNewComparison = false
         popoverPush(viewController: addStockController, from: button)
     }
-    
+
     /// User clicked a ticker in navStockButtonToolbar to edit settings for the stock with stock.id == button.tag
     @objc func editStock(button: UIBarButtonItem) {
         let stockId = button.tag
-                
-        for stock in scrollChartView.comparison.stockList {
-            if stock.id == stockId {
-                let chartOptionsController = ChartOptionsController(stock: stock, delegate: self)
-                chartOptionsController.sparklineKeys = scrollChartView.comparison.sparklineKeys()
-                popoverPush(viewController: chartOptionsController, from: button)
-                break
-            }
+
+        for stock in scrollChartView.comparison.stockList where stock.id == stockId {
+            let chartOptionsController = ChartOptionsController(stock: stock, delegate: self)
+            chartOptionsController.sparklineKeys = scrollChartView.comparison.sparklineKeys()
+            popoverPush(viewController: chartOptionsController, from: button)
+            break
         }
     }
-    
     /// Show or hide the list of stocks by increasing the width of scrollChartView
     @objc func toggleList() {
         var delta = -1 * scrollChartView.layer.position.x
-        
+
         if scrollChartView.layer.position.x < 1.0 {
             delta += tableViewWidthVisible
         }
-        
+
         scrollChartView.svWidth -= delta
         scrollChartView.pxWidth = UIScreen.main.scale * scrollChartView.svWidth
-        
-        scrollChartView.layer.position = CGPointMake(scrollChartView.layer.position.x + delta,
-                                                     scrollChartView.layer.position.y)
-                
+
+        scrollChartView.layer.position = CGPoint(x: scrollChartView.layer.position.x + delta,
+                                                 y: scrollChartView.layer.position.y)
+
         let shiftBars = Int(scrollChartView.layer.contentsScale
                                * delta/(scrollChartView.xFactor * scrollChartView.barUnit))
-         
+
          scrollChartView.updateMaxPercentChange(withBarsShifted: -shiftBars) // shiftBars are + when delta is -
     }
-    
-    /// On iPad, this presents the viewController in a popover with an arrow to the button. On iPhone, it appears as a modal
+
+    /// On iPad, presents the viewController in a popover with an arrow to the button. On iPhone, presents modal
     func popoverPush(viewController: UIViewController, from button: UIBarButtonItem) {
-        popOverNav = UINavigationController(rootViewController: viewController)        
+        popOverNav = UINavigationController(rootViewController: viewController)
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
         popOverNav.overrideUserInterfaceStyle = isDarkMode ? .dark : .light
         popOverNav.modalPresentationStyle = .popover
         popOverNav.popoverPresentationController?.sourceView = view
         popOverNav.popoverPresentationController?.barButtonItem = button
         present(popOverNav, animated: true)
-        
     }
-    
+
     /// remove the topmost iPhone UIViewController or iPad UIPopoverController
     @objc func dismissPopover() {
         popOverNav.dismiss(animated: true)

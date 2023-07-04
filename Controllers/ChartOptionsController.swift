@@ -12,30 +12,30 @@ class ChartOptionsController: UITableViewController {
     var stock: Stock
     var delegate: WatchlistViewController?
     var sparklineKeys: [String] = []
-    
+
     private enum SectionType: Int {
         case chartType, chartColor, financials, technicals, setDefaults
     }
-    
+
     private enum TechnicalType: String, CaseIterable {
         case sma50, sma200, bollingerBand220
     }
-    
+
     private var normalCellId = "normalCell"
     private var chartStyleControlCellId = "chartStyleControlCell"
-    
+
     private var defaultsActionText = "Use These Settings For New Charts" // will be updated after tap
     private var doneButton = UIBarButtonItem(systemItem: .done)
     private var sections = ["", "Color", "Financials", "Technicals", "Defaults"]
     private var fundamentalDescription = "EarningsPerShareBasic,CIRevenuePerShare,CINetCashFromOpsPerShare"
     private var addFundamentalRowIndex = -1 // Hide Add Fundamental row unless current list is less than max
-    private var segmentFrame = CGRectMake(0, 0, 320, 44) // min size (iPad portrait)
+    private var segmentFrame = CGRect(x: 0, y: 0, width: 320, height: 44) // min size (iPad portrait)
     private var typeSegmentedControl: ChartStyleControl
     private var colorSegmentedControl: ChartStyleControl
     private var listedMetricKeyString = ""
     private var listedMetricKeys: [String] = []
     private var listedMetricsEnabled: [Bool] = [] // parallel array to preseve sort
-    
+
     /// Desiginated initializer set stock and delegate to avoid optional values
     init(stock: Stock, delegate: WatchlistViewController) {
         self.stock = stock
@@ -46,12 +46,12 @@ class ChartOptionsController: UITableViewController {
         typeSegmentedControl.delegate = self
         colorSegmentedControl.delegate = self
     }
-    
+
     ///  Initializer required by parent class for use with storyboards
     required convenience init?(coder aDecoder: NSCoder) {
         self.init(stock: Stock(), delegate: WatchlistViewController())
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "\(stock.ticker) Chart Options"
@@ -63,29 +63,29 @@ class ChartOptionsController: UITableViewController {
         }
         listedMetricKeyString.append(stock.fundamentalList)
         updateListedMetrics()
-                
+
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: normalCellId)
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: chartStyleControlCellId)
         tableView.backgroundColor = UIColor.secondarySystemGroupedBackground
         tableView.separatorStyle = .none
-        
+
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissPopover))
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(deleteStock))
         navigationItem.rightBarButtonItem?.tintColor = UIColor.red
     }
-    
+
     /// User clicked Trash icon
     @objc func deleteStock() {
         delegate?.deleteStock(stock)
     }
-    
+
     /// User clicked Done button (they can also dismiss the popover manually)
     @objc func dismissPopover() {
         delegate?.dismissPopover()
     }
-    
+
     /// AddFundamentalViewController will call this with the metric key after the user has selected another metric
     func addedFundamental(key: String) {
         stock.addToFundamentals(key)
@@ -93,7 +93,7 @@ class ChartOptionsController: UITableViewController {
         listedMetricsEnabled.removeAll()
         listedMetricKeyString = listedMetricKeyString.appending(key)
         updateListedMetrics()
-        
+
         tableView.reloadData()
         delegate?.reload(withStock: stock)
     }
@@ -104,7 +104,7 @@ class ChartOptionsController: UITableViewController {
             cellType = chartStyleControlCellId
         }
         let cell = tableView.dequeueReusableCell(withIdentifier: cellType, for: indexPath)
-                
+
         if indexPath.section == SectionType.chartType.rawValue {
             typeSegmentedControl.frame = segmentFrame
             cell.addSubview(typeSegmentedControl)
@@ -164,11 +164,11 @@ class ChartOptionsController: UITableViewController {
         }
         return cell
     }
-    
+
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 44
     }
-        
+
     /// User tapped a row - either toggle a switch, push the AddFundamentalController onto the navigation stack
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if indexPath.section == SectionType.financials.rawValue && indexPath.row == addFundamentalRowIndex {
@@ -177,22 +177,22 @@ class ChartOptionsController: UITableViewController {
             updateDefaults()
         }
     }
-    
+
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if section == SectionType.financials.rawValue && stock.hasFundamentals {
             var fundamentalRows = listedMetricKeys.count
             let maxFundamentals = UIDevice.current.userInterfaceIdiom == .pad ? 10 : 5
-             if (maxFundamentals > fundamentalRows || addFundamentalRowIndex > 0) {
+             if maxFundamentals > fundamentalRows || addFundamentalRowIndex > 0 {
                  addFundamentalRowIndex = fundamentalRows // index value before adding
                  fundamentalRows += 1 // allow adding another fundamental
              }
-             return fundamentalRows;
+             return fundamentalRows
         } else if section == SectionType.technicals.rawValue {
-            return TechnicalType.allCases.count;
+            return TechnicalType.allCases.count
         }
         return 1
     }
-    
+
     override func numberOfSections(in tableView: UITableView) -> Int {
         return sections.count
     }
@@ -203,7 +203,7 @@ class ChartOptionsController: UITableViewController {
         }
         return ""
     }
-    
+
     @objc func technicalToggled(onOffSwitch: UISwitch) {
         let index = onOffSwitch.tag
         guard index < TechnicalType.allCases.count else { return }
@@ -217,11 +217,11 @@ class ChartOptionsController: UITableViewController {
         tableView.reloadData()
         delegate?.redraw(withStock: stock)
     }
-    
+
     @objc func fundamentalToggled(onOffSwitch: UISwitch) {
         let index = onOffSwitch.tag
         guard index >= 0 && index < listedMetricKeys.count else { return }
-        
+
         let typeToggled = listedMetricKeys[index]
         if stock.fundamentalList.contains(typeToggled) {
             listedMetricsEnabled[index] = false
@@ -242,26 +242,26 @@ class ChartOptionsController: UITableViewController {
                 ctx.cgContext.setStrokeColor(color.cgColor)
                 ctx.cgContext.setLineJoin(.round)
                 ctx.cgContext.setLineWidth(1)
-                ctx.cgContext.move(to: CGPointMake(1, 20))
-                ctx.cgContext.addCurve(to: CGPointMake(40, 13),
-                                       control1: CGPointMake(15, 32),
-                                       control2: CGPointMake(25, 15))
+                ctx.cgContext.move(to: CGPoint(x: 1, y: 20))
+                ctx.cgContext.addCurve(to: CGPoint(x: 40, y: 13),
+                                       control1: CGPoint(x: 15, y: 32),
+                                       control2: CGPoint(x: 25, y: 15))
                 ctx.cgContext.drawPath(using: .stroke)
             } else { // Fundamental bars shown above the stock chart
                 ctx.cgContext.setFillColor(UIColor(red: 1, green: 0, blue: 0, alpha: 0.6).cgColor)
-                ctx.cgContext.addRect(CGRectMake(13, 20, 5, 3))
-                ctx.cgContext.fill([CGRectMake(13, 20, 5, 3)])
+                ctx.cgContext.addRect(CGRect(x: 13, y: 20, width: 5, height: 3))
+                ctx.cgContext.fill([CGRect(x: 13, y: 20, width: 5, height: 3)])
                 ctx.cgContext.setFillColor(color.cgColor)
-                ctx.cgContext.fill([CGRectMake(1, 13, 5, 7),
-                                    CGRectMake(7, 16, 5, 4),
-                                    CGRectMake(19, 10, 5, 10),
-                                    CGRectMake(25, 8, 5, 12),
-                                    CGRectMake(31, 5, 5, 15)])
+                ctx.cgContext.fill([CGRect(x: 1, y: 13, width: 5, height: 7),
+                                    CGRect(x: 7, y: 16, width: 5, height: 4),
+                                    CGRect(x: 19, y: 10, width: 5, height: 10),
+                                    CGRect(x: 25, y: 8, width: 5, height: 12),
+                                    CGRect(x: 31, y: 5, width: 5, height: 15)])
             }
         }
         return img
     }
-    
+
     /// Update the array of metric keys and parallel array listedMetricsEnabled indicating if the metric is enabled.
     func updateListedMetrics() {
         for category in Metrics.shared.metrics {
@@ -275,7 +275,7 @@ class ChartOptionsController: UITableViewController {
             }
         }
     }
-    
+
     /// User clicked on Update defaults row
     @objc func updateDefaults() {
         UserDefaults.standard.setValue(stock.chartType.rawValue, forKey: "chartTypeDefault")
@@ -284,7 +284,7 @@ class ChartOptionsController: UITableViewController {
         defaultsActionText = "Default Chart Settings Saved"
         tableView.reloadData()
     }
-    
+
     /// User clicked on chartStyleControl to change the chart type
     @objc func chartTypeChanged(to chartTypeIndex: Int) {
         if let newChartType = ChartType(rawValue: chartTypeIndex) {
@@ -294,7 +294,7 @@ class ChartOptionsController: UITableViewController {
             delegate?.redraw(withStock: stock)
         }
     }
-    
+
     /// User clicked on chartStyleControl to change the chart color
     @objc func chartColorChanged(to colorIndex: Int) {
         if colorIndex == 0 {
@@ -307,7 +307,7 @@ class ChartOptionsController: UITableViewController {
         tableView.reloadData()
         delegate?.redraw(withStock: stock)
     }
-    
+
     /// User tapped "Add Financial Metric" button so present AddFundamentalController
     @objc func addMetric() {
         let addFundamentalController = AddFundamentalController(style: .plain)

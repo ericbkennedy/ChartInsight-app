@@ -14,11 +14,11 @@ class Metrics {
     static let shared = Metrics()
     /// Non-alphabetical order of metrics achieved with array of categories which contains array of metric details
     var metrics: [[[String]]]
-    var metricDictionary: [String:[String]]
-    
+    var metricDictionary: [String: [String]]
+
     // Load metrics from plist
     typealias MetricsConfig = [[[String]]] // Arrays allow custom order by category and tag
-    
+
     private init() {
         metrics = []
         metricDictionary = [:]
@@ -37,7 +37,7 @@ class Metrics {
             print(error)
         }
     }
-        
+
     func title(for key: String) -> String {
         if let item = metricDictionary[key] {
             return item[1]

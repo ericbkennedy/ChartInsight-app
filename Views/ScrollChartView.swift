@@ -31,13 +31,13 @@ class ScrollChartView: UIView, StockDataDelegate {
     private var svHeight: CGFloat
     private var layerRef: CGLayer?
     private var chartRenderer: ChartRenderer?
-    
+
     private var stockDataList: [StockData]
     private var chartPercentChange: NSDecimalNumber
     private var sparklineKeys: [String]
     private var gregorian: Calendar
     private var lastNetworkErrorShown: Date
-    
+
     override init(frame: CGRect) {
         scaleShift = 0
         xFactor = 7.5
@@ -45,24 +45,25 @@ class ScrollChartView: UIView, StockDataDelegate {
         pxWidth = frame.width
         svWidth = frame.width
         pxHPadding = padding
-        
+
         (maxWidth, pxHeight, scaleShift, scaledWidth, sparklineHeight, svHeight) = (0, 0, 0, 0, 0, 0)
-        
+
         comparison = Comparison()
         stockDataList = []
         gregorian = Calendar(identifier: .gregorian)
+        gregorian.locale = .autoupdatingCurrent // required for monthName from .shortNameSymbols
 
         chartPercentChange = NSDecimalNumber.zero
-        
+
         sparklineKeys = []
         lastNetworkErrorShown = Date(timeIntervalSinceNow: -120) // ensure first error shows
         super.init(frame: frame)
     }
-    
+
     required convenience init?(coder: NSCoder) {
         self.init(frame: CGRect.zero) // Required by UIKit but Storyboard isn't used
     }
-    
+
     /// Adjusts _svWidth chart area to allow one right axis per stock
     func updateDimensions() {
         svHeight = bounds.size.height
@@ -76,9 +77,9 @@ class ScrollChartView: UIView, StockDataDelegate {
     }
 
     func maxBarOffset() -> Int {
-        return Int(floor((pxWidth)/(xFactor * barUnit)));
+        return Int(floor((pxWidth)/(xFactor * barUnit)))
     }
-    
+
     func createLayerContext() {
         UIGraphicsBeginImageContextWithOptions(bounds.size, true, layer.contentsScale)
         if let currentContext = UIGraphicsGetCurrentContext() {
@@ -86,11 +87,12 @@ class ScrollChartView: UIView, StockDataDelegate {
                                size: CGSize(width: layer.contentsScale * maxWidth, height: pxHeight), auxiliaryInfo: nil)
             UIGraphicsEndImageContext()
             if let layerRef = layerRef {
-                chartRenderer = ChartRenderer(layerRef: layerRef, contentsScale: layer.contentsScale, xFactor: xFactor, barUnit: barUnit, pxWidth: pxWidth)
+                chartRenderer = ChartRenderer(layerRef: layerRef, contentsScale: layer.contentsScale,
+                                              xFactor: xFactor, barUnit: barUnit, pxWidth: pxWidth)
             }
         }
     }
-        
+
     /// Ensure any pending requests for prior comparison are invalidated and set stockData.delegate = nil
     func clearChart() {
         progressIndicator?.reset()
@@ -100,14 +102,14 @@ class ScrollChartView: UIView, StockDataDelegate {
                                            height: layerRef.size.height))
         }
         setNeedsDisplay()
-            
+
         for stockData in stockDataList {
             stockData.invalidateAndCancel() // cancel all requests
             stockData.delegate = nil
         }
         stockDataList.removeAll()
     }
-    
+
     /// Redraw charts without loading any data if a stock color, chart type or technical changes
     func redrawCharts() {
         for stockData in stockDataList {
@@ -115,17 +117,17 @@ class ScrollChartView: UIView, StockDataDelegate {
         }
         renderCharts()
     }
-    
+
     /// Render charts for the stocks in scrollChartView.comparison and fetch data as needed
     func loadChart() {
         chartPercentChange = NSDecimalNumber.zero
-        
+
         updateDimensions() // adjusts chart area to allow one right axis per stock
-        
+
         sparklineKeys = comparison.sparklineKeys()
-        
+
         sparklineHeight = CGFloat(100 * sparklineKeys.count)
-        
+
         for stock in comparison.stockList {
             let stockData = StockData(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset())
             stockDataList.append(stockData)
@@ -136,7 +138,7 @@ class ScrollChartView: UIView, StockDataDelegate {
             stockData.fetchStockData()
         }
     }
-    
+
     /// Use ChartRenderer to render the charts in an offscreen CGContext and return a list of the chartText to render via UIGraphicsPushContext
     /// Apple deprecated the CoreGraphics function for rendering text with a specified CGContext so it is necessary
     /// to use UIGraphicsPushContext(context) to render text in the offscreen layerRef.context
@@ -146,8 +148,9 @@ class ScrollChartView: UIView, StockDataDelegate {
             renderer.xFactor = xFactor
             renderer.pxWidth = pxWidth
             let chartText = renderer.renderCharts(comparison: comparison, stocks: stockDataList)
-        
+
             UIGraphicsPushContext(context) // required for textData.text.draw(at: withAttributes:)
+            context.setBlendMode(.plusLighter)
             for textData in chartText {
                 let textAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: textData.size),
                                       NSAttributedString.Key.foregroundColor: textData.color]
@@ -157,18 +160,18 @@ class ScrollChartView: UIView, StockDataDelegate {
             setNeedsDisplay()
         }
     }
-    
+
     /// Draw the offscreen layerContext into the context for this view
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
-         
+
         ctx.setFillColor(UIColor.systemBackground.cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: layer.contentsScale * maxWidth, height: pxHeight + 5))
-        
+
         if let layerRef = layerRef {
              ctx.draw(layerRef, in: CGRect(x: 5 + scaleShift, y: 5, width: scaledWidth, height: svHeight))
         }
-        
+
         if layer.position.x > 0 { // Add dividing line from tableView on the left
             ctx.setStrokeColor(UIColor.lightGray.cgColor)
             ctx.setLineWidth(1.0)
@@ -178,23 +181,23 @@ class ScrollChartView: UIView, StockDataDelegate {
             ctx.strokePath()
         }
     }
-    
+
     /// Enlarged screenshot of chart under user's finger with a bar highlighted if coordinates match
-    func magnifyBar(x: CGFloat, y:CGFloat) -> UIImage? {
+    func magnifyBar(xPress: CGFloat, yPress: CGFloat) -> UIImage? {
         if var renderer = chartRenderer {
             renderer.barUnit = barUnit
             renderer.xFactor = xFactor
             renderer.pxWidth = pxWidth - layer.position.x
-            return renderer.magnifyBar(x: x, y: y, stocks: stockDataList)
+            return renderer.magnifyBar(x: xPress, y: yPress, stocks: stockDataList)
         }
         return nil
     }
-    
+
     /// Horizontally scale chart image during pinch/zoom gesture and calculate change in bars shown for scaleChart call
     func scaleChartImage(_ newScale: CGFloat, withCenter touchMidpoint: CGFloat) {
         var scaleFactor = xFactor * newScale
         var newScale = newScale
-        
+
         if scaleFactor <= 0.25 {
             scaleFactor = 0.25
             newScale = 0.25 / xFactor
@@ -202,48 +205,48 @@ class ScrollChartView: UIView, StockDataDelegate {
             scaleFactor = 50
             newScale = 50 / xFactor
         }
-        
+
         if scaleFactor == xFactor {
             return
         }
-        
+
         scaleShift = touchMidpoint * (1 - newScale)
         scaledWidth = maxWidth * newScale
-        
+
         setNeedsDisplay()
     }
-    
+
     /// Check if a stock has less price data available so the caller can limit all stocks to that shorter date range
     /// Returns a tuple (maxSupportedPeriods, oldestBarShown)
     func maxSupportedPeriodsForComparison() -> (Int, Int) {
         var maxSupportedPeriods = 0
         var oldestBarShown = 0
-        
+
         for stockData in stockDataList {
             if oldestBarShown == 0 {
                 oldestBarShown = stockData.oldestBarShown
             }
             let periodCountAtNewScale = stockData.maxPeriodSupported(barUnit: barUnit)
-            
+
             if maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale {
                 maxSupportedPeriods = periodCountAtNewScale
             }
         }
         return (maxSupportedPeriods, oldestBarShown)
     }
-    
+
     /// Complete pinch/zoom transformation by rerendering the chart with the newScale
     /// Uses scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
     func scaleChart(_ newScale: CGFloat) {
         scaledWidth = maxWidth // reset buffer output width after temporary transformation
-        
+
         var newXfactor = xFactor * newScale
-        
+
         // Keep xFactor and barUnit separate and multiply them together for StockData.xFactor
-        
+
         if newXfactor < 1.0 {
             barUnit = 19.0 // switch to monthly
-            
+
             if newXfactor < 0.25 {
                 newXfactor = 0.25 // minimum size for monthly charting
             }
@@ -256,49 +259,49 @@ class ScrollChartView: UIView, StockDataDelegate {
         } else if newXfactor > 50 { // too small, so make no change
             newXfactor = 50
         }
-        
+
         var shiftBars = Int(floor(Double(layer.contentsScale * scaleShift) / (barUnit * newXfactor)))
         scaleShift = 0.0
-        
+
         // Check if a stock has less price data available and limit all stocks to that shorter date rangev
         let (maxSupportedPeriods, currentOldestShown) = maxSupportedPeriodsForComparison()
-        
+
         if newXfactor == xFactor {
             return // prevent strange pan when zoom hits max or min
         } else if currentOldestShown + shiftBars > maxSupportedPeriods { // already at maxSupportedPeriods
             shiftBars = 0
         }
-        
+
         xFactor = newXfactor
         var percentChange = NSDecimalNumber.one
-        
+
         chartPercentChange = NSDecimalNumber.zero
-        
+
         for stockData in stockDataList {
             stockData.xFactor = xFactor * barUnit
-            
+
             if stockData.barUnit != barUnit {
                 stockData.newestBarShown = Int(floor(CGFloat(stockData.newestBarShown) * stockData.barUnit / barUnit))
                 stockData.oldestBarShown = Int(floor(CGFloat(stockData.oldestBarShown) * stockData.barUnit / barUnit))
                 stockData.barUnit = barUnit
-                
+
                 stockData.updatePeriodDataByDayWeekOrMonth()
-                
+
                 if stockData.oldestBarShown > maxSupportedPeriods {
                     stockData.oldestBarShown = maxSupportedPeriods
                 }
-                
+
                 stockData.updateHighLow() // must be a separate call to handle shifting
             }
-            
+
             stockData.setPxHeight(pxHeight, sparklineHeight: sparklineHeight)
-            
+
             percentChange = stockData.shiftRedraw(shiftBars, withBars: maxBarOffset())
             if percentChange.compare(chartPercentChange) == .orderedDescending {
                 chartPercentChange = percentChange
             }
         }
-        
+
         for stock in stockDataList {
             stock.recompute(chartPercentChange, forceRecompute: false)
         }
@@ -310,9 +313,9 @@ class ScrollChartView: UIView, StockDataDelegate {
         var percentChange = NSDecimalNumber.one
 
         var outOfBars = true
-        let MIN_BARS_SHOWN = 20
+        let minBarsShown = 20
         var maxSupportedPeriods = 0, currentOldestShown = 0
-        
+
         for stock in stockDataList {
             if maxSupportedPeriods == 0 || maxSupportedPeriods > stock.periodData.count {
                 maxSupportedPeriods = stock.periodData.count
@@ -320,7 +323,7 @@ class ScrollChartView: UIView, StockDataDelegate {
             if currentOldestShown == 0 {
                 currentOldestShown = stock.oldestBarShown
             }
-            
+
             if barsShifted == 0 {
                 outOfBars = false
             } else if barsShifted > 0 { // users panning to older dates
@@ -329,7 +332,7 @@ class ScrollChartView: UIView, StockDataDelegate {
                 } else if barsShifted < stock.periodData.count - stock.newestBarShown {
                     outOfBars = false
                 }
-            } else if barsShifted < 0 && stock.oldestBarShown - barsShifted > MIN_BARS_SHOWN {
+            } else if barsShifted < 0 && stock.oldestBarShown - barsShifted > minBarsShown {
                 outOfBars = false
             }
         }
@@ -352,35 +355,35 @@ class ScrollChartView: UIView, StockDataDelegate {
     func resize() {
         updateDimensions()
         createLayerContext()
-        
+
         chartPercentChange = NSDecimalNumber.zero
-        
+
         for stock in stockDataList {
             stock.setPxHeight(pxHeight, sparklineHeight: sparklineHeight)
             stock.xFactor = xFactor * barUnit
-            stock.newestBarShown = stock.oldestBarShown - maxBarOffset()
+            stock.newestBarShown = max(0, stock.oldestBarShown - maxBarOffset())
             stock.updateHighLow()
-            
+
             if stock.percentChange.compare(chartPercentChange) == .orderedDescending {
                 chartPercentChange = stock.percentChange
             }
         }
-        
+
         for stock in stockDataList {
             stock.recompute(chartPercentChange, forceRecompute: false)
         }
         renderCharts()
     }
-    
+
     /// User panned WatchlistViewController by barsShifted. Resize and rerender chart.
     func updateMaxPercentChangeWithBarsShifted(barsShifted: Int) {
         var percentChange = NSDecimalNumber.zero
-        
+
         var outOfBars = true
-        let MIN_BARS_SHOWN = 20
+        let minBarsShown = 20
         var maxSupportedPeriods = 0
         var currentOldestShown = 0
-        
+
         for stock in stockDataList {
             if maxSupportedPeriods == 0 || maxSupportedPeriods > stock.periodData.count {
                 maxSupportedPeriods = stock.periodData.count
@@ -388,7 +391,7 @@ class ScrollChartView: UIView, StockDataDelegate {
             if currentOldestShown == 0 {
                 currentOldestShown = stock.oldestBarShown
             }
-            
+
             if barsShifted == 0 {
                 outOfBars = false
             } else if barsShifted > 0 {
@@ -399,7 +402,7 @@ class ScrollChartView: UIView, StockDataDelegate {
                 } else if barsShifted < stock.periodData.count - stock.newestBarShown {
                     outOfBars = false
                 }
-            } else if barsShifted < 0 && stock.oldestBarShown - barsShifted > MIN_BARS_SHOWN {
+            } else if barsShifted < 0 && stock.oldestBarShown - barsShifted > minBarsShown {
                 outOfBars = false
             }
         }
@@ -407,7 +410,7 @@ class ScrollChartView: UIView, StockDataDelegate {
         if outOfBars {
             return
         }
-        
+
         for stockData in stockDataList {
             percentChange = stockData.shiftRedraw(barsShifted, withBars: maxBarOffset())
             if percentChange.compare(chartPercentChange) == .orderedDescending {
@@ -418,40 +421,37 @@ class ScrollChartView: UIView, StockDataDelegate {
         for stock in stockDataList {
             stock.recompute(chartPercentChange, forceRecompute: false)
         }
-        
+
         renderCharts()
     }
-    
+
     func showProgressIndicator() {
         progressIndicator?.startAnimating()
     }
-    
+
     func stopProgressIndicator() {
         progressIndicator?.stopAnimating()
     }
-    
-    
+
     func requestFailed(message: String) {
         progressIndicator?.stopAnimating()
     }
-    
+
     func requestFinished(newPercentChange: NSDecimalNumber) {
         let stocksReady = stockDataList.reduce(0) { count, stock in
             return stock.ready ? count + 1 : count
         }
-        
+
         if newPercentChange.compare(chartPercentChange) == .orderedDescending {
             chartPercentChange = newPercentChange
         }
-        
+
         if stocksReady == stockDataList.count {
             // Check if a stock has less price data available and limit all stocks to that shorter date range
             let (maxSupportedPeriods, _) = maxSupportedPeriodsForComparison()
-            
-            for stockData in stockDataList {
-                if stockData.oldestBarShown > maxSupportedPeriods {
-                    stockData.oldestBarShown = maxSupportedPeriods
-                }
+
+            for stockData in stockDataList where stockData.oldestBarShown > maxSupportedPeriods {
+                stockData.oldestBarShown = maxSupportedPeriods
             }
             layer.removeAllAnimations()
             renderCharts()

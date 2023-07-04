@@ -14,26 +14,25 @@ import Foundation
 
 class ChartElements: NSObject, NSCopying {
     var monthLabels: [String]
-    var monthLines:  [CGPoint]
- 
+    var monthLines: [CGPoint]
+
     // fundamentalColumns are a property of StockData because it is loaded once and doesn't change
     // fundamentalAlignments must be updated frequently as the user pans or zooms
     var fundamentalAlignments: [CGFloat]
-    
-    var points:              [CGPoint]
-    var redPoints:           [CGPoint]
-    var movingAvg1:          [CGPoint]
-    var movingAvg2:          [CGPoint]
-    var upperBollingerBand:  [CGPoint]
+    var points: [CGPoint]
+    var redPoints: [CGPoint]
+    var movingAvg1: [CGPoint]
+    var movingAvg2: [CGPoint]
+    var upperBollingerBand: [CGPoint]
     var middleBollingerBand: [CGPoint]
-    var lowerBollingerBand:  [CGPoint]
-    var greenBars:           [CGRect]
-    var filledGreenBars:     [CGRect]
-    var hollowRedBars:       [CGRect]
-    var redBars:             [CGRect]
-    var redVolume:           [CGRect]
-    var blackVolume:         [CGRect]
-    
+    var lowerBollingerBand: [CGPoint]
+    var greenBars: [CGRect]
+    var filledGreenBars: [CGRect]
+    var hollowRedBars: [CGRect]
+    var redBars: [CGRect]
+    var redVolume: [CGRect]
+    var blackVolume: [CGRect]
+
     convenience override init() {
         self.init(monthLabels: [],
                   monthLines: [],
@@ -52,8 +51,11 @@ class ChartElements: NSObject, NSCopying {
                   redVolume: [],
                   blackVolume: [])
     }
-    
-    init(monthLabels: [String], monthLines: [CGPoint], fundamentalAlignments: [CGFloat], points: [CGPoint], redPoints: [CGPoint], movingAvg1: [CGPoint], movingAvg2: [CGPoint], upperBollingerBand: [CGPoint], middleBollingerBand: [CGPoint], lowerBollingerBand: [CGPoint], greenBars: [CGRect], filledGreenBars: [CGRect], hollowRedBars: [CGRect], redBars: [CGRect], redVolume: [CGRect], blackVolume: [CGRect]) {
+
+    init(monthLabels: [String], monthLines: [CGPoint], fundamentalAlignments: [CGFloat], points: [CGPoint], redPoints: [CGPoint],
+         movingAvg1: [CGPoint], movingAvg2: [CGPoint], upperBollingerBand: [CGPoint], middleBollingerBand: [CGPoint],
+         lowerBollingerBand: [CGPoint], greenBars: [CGRect], filledGreenBars: [CGRect], hollowRedBars: [CGRect],
+         redBars: [CGRect], redVolume: [CGRect], blackVolume: [CGRect]) {
         self.monthLabels = monthLabels
         self.monthLines = monthLines
         self.fundamentalAlignments = fundamentalAlignments
@@ -71,7 +73,17 @@ class ChartElements: NSObject, NSCopying {
         self.redVolume = redVolume
         self.blackVolume = blackVolume
     }
-    
+
+    /// Center a stroked line in the center of a pixel.  Point value can be 0.25, 0.333, 0.5, 0.666, or 0.75
+    /// bitmap graphics always use pixel context, so they always have alignTo=0.5
+    static func pxAlign(_ input: Double, alignTo: Double) -> Double {
+        var intPart = 0.0
+        if modf(input, &intPart) != alignTo { // modf separates integer and fractional parts
+            return intPart + alignTo
+        }
+        return input
+    }
+
     func clear() {
         monthLabels.removeAll(keepingCapacity: true)
         // Don't remove fundamentalAlignments since the alignments will get updated
@@ -90,7 +102,7 @@ class ChartElements: NSObject, NSCopying {
         redVolume.removeAll(keepingCapacity: true)
         blackVolume.removeAll(keepingCapacity: true)
     }
-    
+
     /// Return a copy of all of the arrays and their elements so rendering can use these values while the user pans to trigger recomputation
     func copy(with zone: NSZone? = nil) -> Any {
         let copy = ChartElements(monthLabels: Array(monthLabels),

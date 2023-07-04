@@ -17,7 +17,7 @@ enum ChartStyleControlType {
 
 class ChartStyleControl: UIControl {
     let stock: Stock
-    let stackView = UIStackView(frame: CGRectMake(0, 0, 320, 44))
+    let stackView = UIStackView(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
     var delegate: ChartOptionsController?
     var type: ChartStyleControlType
     var currentChartType: ChartType = .hlc
@@ -31,7 +31,7 @@ class ChartStyleControl: UIControl {
             }
         }
     }
-    
+
     @objc func tappedButton(button: UIButton) {
         selectedIndex = button.tag
         if type == .color {
@@ -40,7 +40,7 @@ class ChartStyleControl: UIControl {
             delegate?.chartTypeChanged(to: selectedIndex)
         }
     }
-    
+
     init(type: ChartStyleControlType, frame: CGRect, stock: Stock) {
         self.type = type
         self.stock = stock
@@ -57,11 +57,11 @@ class ChartStyleControl: UIControl {
         createSegments(for: currentChartType)
         backgroundColor = UIColor.systemBackground
     }
-    
+
     required convenience init?(coder aDecoder: NSCoder) {
         self.init(type: .color, frame: .zero, stock: Stock())
     }
-    
+
     /// Add segments to StackView by rendering images and creating a button for each image.
     /// ChartOptionsController calls this method on the color ChartStyleControl
     /// when the user taps the other ChartStyleControl to change the chartType.
@@ -69,21 +69,21 @@ class ChartStyleControl: UIControl {
         currentChartType = newChartType
         var images: [UIImage] = []
         if type == .chartType {
-            for (i, chartType) in ChartType.allCases.enumerated() {
+            for (index, chartType) in ChartType.allCases.enumerated() {
                 if let miniChart = image(chartType: chartType, colorIndex: 0, showLabel: true) {
                     images.append(miniChart)
                 }
                 if stock.chartType == chartType {
-                    selectedIndex = i
+                    selectedIndex = index
                 }
             }
         } else {
-            for (i, color) in Stock.chartColors.enumerated() {
-                if let miniChart = image(chartType: currentChartType, colorIndex: i) {
+            for (index, color) in Stock.chartColors.enumerated() {
+                if let miniChart = image(chartType: currentChartType, colorIndex: index) {
                     images.append(miniChart)
                 }
                 if stock.hasUpColor(otherColor: color) {
-                    selectedIndex = i
+                    selectedIndex = index
                 }
             }
         }
@@ -91,12 +91,12 @@ class ChartStyleControl: UIControl {
         for oldButton in stackView.arrangedSubviews {
             oldButton.removeFromSuperview()  // will also remove from stackView
         }
-        
-        for (i, image) in images.enumerated() {
+
+        for (index, image) in images.enumerated() {
             let button = UIButton(type: .custom)
-            button.frame = CGRectMake(0, 0, 36, 36)
-            button.tag = i
-            if i == selectedIndex {
+            button.frame = CGRect(x: 0, y: 0, width: 36, height: 36)
+            button.tag = index
+            if index == selectedIndex {
                 addShadow(to: button)
             }
             button.setImage(image, for: .normal)
@@ -106,7 +106,7 @@ class ChartStyleControl: UIControl {
             stackView.addArrangedSubview(button)
         }
     }
-    
+
     func addShadow(to button: UIButton) {
         button.backgroundColor = UIColor.systemBackground
         button.layer.shadowColor = UIColor.darkGray.cgColor
@@ -115,7 +115,7 @@ class ChartStyleControl: UIControl {
         button.layer.shadowOpacity = 0.8
         button.layer.cornerRadius = 3
     }
-    
+
     /// Mini stock chart image used to change current chart type or color
     func image(chartType: ChartType, colorIndex: Int, showLabel: Bool = false) -> UIImage? {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 36, height: 36))
@@ -124,80 +124,83 @@ class ChartStyleControl: UIControl {
             let downCGColor = colorIndex > 0 ? upCGColor : UIColor.red.cgColor
             ctx.cgContext.setLineWidth(1)
             ctx.cgContext.setStrokeColor(upCGColor)
-            
+
             if chartType == .close {
                 ctx.cgContext.setLineJoin(.round)
-                ctx.cgContext.move(to: CGPointMake(2.5, 3))
-                ctx.cgContext.addLine(to: CGPointMake(5, 22))
-                ctx.cgContext.addLine(to: CGPointMake(13.5, 8))
-                ctx.cgContext.addLine(to: CGPointMake(21, 13))
-                ctx.cgContext.addLine(to: CGPointMake(30.5, 3))
+                ctx.cgContext.move(to: CGPoint(x: 2.5, y: 3))
+                ctx.cgContext.addLine(to: CGPoint(x: 5, y: 22))
+                ctx.cgContext.addLine(to: CGPoint(x: 13.5, y: 8))
+                ctx.cgContext.addLine(to: CGPoint(x: 21, y: 13))
+                ctx.cgContext.addLine(to: CGPoint(x: 30.5, y: 3))
                 ctx.cgContext.drawPath(using: .stroke)
+                ctx.cgContext.setLineJoin(.miter)
             } else {
-                ctx.cgContext.move(to: CGPointMake(13.5, 3))
-                ctx.cgContext.addLine(to: CGPointMake(13.5, 9))
+                ctx.cgContext.move(to: CGPoint(x: 13.5, y: 3))
+                ctx.cgContext.addLine(to: CGPoint(x: 13.5, y: 9))
                 ctx.cgContext.drawPath(using: .stroke)
-                
-                ctx.cgContext.move(to: CGPointMake(13.5, 9))
-                ctx.cgContext.addLine(to: CGPointMake(13.5, 26))
+
+                ctx.cgContext.move(to: CGPoint(x: 13.5, y: 9))
+                ctx.cgContext.addLine(to: CGPoint(x: 13.5, y: 26))
                 ctx.cgContext.drawPath(using: .stroke)
-                
-                ctx.cgContext.move(to: CGPointMake(30.5, 2))
-                ctx.cgContext.addLine(to: CGPointMake(30.5, 17))
+
+                ctx.cgContext.move(to: CGPoint(x: 30.5, y: 2))
+                ctx.cgContext.addLine(to: CGPoint(x: 30.5, y: 17))
                 ctx.cgContext.drawPath(using: .stroke)
-                
+
                 if chartType == .candle {
                     ctx.cgContext.setFillColor(upCGColor)
-                    ctx.cgContext.fill([CGRectMake(11, 6, 5, 15), CGRectMake(28, 3, 5, 12)])
+                    ctx.cgContext.fill([CGRect(x: 11, y: 6, width: 5, height: 15),
+                                        CGRect(x: 28, y: 3, width: 5, height: 12)])
                     ctx.cgContext.setFillColor(downCGColor)
-                    ctx.cgContext.fill([CGRectMake(2, 2, 6, 22), CGRectMake(19, 7, 6, 9)])
+                    ctx.cgContext.fill([CGRect(x: 2, y: 2, width: 6, height: 22),
+                                        CGRect(x: 19, y: 7, width: 6, height: 9)])
                 } else {
-                    ctx.cgContext.move(to: CGPointMake(13.5, 8))
-                    ctx.cgContext.addLine(to: CGPointMake(17.5, 8))
+                    ctx.cgContext.move(to: CGPoint(x: 13.5, y: 8))
+                    ctx.cgContext.addLine(to: CGPoint(x: 17.5, y: 8))
                     ctx.cgContext.drawPath(using: .stroke)
-                    
-                    ctx.cgContext.move(to: CGPointMake(30.5, 5))
-                    ctx.cgContext.addLine(to: CGPointMake(34, 5))
+
+                    ctx.cgContext.move(to: CGPoint(x: 30.5, y: 5))
+                    ctx.cgContext.addLine(to: CGPoint(x: 34, y: 5))
                     ctx.cgContext.drawPath(using: .stroke)
-                    
+
                     if chartType == .ohlc { // Add open
-                        ctx.cgContext.move(to: CGPointMake(9.5, 21))
-                        ctx.cgContext.addLine(to: CGPointMake(13.5, 21))
+                        ctx.cgContext.move(to: CGPoint(x: 9.5, y: 21))
+                        ctx.cgContext.addLine(to: CGPoint(x: 13.5, y: 21))
                         ctx.cgContext.drawPath(using: .stroke)
-                        
-                        ctx.cgContext.move(to: CGPointMake(26.5, 13))
-                        ctx.cgContext.addLine(to: CGPointMake(30.5, 13))
+
+                        ctx.cgContext.move(to: CGPoint(x: 26.5, y: 13))
+                        ctx.cgContext.addLine(to: CGPoint(x: 30.5, y: 13))
                         ctx.cgContext.drawPath(using: .stroke)
-                        
+
                         ctx.cgContext.setStrokeColor(downCGColor)
-                        ctx.cgContext.move(to: CGPointMake(2, 3))
-                        ctx.cgContext.addLine(to: CGPointMake(5, 3))
+                        ctx.cgContext.move(to: CGPoint(x: 2, y: 3))
+                        ctx.cgContext.addLine(to: CGPoint(x: 5, y: 3))
                         ctx.cgContext.drawPath(using: .stroke)
- 
-                        ctx.cgContext.move(to: CGPointMake(19, 8))
-                        ctx.cgContext.addLine(to: CGPointMake(22, 8))
+
+                        ctx.cgContext.move(to: CGPoint(x: 19, y: 8))
+                        ctx.cgContext.addLine(to: CGPoint(x: 22, y: 8))
                         ctx.cgContext.drawPath(using: .stroke)
                     }
                     ctx.cgContext.setStrokeColor(downCGColor)
-                    
-                    ctx.cgContext.move(to: CGPointMake(5, 3))
-                    ctx.cgContext.addLine(to: CGPointMake(5, 22))
+
+                    ctx.cgContext.move(to: CGPoint(x: 5, y: 3))
+                    ctx.cgContext.addLine(to: CGPoint(x: 5, y: 22))
                     ctx.cgContext.drawPath(using: .stroke)
-                    
-                    ctx.cgContext.move(to: CGPointMake(5, 21))
-                    ctx.cgContext.addLine(to: CGPointMake(8, 21))
+
+                    ctx.cgContext.move(to: CGPoint(x: 5, y: 21))
+                    ctx.cgContext.addLine(to: CGPoint(x: 8, y: 21))
                     ctx.cgContext.drawPath(using: .stroke)
-                    
-                    ctx.cgContext.move(to: CGPointMake(22, 13))
-                    ctx.cgContext.addLine(to: CGPointMake(26, 13))
+
+                    ctx.cgContext.move(to: CGPoint(x: 22, y: 13))
+                    ctx.cgContext.addLine(to: CGPoint(x: 26, y: 13))
                     ctx.cgContext.drawPath(using: .stroke)
                 }
                 ctx.cgContext.setStrokeColor(downCGColor)
-                ctx.cgContext.move(to: CGPointMake(22, 4))
-                ctx.cgContext.addLine(to: CGPointMake(22, 21))
+                ctx.cgContext.move(to: CGPoint(x: 22, y: 4))
+                ctx.cgContext.addLine(to: CGPoint(x: 22, y: 21))
                 ctx.cgContext.drawPath(using: .stroke)
             }
-            
+
             if showLabel {
                 let label: String = ["OHLC", "HLC", "Candle", "Close"][chartType.rawValue]
                 label.draw(with: CGRect(x: 8 - label.count, y: 25, width: 32, height: 9),
@@ -209,4 +212,3 @@ class ChartStyleControl: UIControl {
         return img
     }
 }
-
