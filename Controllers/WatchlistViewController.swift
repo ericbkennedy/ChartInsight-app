@@ -42,6 +42,7 @@ class WatchlistViewController: UITableViewController {
     private var addStockToolbar = UIToolbar() // in tableView header
     private var addStockButton = UIBarButtonItem(systemItem: .add)
     private var toggleListButton = UIBarButtonItem(image: UIImage(named: "toggleList"))
+    private var shareMenuButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"))
     private var navStockButtonToolbar = UIToolbar() // will be navigationItem.titleView
 
     private var scrollChartView = ScrollChartView()
@@ -401,15 +402,31 @@ class WatchlistViewController: UITableViewController {
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
 
         if scrollChartView.comparison.stockList.isEmpty == false {
+            var menuActions = [UIAction]()
             for stock in scrollChartView.comparison.stockList {
-                let tickerButton = UIBarButtonItem(title: stock.ticker,
+                var buttonTitle = stock.ticker
+                if scrollChartView.comparison.stockList.count == 1 || UIDevice.current.userInterfaceIdiom == .pad {
+                    buttonTitle += " \(stock.name)"
+                }
+                let tickerButton = UIBarButtonItem(title: buttonTitle,
                                                    style: .plain,
                                                    target: self,
                                                    action: #selector(editStock))
                 tickerButton.tag = stock.id
                 tickerButton.tintColor = stock.upColor
                 buttons.append(tickerButton)
+
+                menuActions.append(UIAction(title: "chartinsight.com/\(stock.ticker)",
+                                            handler: { _ in
+                                                self.openWebView("https://chartinsight.com/\(stock.ticker)")
+                                    }))
+                menuActions.append(UIAction(title: "\(stock.ticker) website",
+                                            handler: { _ in
+                                                self.openWebView("https://chartinsight.com/redirectToIR/\(stock.ticker)")
+                                    }))
             }
+            shareMenuButton.menu = UIMenu(title: "", children: menuActions)
+
             let maxComparisonCount = UIDevice.current.userInterfaceIdiom == .pad ? 6 : 3
 
             if scrollChartView.comparison.stockList.count < maxComparisonCount {
@@ -426,7 +443,14 @@ class WatchlistViewController: UITableViewController {
             }
         }
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
+        buttons.append(shareMenuButton)
         navStockButtonToolbar.items = buttons
+    }
+
+    private func openWebView(_ urlString: String) {
+        if let sceneDelegate = UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate {
+            sceneDelegate.showWebView(urlString: urlString)
+        }
     }
 
     /// User clicked the "+" add button in the header of the tableView to create a new stock comparison

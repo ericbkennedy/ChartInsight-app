@@ -19,32 +19,64 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     var refreshButton: UIBarButtonItem?
     var comparison: Comparison? // if the user browses a stock part of an existing comparison
     var stock: Stock? // if the user browses a stock on chartinsight.com that isn't in the watchlist
+    var urlString: String = "https://www.chartinsight.com"
 
     override func loadView() {
-        webView = WKWebView()
+        let configuration = WKWebViewConfiguration()
+
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            configuration.applicationNameForUserAgent = "ChartInsight/\(version)"
+        }
+
+        webView = WKWebView(frame: .zero, configuration: configuration)
         view = webView
         webView.navigationDelegate = self
+
         backButton.target = self
         watchlistButton.target = self
         refreshButton = UIBarButtonItem(barButtonSystemItem: .refresh, target: webView, action: #selector(webView.reload))
+        navigationController?.navigationBar.isHidden = true // hide navigation bar since the lower toolbar is easier to access
     }
 
     override func viewDidLoad() {
-        if let url = URL(string: "http://www.chartinsight.com") {
+        view.addSubview(progressView)
+        progressView.translatesAutoresizingMaskIntoConstraints = false // will add constraints manually
+        progressView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        progressView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
+        progressView.layoutIfNeeded()
 
-            webView.load(URLRequest(url: url))
-           // webView.allowsBackForwardNavigationGestures = false
-            webView.uiDelegate = self // open all links in main frame with @objc(webView:createWebViewWithConfiguration...)
-            backButton.isEnabled = false
-            view.addSubview(progressView)
-            progressView.sizeToFit()
+        webView.insetsLayoutMarginsFromSafeArea = true
+        // Inset scrollable area of webView so it doesn't underlap the tabBar
+        webView.scrollView.contentInset = UIEdgeInsets(top: 0.0, left: 0.0, bottom: tabBarController!.tabBar.frame.height, right: 0.0)
+        webView.allowsBackForwardNavigationGestures = false
+        webView.uiDelegate = self // open all links in main frame with @objc(webView:createWebViewWithConfiguration...)
+        backButton.isEnabled = false
 
-            navigationController?.navigationBar.isHidden = true // hide navigation bar since the lower toolbar is easier to access
+        // Uncomment to enable passing messages from web JS to Swift
+        // let contentController = webView.configuration.userContentController
+        // contentController.add(self, name: "ciAppHandler")
+    }
 
-            // Uncomment to enable passing messages from web JS to Swift
-            // let contentController = webView.configuration.userContentController
-            // contentController.add(self, name: "ciAppHandler")
+    override func viewDidAppear(_ animated: Bool) {
+        webObservation = webView.observe(\WKWebView.estimatedProgress, options: .new) { _, change in
+            if let currentProgress = change.newValue {
+                if currentProgress < 1 {
+                    self.progressView.progress = Float(currentProgress)
+                } else {
+                    self.progressView.isHidden = true
+                }
+            }
         }
+        if urlString.isEmpty == false, let url = URL(string: urlString) {
+            webView.load(URLRequest(url: url))
+        }
+    }
+
+    /// Clear urlString so a non-empty urlString in a future viewDidAppear is a signal to load the URL
+    override func viewDidDisappear(_ animated: Bool) {
+        urlString = ""
     }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -110,14 +142,6 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         }
         webView.load(navigationAction.request)
         return nil
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        webObservation = webView.observe(\WKWebView.estimatedProgress, options: .new) { _, change in
-            if let currentProgress = change.newValue {
-                self.progressView.progress = Float(currentProgress)
-            }
-        }
     }
 
     deinit {

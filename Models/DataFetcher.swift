@@ -243,9 +243,13 @@ class DataFetcher: NSObject {
             }
         }
 
-        // Reverse the order of newBarData so newest is inserted at index 0 after older dates
-        for barData in newBarData.reversed() where barData.dateIntFromBar() > fetchedData[0].dateIntFromBar() {
-            fetchedData.insert(barData, at: 0)
+        if fetchedData.isEmpty {
+            fetchedData.append(contentsOf: newBarData)
+        } else {
+            // Reverse the order of newBarData so newest is inserted at index 0 after older dates
+            for barData in newBarData.reversed() where barData.dateIntFromBar() > fetchedData[0].dateIntFromBar() {
+                fetchedData.insert(barData, at: 0)
+            }
         }
 
         await historicalDataLoaded(barDataArray: fetchedData)

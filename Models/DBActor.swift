@@ -371,18 +371,9 @@ import Foundation
         var statement: Sqlite3ptr = nil
 
         enum Col: Int32 {
-            case comparisonId
-            case comparisonStockId
-            case stockId
-            case ticker
-            case startDate
-            case hasFundamentals
-            case chartType
-            case color
-            case fundamentalList
-            case technicalList
+            case comparisonId, comparisonStockId, stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentalList, technicalList
         }
-        var sql = "SELECT K.rowid, CS.rowid, stockId, ticker, startDate, hasFundamentals, chartType, color, fundamentals, technicals"
+        var sql = "SELECT K.rowid, CS.rowid, stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentals, technicals"
         sql += " FROM comparison K JOIN comparisonStock CS on K.rowid = CS.comparisonId JOIN stock ON stock.rowid = stockId "
 
         if ticker.count > 0 {
@@ -413,6 +404,7 @@ import Foundation
             stock.id = Int(sqlite3_column_int(statement, Col.stockId.rawValue))
             stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.ticker.rawValue)))
             title = title.appending("\(stock.ticker) ")
+            stock.name = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.name.rawValue)))
             stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.startDate.rawValue)))
             // startDateString will be converted to NSDate by [StockData init] as price data is loaded
 

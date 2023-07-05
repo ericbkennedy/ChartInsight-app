@@ -9,7 +9,9 @@
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-
+    enum TabIndex: Int {
+        case watchlist, web, settings
+    }
     var window: UIWindow?
     let tabBarController = UITabBarController()
     var watchlistViewController = WatchlistViewController()
@@ -55,6 +57,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window.makeKeyAndVisible()
         self.window = window
+    }
+
+    func showWebView(urlString: String) {
+        webViewController.urlString = urlString
+        tabBarController.selectedIndex = TabIndex.web.rawValue
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
