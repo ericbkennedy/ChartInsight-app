@@ -73,18 +73,13 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
 
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if let searchText = searchBar.text {
+            let localList = DBActor.shared.findStock(search: searchText)
 
-            Task(priority: .high) {
-                let localList = await DBActor.shared.findStock(search: searchText)
-
-                await MainActor.run {
-                    self.list.removeAll()
-                    if localList.isEmpty == false {
-                        self.list = localList
-                    }
-                    self.tableView.reloadData()
-                }
+            self.list.removeAll()
+            if localList.isEmpty == false {
+                self.list = localList
             }
+            self.tableView.reloadData()
         }
     }
 

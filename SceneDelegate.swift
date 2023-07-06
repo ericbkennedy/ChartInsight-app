@@ -33,7 +33,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.backgroundColor = UIColor.systemBackground
 
         Task {
-            await DBActor.shared.update(delegate: watchlistViewController)   // copy db to documents and/or update existing db
+            await DBActor.shared.moveIfNeeded(delegate: watchlistViewController)
+            if let stockChanges = await StockChangeService().fetchChanges() { // will be nil if no changes since last fetch
+                await DBActor.shared.update(stockChanges: stockChanges, delegate: watchlistViewController)
+            }
         }
 
         settingsViewController.delegate = watchlistViewController // will refresh comparison list after deletion

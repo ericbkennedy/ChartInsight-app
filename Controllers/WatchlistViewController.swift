@@ -406,7 +406,14 @@ class WatchlistViewController: UITableViewController {
             for stock in scrollChartView.comparison.stockList {
                 var buttonTitle = stock.ticker
                 if scrollChartView.comparison.stockList.count == 1 || UIDevice.current.userInterfaceIdiom == .pad {
-                    buttonTitle += " \(stock.name)"
+                    // Add first word from stock name if not equal to ticker
+                    let nonLetters = CharacterSet.letters.inverted
+                    if let firstWord = stock.name.components(separatedBy: nonLetters).first,
+                       firstWord != stock.ticker { // avoid redundant EPR EPR
+                        buttonTitle += " \(firstWord)"
+                    } else {
+                        buttonTitle = stock.name // EPR Properties
+                    }
                 }
                 let tickerButton = UIBarButtonItem(title: buttonTitle,
                                                    style: .plain,

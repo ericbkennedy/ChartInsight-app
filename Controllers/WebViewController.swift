@@ -16,7 +16,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     var delegate: WatchlistViewController?
     var backButton = UIBarButtonItem(image: UIImage(systemName: "chevron.backward"), style: .plain, target: nil, action: #selector(goBack))
     var watchlistButton = UIBarButtonItem(title: "View on Watchlist", style: .plain, target: nil, action: #selector(viewOnWatchlist))
-    var refreshButton: UIBarButtonItem?
+    var refreshButton: UIBarButtonItem!
     var comparison: Comparison? // if the user browses a stock part of an existing comparison
     var stock: Stock? // if the user browses a stock on chartinsight.com that isn't in the watchlist
     var urlString: String = "https://www.chartinsight.com"
@@ -35,6 +35,9 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         backButton.target = self
         watchlistButton.target = self
         refreshButton = UIBarButtonItem(barButtonSystemItem: .refresh, target: webView, action: #selector(webView.reload))
+        let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        toolbarItems = [self.backButton, spacer, refreshButton]
+        navigationController?.isToolbarHidden = false
         navigationController?.navigationBar.isHidden = true // hide navigation bar since the lower toolbar is easier to access
     }
 
@@ -87,6 +90,9 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         guard webView.url?.absoluteString.contains("chartinsight.com") == true else { return }
         backButton.isEnabled = webView.canGoBack
         progressView.isHidden = true
+        watchlistButton.title = "" // reset and allow the evaluateJavaScript closure to set association if found
+        comparison = nil
+        stock = nil
 
         webView.evaluateJavaScript("document.querySelector('#leftTickTicker')?.innerHTML") { (result, error) in
             guard error == nil, let ticker = result as? String else { return }
@@ -108,11 +114,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
                     await MainActor.run {
                         self.watchlistButton.title = buttonText
                         let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-
-                        if let refresh = self.refreshButton {
-                            self.toolbarItems = [self.backButton, spacer, self.watchlistButton, spacer, refresh]
-                            self.navigationController?.isToolbarHidden = false
-                        }
+                        self.toolbarItems = [self.backButton, spacer, self.watchlistButton, spacer, self.refreshButton]
                     }
                 }
             }

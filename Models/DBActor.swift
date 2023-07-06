@@ -19,38 +19,12 @@ import Foundation
     let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     let READONLY_NOMUTEX = Int32(SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX)
 
-    // Update local db for stock splits (delete from history), ticker changes and delistings
-    func updateFromAPI(delegate: WatchlistViewController) async {
-
-        // EK create real API
-        guard let url = URL(string: "https://chartinsight.com/api/close/STR?token=test") else {
-            print("Invalid API url for updates")
-            return
-        }
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw ServiceError.network(reason: "Response to \(url) wasn't expected HTTPURLResponse")
-            }
-
-            guard (200...299).contains(httpResponse.statusCode) else {
-                throw ServiceError.http(statusCode: httpResponse.statusCode)
-            }
-
-            print(String(data: data, encoding: .utf8) ?? "")
-
-        } catch {
-            print("error is \(error.localizedDescription)")
-        }
-    }
-
-    func dbPath() -> String {
+    nonisolated func dbPath() -> String {
         return String(format: "%@/Documents/charts.db", NSHomeDirectory())
     }
 
-    func update(delegate: WatchlistViewController) async {
-
+    /// Ensure DB is in app's Documents directory. Then load stock comparison list and send to the delegate.
+    func moveIfNeeded(delegate: WatchlistViewController) async {
         guard let path = Bundle.main.path(forResource: "charts.db", ofType: nil) else {
             print("charts.db is missing from Bundle")
             return
@@ -69,17 +43,88 @@ import Foundation
             await MainActor.run {
                 delegate.update(list: list)
             }
-            // Check for stock splits and ticker updates after UI has rendered
-            // await updateFromAPI(delegate: delegate)
 
         } catch let error as NSError {
             print("DBUpdater Error: \(error.domain) \(error.description)")
         }
     }
 
+    /// Update DB with the provided array of stock changes (splits, IPOs, ticker changes and delistings)
+    func update(stockChanges: [StockChangeService.StockChange], delegate: WatchlistViewController) async {
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
+        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
+
+        for change in stockChanges {
+            switch change.action {
+            case .added:
+                if let name = change.name, let startDateInt = change.startDateInt, let hasFundamentals = change.hasFundamentals {
+                    let sql = "INSERT OR REPLACE INTO stock (rowid, ticker, name, startDate, hasFundamentals) VALUES (?, ?, ?, ?, ?)"
+                    guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
+                    sqlite3_bind_int64(statement, 1, Int64(change.stockId))
+                    sqlite3_bind_text(statement, 2, NSString(string: change.ticker).utf8String, -1, SQLITE_TRANSIENT)
+                    sqlite3_bind_text(statement, 3, NSString(string: name).utf8String, -1, SQLITE_TRANSIENT)
+                    sqlite3_bind_int64(statement, 4, Int64(startDateInt))
+                    sqlite3_bind_int64(statement, 5, Int64(hasFundamentals))
+
+                    if SQLITE_DONE != sqlite3_step(statement) {
+                        print("change.added DB ERROR ", String(cString: sqlite3_errmsg(db)))
+                    }
+                    sqlite3_finalize(statement)
+                }
+            case .tickerChange, .nameChange:
+                if let name = change.name, let startDateInt = change.startDateInt {
+                    let sql = "UPDATE stock SET ticker = ?, name = ?, startDate = ? WHERE rowid = ?"
+                    guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
+                    sqlite3_bind_text(statement, 1, NSString(string: change.ticker).utf8String, -1, SQLITE_TRANSIENT)
+                    sqlite3_bind_text(statement, 2, NSString(string: name).utf8String, -1, SQLITE_TRANSIENT)
+                    sqlite3_bind_int64(statement, 3, Int64(startDateInt))
+                    sqlite3_bind_int64(statement, 4, Int64(change.stockId))
+
+                    if SQLITE_DONE != sqlite3_step(statement) {
+                        print("change.tickerChange DB ERROR ", String(cString: sqlite3_errmsg(db)))
+                    }
+                    sqlite3_finalize(statement)
+                }
+            case .split:
+                let sql = "DELETE FROM history WHERE stockId = ?"
+                var statement: Sqlite3ptr = nil
+                guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
+                sqlite3_bind_int64(statement, 1, Int64(change.stockId))
+
+                if SQLITE_DONE != sqlite3_step(statement) {
+                    print("change.split DB ERROR ", String(cString: sqlite3_errmsg(db)))
+                }
+                sqlite3_finalize(statement)
+            case .delisted:
+                var sql = "DELETE FROM comparisonStock WHERE stockId = ?"
+                guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
+                sqlite3_bind_int64(statement, 1, Int64(change.stockId))
+
+                if SQLITE_DONE != sqlite3_step(statement) {
+                    print(String(format: "change.delisted comparisonStock DB ERROR '%s'.", sqlite3_errmsg(db)))
+                }
+                sqlite3_finalize(statement)
+
+                sql = "DELETE FROM stock WHERE rowid = ?"
+                guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
+                sqlite3_bind_int64(statement, 1, Int64(change.stockId))
+
+                if SQLITE_DONE != sqlite3_step(statement) {
+                    print(String(format: "change.delisted stock DB ERROR '%s'.", sqlite3_errmsg(db)))
+                }
+                sqlite3_finalize(statement)
+            }
+        }
+        sqlite3_close(db)
+        // fetch updated comparisonList and send it to the delegate
+        let list = comparisonList()
+        await MainActor.run {
+            delegate.update(list: list)
+        }
+    }
+
     func save(_ barDataArray: [BarData], stockId: Int) {
-        var db: Sqlite3ptr = nil
-        var statement: Sqlite3ptr = nil
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
 
@@ -110,8 +155,7 @@ import Foundation
     func loadBarData(for stockId: Int, startDateInt: Int) -> [BarData] {
         var rowsLoaded: [BarData] = []
 
-        var db: Sqlite3ptr = nil
-        var statement: Sqlite3ptr = nil
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
         guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return [] }
 
@@ -142,7 +186,9 @@ import Foundation
     }
 
     /// Split the user's search text into words and calls findSymbol(search:db:) to query for matches
-    func findStock(search: String) -> [Stock] {
+    /// Search performance was slow due to actor isolation with writes to the history table.
+    /// Read-only access to the stock table and nonisolated annotation allows caller to skip Task dispatch.
+    nonisolated func findStock(search: String) -> [Stock] {
          var list: [Stock] = []
          var exactMatches: [Stock] = []
          var db: Sqlite3ptr = nil
@@ -187,7 +233,7 @@ import Foundation
 
     /// Search db for term which can be both the user's full search text or a substring of it.
     /// findStock(search:) wraps this in order to split the user's search text into words if no exact matches occur.
-    private func stockSearch(term: String, db: Sqlite3ptr) -> [Stock] {
+    nonisolated private func stockSearch(term: String, db: Sqlite3ptr) -> [Stock] {
         var list: [Stock] = []
         var statement: Sqlite3ptr = nil
 
@@ -221,8 +267,7 @@ import Foundation
 
     /// Returns a stock with the provided ticker or nil if not found
     func getStock(ticker: String) -> Stock? {
-        var db: Sqlite3ptr = nil
-        var statement: Sqlite3ptr = nil
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
         guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return nil }
 
@@ -256,9 +301,8 @@ import Foundation
 
     /// Save a stock as part of a new comparison (if comparison.id == 0) or add to an existing comparison
     func save(comparison: Comparison) {
-        var db: Sqlite3ptr = nil
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
-        var statement: Sqlite3ptr = nil
         var sql = ""
         if comparison.id == 0 {
             sql = "INSERT INTO comparison (sort) VALUES (0)"
@@ -312,9 +356,8 @@ import Foundation
 
     /// Delete all stock from a comparison and the comparison row itself
     func delete(comparison: Comparison) {
-        var db: Sqlite3ptr = nil
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
-        var statement: Sqlite3ptr = nil
 
         var sql = "DELETE FROM comparisonStock WHERE comparisonId = ?"
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
@@ -341,11 +384,10 @@ import Foundation
 
     /// Delete stock from a comparison. Call delete(comparison:) to delete the last stock in a comparison
     func delete(stock: Stock) -> Bool {
-        var db: Sqlite3ptr = nil
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
         var isDeleted = false
 
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return false }
-        var statement: Sqlite3ptr = nil
 
         let sql = "DELETE FROM comparisonStock WHERE stockId = ?"
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return false }
@@ -365,10 +407,9 @@ import Foundation
     /// Load all comparisons or only those with the provided ticker
     func comparisonList(ticker: String = "") -> [Comparison] {
         var list: [Comparison] = []
-        var db: Sqlite3ptr = nil
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
         guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return [] }
-        var statement: Sqlite3ptr = nil
 
         enum Col: Int32 {
             case comparisonId, comparisonStockId, stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentalList, technicalList
