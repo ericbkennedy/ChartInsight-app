@@ -4,7 +4,7 @@ line_length:
 file_length:
     warning: 700
 type_body_length:
-    warning: 550
+    warning: 600
 function_body_length:
     warning: 120
 cyclomatic_complexity:

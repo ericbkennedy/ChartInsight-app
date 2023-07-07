@@ -21,6 +21,12 @@ class ChartElements: NSObject, NSCopying {
     var fundamentalAlignments: [CGFloat]
     var points: [CGPoint]
     var redPoints: [CGPoint]
+    var yFactor: CGFloat
+    var yFloor: CGFloat
+    var maxHigh: NSDecimalNumber
+    var minLow: NSDecimalNumber
+    var scaledLow: NSDecimalNumber
+    var lastPrice: NSDecimalNumber
     var movingAvg1: [CGPoint]
     var movingAvg2: [CGPoint]
     var upperBollingerBand: [CGPoint]
@@ -39,6 +45,12 @@ class ChartElements: NSObject, NSCopying {
                   fundamentalAlignments: [],
                   points: [],
                   redPoints: [],
+                  yFactor: 0.0,
+                  yFloor: 0.0,
+                  maxHigh: NSDecimalNumber.one,
+                  minLow: NSDecimalNumber.zero,
+                  scaledLow: NSDecimalNumber.zero,
+                  lastPrice: NSDecimalNumber.one,
                   movingAvg1: [],
                   movingAvg2: [],
                   upperBollingerBand: [],
@@ -52,7 +64,9 @@ class ChartElements: NSObject, NSCopying {
                   blackVolume: [])
     }
 
-    init(monthLabels: [String], monthLines: [CGPoint], fundamentalAlignments: [CGFloat], points: [CGPoint], redPoints: [CGPoint],
+    init(monthLabels: [String], monthLines: [CGPoint], fundamentalAlignments: [CGFloat], points: [CGPoint],
+         redPoints: [CGPoint], yFactor: CGFloat, yFloor: CGFloat,
+         maxHigh: NSDecimalNumber, minLow: NSDecimalNumber, scaledLow: NSDecimalNumber, lastPrice: NSDecimalNumber,
          movingAvg1: [CGPoint], movingAvg2: [CGPoint], upperBollingerBand: [CGPoint], middleBollingerBand: [CGPoint],
          lowerBollingerBand: [CGPoint], greenBars: [CGRect], filledGreenBars: [CGRect], hollowRedBars: [CGRect],
          redBars: [CGRect], redVolume: [CGRect], blackVolume: [CGRect]) {
@@ -61,6 +75,12 @@ class ChartElements: NSObject, NSCopying {
         self.fundamentalAlignments = fundamentalAlignments
         self.points = points
         self.redPoints = redPoints
+        self.yFactor = yFactor
+        self.yFloor = yFloor
+        self.maxHigh = maxHigh
+        self.minLow = minLow
+        self.scaledLow = scaledLow
+        self.lastPrice = lastPrice
         self.movingAvg1 = movingAvg1
         self.movingAvg2 = movingAvg2
         self.upperBollingerBand = upperBollingerBand
@@ -110,6 +130,12 @@ class ChartElements: NSObject, NSCopying {
                                  fundamentalAlignments: Array(fundamentalAlignments),
                                  points: Array(points),
                                  redPoints: Array(redPoints),
+                                 yFactor: yFactor,
+                                 yFloor: yFloor,
+                                 maxHigh: maxHigh,
+                                 minLow: minLow,
+                                 scaledLow: scaledLow,
+                                 lastPrice: lastPrice,
                                  movingAvg1: Array(movingAvg1),
                                  movingAvg2: Array(movingAvg2),
                                  upperBollingerBand: Array(upperBollingerBand),

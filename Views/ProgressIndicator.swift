@@ -30,9 +30,11 @@ class ProgressIndicator: UIView {
 
     func reset() {
         timer?.invalidate()
+        timer = nil
         isHidden = true
         activeDownloads = 0
         progressNumerator = 0
+        progressView.setProgress(0, animated: false)
     }
 
     /// Update progressView with ratio of progressNumerator divided by activeDownloads
@@ -70,19 +72,13 @@ class ProgressIndicator: UIView {
             progressView.setProgress(progressCalc, animated: true)
         } else {
             progressView.setProgress(1.0, animated: true)
-            isHidden = true
-            // reset progress to zero before it is shown again to avoid backwards animation
-            progressView.setProgress(0.0, animated: false)
-            timer?.invalidate()
-            timer = nil
+            reset()
         }
     }
 
     @objc func updateActivityIndicator(incomingTimer: Timer) {
         if progressView.progress == 1.0 {
-            isHidden = true
-            timer?.invalidate()
-            timer = nil
+            reset()
         } else {
             if activeDownloads <= 1 || progressNumerator > activeDownloads {
                 progressView.setProgress(1.0, animated: true)

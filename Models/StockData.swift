@@ -6,7 +6,7 @@
 //  After DataFetcherDelegate methods are called, StockData computes ChartElements for all of the returned data
 //  and notifies its delegate (ScrollChartView) that it is ready.
 //  ScrollChartView calls copyChartElements() to get a thread-safe copy it can render while
-//  StockData is free to update its own copy (in tmpElements) as new data loads.
+//  StockData is free to update its own copy (in tmp) as new data loads.
 //
 //  Created by Eric Kennedy on 6/27/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
@@ -24,25 +24,19 @@ protocol StockDataDelegate: AnyObject {
 
 class StockData: NSObject, DataFetcherDelegate {
     var stock: Stock
-    var gregorian: Calendar
+    private var gregorian: Calendar
     @objc weak var delegate: ScrollChartView?
 
     var newestBarShown: Int
     var oldestBarShown: Int
-    var xFactor: CGFloat
-    var yFloor: CGFloat
-    var yFactor: CGFloat
-    var barUnit: CGFloat
+    private var xFactor: CGFloat // yFactor and yFloor are on chartElements
+    private var barUnit: CGFloat
 
     var ready = false // true if StockData has been loaded, computed and copied into chartElements.
     var chartElements: ChartElements       // public for ScrollChartView rendering
-    private var tmpElements: ChartElements // private for background computation
-    private var busy = false // true if it is currently recomputing tmpElements.
+    private var tmp: ChartElements // private for background computation
+    private var busy = false // true if it is currently recomputing tmp chart elements.
 
-    var maxHigh: NSDecimalNumber
-    var minLow: NSDecimalNumber
-    var scaledLow: NSDecimalNumber
-    var lastPrice: NSDecimalNumber
     var percentChange: NSDecimalNumber
     private var chartPercentChange: NSDecimalNumber
 
@@ -57,6 +51,7 @@ class StockData: NSObject, DataFetcherDelegate {
 
     private var dailyData: [BarData]
     var periodData: [BarData] // points to dailyData or dailyData grouped by week or month
+    private var maxPeriodCount: Int = 0 // set using dailyData.count in barrier block
     private var fetcher: DataFetcher?
     private var fundamentalFetcher: FundamentalFetcher?
     private var sma50: Bool
@@ -70,26 +65,27 @@ class StockData: NSObject, DataFetcherDelegate {
     private var volumeHeight: Double
     private var concurrentQueue: DispatchQueue?
 
-    @objc init(stock: Stock, gregorian: Calendar, delegate: ScrollChartView, oldestBarShown: Int) {
+    @objc init(stock: Stock, gregorian: Calendar, delegate: ScrollChartView, oldestBarShown: Int,
+               barUnit: CGFloat, xFactor: CGFloat) {
         self.stock = stock
         self.gregorian = gregorian
         self.delegate = delegate
         self.oldestBarShown = oldestBarShown
+        self.barUnit = barUnit
+        self.xFactor = xFactor
         newestBarShown = 0
         fetcher = DataFetcher()
         fundamentalFetcher = FundamentalFetcher()
         concurrentQueue = DispatchQueue(label: "com.chartinsight.\(stock.id)", attributes: .concurrent)
-        tmpElements = ChartElements()
+        tmp = ChartElements()
         chartElements = ChartElements()
         periodData = []
         dailyData = []
         fundamentalColumns = [:]
         (oldest, newest) = (Date.distantPast, Date.distantPast)
         (oldestReport, oldestReportInView, newestReport, newestReportInView) = (0, 0, 0, 0)
-        (xFactor, yFloor, yFactor, barUnit, maxVolume) = (0, 0, 0, 0, 0)
-        (pxHeight, sparklineHeight, chartBase, volumeBase, volumeHeight) = (0, 0, 0, 0, 0)
+        (pxHeight, sparklineHeight, chartBase, volumeBase, volumeHeight, maxVolume) = (0, 0, 0, 0, 0, 0)
         (percentChange, chartPercentChange) = (NSDecimalNumber.one, NSDecimalNumber.one)
-        (maxHigh, minLow, lastPrice, scaledLow) = (NSDecimalNumber.zero, NSDecimalNumber.zero, NSDecimalNumber.zero, NSDecimalNumber.zero)
         (ready, busy, sma50, sma200, bb20) = (false, false, false, false, false)
         super.init()
     }
@@ -148,7 +144,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
 
     /// Update values used to scale price data: pxHeight, sparklineHeight, volumeHeight, volumeBase, chartHeight
-    func setPxHeight(_ height: Double, sparklineHeight: Double) {
+    public func setPxHeight(_ height: Double, sparklineHeight: Double) {
         self.sparklineHeight = sparklineHeight
         pxHeight = height - sparklineHeight
         volumeHeight = 40 * UIScreen.main.scale
@@ -198,7 +194,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
 
     /// Align the array of fundamental data points to an offset into the self.periodData array
-    func updateFundamentalFetcherBarAlignment() {
+    private func updateFundamentalFetcherBarAlignment() {
         if let fundamentalFetcher = self.fundamentalFetcher,
            !fundamentalFetcher.isLoadingData,
            fundamentalFetcher.columns.count > 0 {
@@ -254,24 +250,24 @@ class StockData: NSObject, DataFetcherDelegate {
             }
         }
 
-        maxHigh = NSDecimalNumber(value: max)
-        minLow = NSDecimalNumber(value: min)
-        scaledLow = minLow
+        tmp.maxHigh = NSDecimalNumber(value: max)
+        tmp.minLow = NSDecimalNumber(value: min)
+        tmp.scaledLow = tmp.minLow
 
-        if minLow.doubleValue > 0 {
-            percentChange = maxHigh.dividing(by: minLow)
+        if tmp.minLow.doubleValue > 0 {
+            percentChange = tmp.maxHigh.dividing(by: tmp.minLow)
 
             if percentChange.compare(chartPercentChange) == .orderedDescending {
                 chartPercentChange = percentChange
             }
-            scaledLow = maxHigh.dividing(by: chartPercentChange)
+            tmp.scaledLow = tmp.maxHigh.dividing(by: chartPercentChange)
 
-            let range = maxHigh.subtracting(scaledLow)
+            let range = tmp.maxHigh.subtracting(tmp.scaledLow)
             if range.isEqual(to: NSDecimalNumber.zero) == false {
-                yFactor = chartBase / range.doubleValue
+                tmp.yFactor = chartBase / range.doubleValue
             } else {
-                print("Avoiding divide by zero on chart with maxHigh == minLow by using default yFactor")
-                yFactor = 50.0
+                print("Avoiding divide by zero on chart with tmp.maxHigh == tmp.minLow by using default tmp.yFactor")
+                tmp.yFactor = 50.0
             }
         }
         computeChart()
@@ -288,7 +284,7 @@ class StockData: NSObject, DataFetcherDelegate {
 
         if oldestBarShown <= 0 { // nothing to show yet
             print("\(stock.ticker) oldestBarShown is less than zero at \(oldestBarShown)")
-            tmpElements.clear()
+            tmp.clear()
         } else if busy {
             // Avoid deadlock by limiting concurrentQueue to updateHighLow and didFinishFetch*
             concurrentQueue?.sync {
@@ -316,26 +312,26 @@ class StockData: NSObject, DataFetcherDelegate {
      }
 
     /// Determines if the percent change has increased and we need to redraw/
-    func recompute(_ maxPercentChange: NSDecimalNumber, forceRecompute: Bool) {
+    public func recompute(_ maxPercentChange: NSDecimalNumber, forceRecompute: Bool) {
         if forceRecompute {
             calculateMovingAverages()
         }
         let pctDifference = maxPercentChange.subtracting(self.chartPercentChange).doubleValue
         if forceRecompute || pctDifference > 0.02 {
             chartPercentChange = maxPercentChange
-            scaledLow = maxHigh.dividing(by: chartPercentChange)
+            tmp.scaledLow = tmp.maxHigh.dividing(by: chartPercentChange)
 
             concurrentQueue?.sync {
                 computeChart()
             }
         } else {
             chartPercentChange = maxPercentChange
-            scaledLow = maxHigh.dividing(by: self.chartPercentChange)
+            tmp.scaledLow = tmp.maxHigh.dividing(by: self.chartPercentChange)
         }
     }
 
     /// DataFetcher has an active download that must be allowed to finish or fail before accepting an additional request
-    func fetcherCanceled() {
+    public func fetcherCanceled() {
         busy = false
         DispatchQueue.main.async { [weak self] in
             self?.delegate?.requestFailed(message: "Canceled request")
@@ -343,7 +339,7 @@ class StockData: NSObject, DataFetcherDelegate {
     }
 
     /// DataFetcher failed downloading historical data or intraday data
-    func fetcherFailed(_ message: String) {
+    public func fetcherFailed(_ message: String) {
         busy = false
         DispatchQueue.main.async { [weak self] in
             self?.delegate?.requestFailed(message: message)
@@ -364,7 +360,7 @@ class StockData: NSObject, DataFetcherDelegate {
                     dailyData.insert(intradayBar, at: 0)
                 }
 
-                lastPrice = NSDecimalNumber(value: dailyData[0].close)
+                tmp.lastPrice = NSDecimalNumber(value: dailyData[0].close)
                 newest = apiNewest
 
                 // For intraday update to weekly or monthly chart, decrement self.oldestBarShown only if
@@ -383,12 +379,31 @@ class StockData: NSObject, DataFetcherDelegate {
 
     /// Return the number of bars at the newBarUnit scale to check if one stock in a comparison
     /// will limit the date range that can be charted in the comparison
-    func maxPeriodSupported(barUnit: CGFloat) -> Int {
-        return Int(floor(Double(dailyData.count) / barUnit))
+    public func maxPeriodSupported(newBarUnit: CGFloat) -> Int {
+        return Int(floor(Double(maxPeriodCount) / newBarUnit))
+    }
+
+    public func updateBarFactors(barUnit: CGFloat, xFactor: CGFloat, maxPeriods: Int) {
+        // Avoid deadlock by limiting concurrentQueue to updateHighLow and fetcherLoaded*
+        concurrentQueue?.sync(flags: .barrier) {
+            if barUnit != self.barUnit {
+                self.newestBarShown = Int(floor(CGFloat(self.newestBarShown) * self.barUnit / barUnit))
+                self.oldestBarShown = Int(floor(CGFloat(self.oldestBarShown) * self.barUnit / barUnit))
+                self.barUnit = barUnit
+            }
+            self.xFactor = xFactor
+
+            updatePeriodDataByDayWeekOrMonth()
+
+            if self.oldestBarShown > maxPeriods {
+                self.oldestBarShown = maxPeriods
+            }
+            updateHighLow() // must be a separate call to handle shifting
+        }
     }
 
     /// User zoomed in or out so rescale dailyData by the updated barUnit
-    func updatePeriodDataByDayWeekOrMonth() {
+    private func updatePeriodDataByDayWeekOrMonth() {
         if barUnit == 1.0 {
             periodData = dailyData
         } else if barUnit > 5 { // monthly
@@ -396,6 +411,7 @@ class StockData: NSObject, DataFetcherDelegate {
         } else {
             periodData = BarData.groupByWeek(dailyData, calendar: gregorian, startDate: newest)
         }
+        maxPeriodCount = periodData.count
 
         updateFundamentalFetcherBarAlignment()
         calculateMovingAverages()
@@ -412,22 +428,26 @@ class StockData: NSObject, DataFetcherDelegate {
 
                 if dailyData.isEmpty { // case 1: First request
                     newest = apiNewest
-                    lastPrice = NSDecimalNumber(value: newestBar.close)
+                    tmp.lastPrice = NSDecimalNumber(value: newestBar.close)
                     oldest = apiOldest
                     dailyData.append(contentsOf: loadedData)
 
                 } else if newest.compare(apiNewest) == .orderedAscending { // case 2: Newer dates
                     newest = apiNewest
-                    lastPrice = NSDecimalNumber(value: newestBar.close)
-                    print("api is newer, so inserting \(loadedData.count) bars at start of dailyData")
-
-                    for index in 0 ..< loadedData.count {
-                        dailyData.insert(loadedData[index], at: index)
+                    tmp.lastPrice = NSDecimalNumber(value: newestBar.close)
+                    if loadedData.count > dailyData.count {
+                        print("api is newer AND \(loadedData.count) > \(dailyData.count) so replacing dailyData with loadedData")
+                        dailyData = loadedData
+                    } else {
+                        print("api is newer, so inserting \(loadedData.count) bars at start of dailyData")
+                        for index in 0 ..< loadedData.count {
+                            dailyData.insert(loadedData[index], at: index)
+                        }
                     }
                 } else if oldest.compare(apiOldest) == .orderedDescending { // case 3: Older dates
                     oldest = apiOldest
                     dailyData.append(contentsOf: loadedData)
-                    print("\(stock.ticker) older dates \(loadedData.count) new barData.count to \(dailyData.count) exiting dailyData.count")
+                    print("\(stock.ticker) older dates \(loadedData.count) new barData.count")
                 }
 
                 updatePeriodDataByDayWeekOrMonth()
@@ -456,7 +476,7 @@ class StockData: NSObject, DataFetcherDelegate {
         var xRaw: CGFloat = xFactor / 2
         var oldestClose: Double = 0, oldestValidBar: Int = 0
 
-        tmpElements.clear()
+        tmp.clear()
 
         if oldestBarShown < 1 || periodData.count == 0 {
             ready = true
@@ -485,7 +505,7 @@ class StockData: NSObject, DataFetcherDelegate {
         var xRaw = xRaw
         let volumeFactor = maxVolume/volumeHeight
         var barCenter: CGFloat = 0, barHeight: CGFloat = 0
-        yFloor = yFactor * maxHigh.doubleValue + sparklineHeight
+        tmp.yFloor = tmp.yFactor * tmp.maxHigh.doubleValue + sparklineHeight
         var lastMonth = periodData[oldestValidBar].month
 
         for index in stride(from: oldestValidBar, through: newestBarShown, by: -1) {
@@ -507,9 +527,9 @@ class StockData: NSObject, DataFetcherDelegate {
                 }
 
                 if !label.isEmpty { // show month or year line
-                    tmpElements.monthLabels.append(label)
-                    tmpElements.monthLines.append(contentsOf: [CGPoint(x: barCenter - 2, y: sparklineHeight),
-                                                               CGPoint(x: barCenter - 2, y: volumeBase)])
+                    tmp.monthLabels.append(label)
+                    tmp.monthLines.append(contentsOf: [CGPoint(x: barCenter - 2, y: sparklineHeight),
+                                                       CGPoint(x: barCenter - 2, y: volumeBase)])
                 }
             }
             lastMonth = periodData[index].month
@@ -517,26 +537,26 @@ class StockData: NSObject, DataFetcherDelegate {
             if stock.chartType == .ohlc || stock.chartType == .hlc {
                 if oldestClose > periodData[index].close { // green bar
                     if stock.chartType == .ohlc { // include open
-                        tmpElements.redPoints.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: yFloor - yFactor * periodData[index].open),
-                                                                  CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].open)])
+                        tmp.redPoints.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: tmp.yFloor - tmp.yFactor * periodData[index].open),
+                                                          CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].open)])
                     }
-                    tmpElements.redPoints.append(contentsOf: [CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].high),
-                                                              CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].low),
-                                                              CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].close),
-                                                              CGPoint(x: barCenter + xFactor/2, y: yFloor - yFactor * periodData[index].close)])
+                    tmp.redPoints.append(contentsOf: [CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].high),
+                                                      CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].low),
+                                                      CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].close),
+                                                      CGPoint(x: barCenter + xFactor/2, y: tmp.yFloor - tmp.yFactor * periodData[index].close)])
                 } else { // red bar
                     if stock.chartType == .ohlc { // include open
-                        tmpElements.points.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: yFloor - yFactor * periodData[index].open),
-                                                               CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].open)])
+                        tmp.points.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: tmp.yFloor - tmp.yFactor * periodData[index].open),
+                                                       CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].open)])
                     }
 
-                    tmpElements.points.append(contentsOf: [CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].high),
-                                                           CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].low),
-                                                           CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].close),
-                                                           CGPoint(x: barCenter + xFactor/2, y: yFloor - yFactor * periodData[index].close)])
+                    tmp.points.append(contentsOf: [CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].high),
+                                                   CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].low),
+                                                   CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].close),
+                                                   CGPoint(x: barCenter + xFactor/2, y: tmp.yFloor - tmp.yFactor * periodData[index].close)])
                 }
             } else if stock.chartType == .candle {
-                barHeight = yFactor * (periodData[index].open - periodData[index].close)
+                barHeight = tmp.yFactor * (periodData[index].open - periodData[index].close)
                 if abs(barHeight) < 1 {
                     barHeight = barHeight > 0 ? 1 : -1  // min 1 px height either up or down
                 }
@@ -544,65 +564,65 @@ class StockData: NSObject, DataFetcherDelegate {
                 if periodData[index].open >= periodData[index].close { // filled bar
                     if oldestClose < periodData[index].close { // filled green bar
                         let rect = CGRect(x: barCenter - xFactor * 0.4,
-                                          y: yFloor - yFactor * periodData[index].open,
+                                          y: tmp.yFloor - tmp.yFactor * periodData[index].open,
                                           width: 0.8 * xFactor, height: barHeight)
-                        tmpElements.filledGreenBars.append(rect)
+                        tmp.filledGreenBars.append(rect)
 
-                        tmpElements.points.append(contentsOf: [CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].high),
-                                                               CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].low)])
+                        tmp.points.append(contentsOf: [CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].high),
+                                                       CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].low)])
                     } else {
-                        tmpElements.redPoints.append(contentsOf: [CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].high),
-                                                                  CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].low)])
+                        tmp.redPoints.append(contentsOf: [CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].high),
+                                                          CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].low)])
 
-                        tmpElements.redBars.append(CGRect(x: barCenter - xFactor * 0.4,
-                                                       y: yFloor - yFactor * periodData[index].open,
-                                                       width: 0.8 * xFactor, height: barHeight))
+                        tmp.redBars.append(CGRect(x: barCenter - xFactor * 0.4,
+                                                  y: tmp.yFloor - tmp.yFactor * periodData[index].open,
+                                                  width: 0.8 * xFactor, height: barHeight))
                     }
                 } else {
                     if oldestClose > periodData[index].close { // red hollow bar
-                        tmpElements.hollowRedBars.append(CGRect(x: barCenter - xFactor * 0.4,
-                                                             y: yFloor - yFactor * periodData[index].open,
-                                                             width: 0.8 * xFactor, height: barHeight))
+                        tmp.hollowRedBars.append(CGRect(x: barCenter - xFactor * 0.4,
+                                                        y: tmp.yFloor - tmp.yFactor * periodData[index].open,
+                                                        width: 0.8 * xFactor, height: barHeight))
 
-                        tmpElements.redPoints.append(contentsOf: [CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].high),
-                                                                  CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].close),
-                                                                  CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].open),
-                                                                  CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].low)])
+                        tmp.redPoints.append(contentsOf: [CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].high),
+                                                          CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].close),
+                                                          CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].open),
+                                                          CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].low)])
                     } else {
-                        tmpElements.greenBars.append(CGRect(x: barCenter - xFactor * 0.4,
-                                                         y: yFloor - yFactor * periodData[index].open,
-                                                         width: 0.8 * xFactor, height: barHeight))
+                        tmp.greenBars.append(CGRect(x: barCenter - xFactor * 0.4,
+                                                    y: tmp.yFloor - tmp.yFactor * periodData[index].open,
+                                                    width: 0.8 * xFactor, height: barHeight))
 
-                        tmpElements.points.append(contentsOf: [CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].high),
-                                                               CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].close),
-                                                               CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].open),
-                                                               CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].low)])
+                        tmp.points.append(contentsOf: [CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].high),
+                                                       CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].close),
+                                                       CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].open),
+                                                       CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].low)])
                     }
                 }
             } else if stock.chartType == .close {
-                tmpElements.points.append(CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].close))
+                tmp.points.append(CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].close))
             }
             if sma50 && periodData[index].movingAvg1 > 0 {
-                tmpElements.movingAvg1.append(CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].movingAvg1))
+                tmp.movingAvg1.append(CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].movingAvg1))
             }
             if sma200 && periodData[index].movingAvg2 > 0 {
-                tmpElements.movingAvg2.append(CGPoint(x: barCenter, y: yFloor - yFactor * periodData[index].movingAvg2))
+                tmp.movingAvg2.append(CGPoint(x: barCenter, y: tmp.yFloor - tmp.yFactor * periodData[index].movingAvg2))
             }
             if bb20 && periodData[index].mbb > 0 {
-                let yMiddle = yFloor - yFactor * periodData[index].mbb
-                let yStdDev = yFactor * 2 * periodData[index].stdev
-                tmpElements.upperBollingerBand.append(CGPoint(x: barCenter, y: yMiddle + yStdDev))
-                tmpElements.middleBollingerBand.append(CGPoint(x: barCenter, y: yMiddle))
-                tmpElements.lowerBollingerBand.append(CGPoint(x: barCenter, y: yMiddle - yStdDev))
+                let yMiddle = tmp.yFloor - tmp.yFactor * periodData[index].mbb
+                let yStdDev = tmp.yFactor * 2 * periodData[index].stdev
+                tmp.upperBollingerBand.append(CGPoint(x: barCenter, y: yMiddle + yStdDev))
+                tmp.middleBollingerBand.append(CGPoint(x: barCenter, y: yMiddle))
+                tmp.lowerBollingerBand.append(CGPoint(x: barCenter, y: yMiddle - yStdDev))
             }
             if periodData[index].volume > 0 {
                 let rect = CGRect(x: barCenter - xFactor/2,
                                   y: volumeBase,
                                   width: xFactor, height: -1 * periodData[index].volume/volumeFactor)
                 if oldestClose > periodData[index].close {
-                    tmpElements.redVolume.append(rect)
+                    tmp.redVolume.append(rect)
                 } else {
-                    tmpElements.blackVolume.append(rect)
+                    tmp.blackVolume.append(rect)
                 }
             }
             oldestClose = periodData[index].close
@@ -618,23 +638,18 @@ class StockData: NSObject, DataFetcherDelegate {
             oldestReport = fundamentalFetcher.reportCount() - 1
             newestReport = 0
             var lastBarAlignment = 0
-
             for index in 0...oldestReport {
-
                 lastBarAlignment = fundamentalFetcher.barAlignmentFor(report: index)
-
                 if newestReport > 0 && lastBarAlignment == -1 {
                     print("ran out of trading data after report \(newestReport)")
                 } else if lastBarAlignment > 0 && lastBarAlignment <= newestBarShown {
                     newestReport = index
                 }
-
                 if lastBarAlignment > oldestValidBar || lastBarAlignment == -1 {
                     oldestReport = index       // first report just out of view
                     break
                 }
             }
-
             if oldestReport == newestReport {     // include offscreen report
                 if newestReport > 0 {
                     newestReport -= 1
@@ -646,14 +661,12 @@ class StockData: NSObject, DataFetcherDelegate {
             var index = newestReport
             newestReportInView = newestReport
 
-            // Avoid showing any previous pixel alignments prior to user pan or zoom
-            let offscreen: Int = -1
-
-            if tmpElements.fundamentalAlignments.isEmpty {
-                tmpElements.fundamentalAlignments = Array(repeating: CGFloat(offscreen), count: fundamentalFetcher.reportCount())
+            let offscreen: Int = -1 // Avoid showing any previous pixel alignments prior to user pan or zoom
+            if tmp.fundamentalAlignments.isEmpty {
+                tmp.fundamentalAlignments = Array(repeating: CGFloat(offscreen), count: fundamentalFetcher.reportCount())
             } else { // reset to offscreen value
-                for index in 0 ..< tmpElements.fundamentalAlignments.count {
-                    tmpElements.fundamentalAlignments[index] = CGFloat(offscreen)
+                for index in 0 ..< tmp.fundamentalAlignments.count {
+                    tmp.fundamentalAlignments[index] = CGFloat(offscreen)
                 }
             }
             var barAlignment = offscreen
@@ -666,7 +679,7 @@ class StockData: NSObject, DataFetcherDelegate {
                     break
                 }
                 let xPosition = Double(oldestValidBar - barAlignment + 1) * xFactor + xRaw
-                tmpElements.fundamentalAlignments.insert(xPosition, at: index)
+                tmp.fundamentalAlignments.insert(xPosition, at: index)
                 index += 1
             } while index <= oldestReport
 
@@ -674,13 +687,11 @@ class StockData: NSObject, DataFetcherDelegate {
         }
     }
 
-    /// Create a readonly copy of the values mutated on a background thread by computeChart for use on the mainThread
-    /// This is primarily needed for intraday updates which can return fast enough (especially in the simulator) to be ready
-    /// to mutate the array values while ScrollChartView is iterating through the arrays.
+    /// Create a copy of the values mutated on a background thread by computeChart for use by ChartRenderer on the mainThread
     func copyChartElements() {
         concurrentQueue?.sync(flags: .barrier) {
             // swiftlint:disable:next force_cast
-            chartElements = tmpElements.copy() as! ChartElements // copy() returns an Any
+            chartElements = tmp.copy() as! ChartElements // copy() returns an Any
         }
     }
 }

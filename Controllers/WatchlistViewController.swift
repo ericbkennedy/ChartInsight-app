@@ -423,13 +423,17 @@ class WatchlistViewController: UITableViewController {
                 tickerButton.tintColor = stock.upColor
                 buttons.append(tickerButton)
 
-                menuActions.append(UIAction(title: "chartinsight.com/\(stock.ticker)",
-                                            handler: { _ in
-                                                self.openWebView("https://chartinsight.com/\(stock.ticker)")
-                                    }))
                 menuActions.append(UIAction(title: "\(stock.ticker) website",
                                             handler: { _ in
                                                 self.openWebView("https://chartinsight.com/redirectToIR/\(stock.ticker)")
+                                    }))
+                menuActions.append(UIAction(title: "\(stock.ticker) SeekingAlpha",
+                                            handler: { _ in
+                                                self.openWebView("https://seekingalpha.com/symbol/\(stock.ticker)")
+                                    }))
+                menuActions.append(UIAction(title: "chartinsight.com/\(stock.ticker)",
+                                            handler: { _ in
+                                                self.openWebView("https://chartinsight.com/\(stock.ticker)")
                                     }))
             }
             shareMenuButton.menu = UIMenu(title: "", children: menuActions)

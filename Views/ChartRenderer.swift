@@ -42,6 +42,7 @@ struct ChartRenderer {
 
         for (index, stockData) in stocks.enumerated().reversed() { // go backwards so stock[0] draws on top
             stockData.copyChartElements()
+            let chartElements = stockData.chartElements
             if index == 0 { // Dislay month lines
                 chartText.append(contentsOf: renderMonthLines(stockData: stockData))
             }
@@ -61,101 +62,101 @@ struct ChartRenderer {
 
             context.setStrokeColor(stockData.stock.upColor.cgColor)
 
-            if stockData.chartElements.movingAvg1.count > 2 {
+            if chartElements.movingAvg1.count > 2 {
                 context.setStrokeColor(stockData.stock.colorInverseHalfAlpha.cgColor)
-                strokeLineFromPoints(stockData.chartElements.movingAvg1, context: context)
+                strokeLineFromPoints(chartElements.movingAvg1, context: context)
             }
 
-            if stockData.chartElements.movingAvg2.count > 2 {
+            if chartElements.movingAvg2.count > 2 {
                 context.setStrokeColor(stockData.stock.upColorHalfAlpha.cgColor)
-                strokeLineFromPoints(stockData.chartElements.movingAvg2, context: context)
+                strokeLineFromPoints(chartElements.movingAvg2, context: context)
             }
 
-            if stockData.chartElements.upperBollingerBand.count > 2 {
+            if chartElements.upperBollingerBand.count > 2 {
                 context.setLineDash(phase: 0, lengths: [1.0, 1.5])
                 context.setStrokeColor(stockData.stock.upColor.cgColor)
-                strokeLineFromPoints(stockData.chartElements.upperBollingerBand, context: context)
-                strokeLineFromPoints(stockData.chartElements.middleBollingerBand, context: context)
-                strokeLineFromPoints(stockData.chartElements.lowerBollingerBand, context: context)
+                strokeLineFromPoints(chartElements.upperBollingerBand, context: context)
+                strokeLineFromPoints(chartElements.middleBollingerBand, context: context)
+                strokeLineFromPoints(chartElements.lowerBollingerBand, context: context)
                 context.setLineDash(phase: 0, lengths: []) // reset to solid
             }
 
             context.setFillColor(stockData.stock.color.cgColor)
             context.setStrokeColor(stockData.stock.color.cgColor)
-            strokeLinesFromPoints(stockData.chartElements.redPoints, context: context)
+            strokeLinesFromPoints(chartElements.redPoints, context: context)
 
-            for hollowRedBars in stockData.chartElements.hollowRedBars {
+            for hollowRedBars in chartElements.hollowRedBars {
                 context.stroke(hollowRedBars)
             }
-            context.fill(stockData.chartElements.redBars)
+            context.fill(chartElements.redBars)
 
-            if stockData.chartElements.greenBars.count > 0 {
+            if chartElements.greenBars.count > 0 {
                 context.setStrokeColor(stockData.stock.upColor.cgColor)
                 context.setFillColor(stockData.stock.upColor.cgColor)
-                for greenBars in stockData.chartElements.greenBars {
+                for greenBars in chartElements.greenBars {
                     context.stroke(greenBars)
                 }
-                context.fill(stockData.chartElements.filledGreenBars)
+                context.fill(chartElements.filledGreenBars)
             }
 
             context.setFillColor(stockData.stock.colorHalfAlpha.cgColor)
-            context.fill(stockData.chartElements.redVolume)
+            context.fill(chartElements.redVolume)
 
             context.setFillColor(stockData.stock.upColorHalfAlpha.cgColor)
-            context.fill(stockData.chartElements.blackVolume)
+            context.fill(chartElements.blackVolume)
 
             context.setStrokeColor(stockData.stock.upColor.cgColor)
             if stockData.stock.chartType == .close {
                 context.setLineJoin(.round)
-                strokeLineFromPoints(stockData.chartElements.points, context: context)
+                strokeLineFromPoints(chartElements.points, context: context)
                 context.setLineJoin(.miter)
             } else {
-                strokeLinesFromPoints(stockData.chartElements.points, context: context)
+                strokeLinesFromPoints(chartElements.points, context: context)
             }
 
             // Calculate the range of prices for this stock (scaledLow < minLow if other stock was more volatile)
             // and add right-axis labels at rounded increments
 
-            let range = stockData.maxHigh.subtracting(stockData.scaledLow)  // scaledLow if the other stock
+            let range = chartElements.maxHigh.subtracting(chartElements.scaledLow)  // scaledLow if the other stock
             let increment = rightAxisIncrements(range: range)
             var avoidLabel: NSDecimalNumber
             var nextLabel: NSDecimalNumber
 
-            avoidLabel = stockData.lastPrice
+            avoidLabel = chartElements.lastPrice
             let minSpace: CGFloat = 20 // Skip any label within this distance of the avoidLabel value
             let x = pxWidth + (CGFloat(index) + 0.15) * 30 * contentsScale
 
-            if minSpace < abs(stockData.yFactor * stockData.maxHigh.subtracting(stockData.lastPrice).doubleValue) {
+            if minSpace < abs(chartElements.yFactor * chartElements.maxHigh.subtracting(chartElements.lastPrice).doubleValue) {
                 // lastPrice is lower than maxHigh
-                chartText.append(writeLabel(stockData.maxHigh, for: stockData, atX: x, showBox: false))
-                avoidLabel = stockData.maxHigh
+                chartText.append(writeLabel(chartElements.maxHigh, for: stockData, atX: x, showBox: false))
+                avoidLabel = chartElements.maxHigh
             }
 
-            nextLabel = stockData.maxHigh.dividing(by: increment, withBehavior: roundDown).multiplying(by: increment)
+            nextLabel = chartElements.maxHigh.dividing(by: increment, withBehavior: roundDown).multiplying(by: increment)
 
-            if stockData.maxHigh.compare(stockData.lastPrice) == .orderedDescending {
-                chartText.append(writeLabel(stockData.lastPrice, for: stockData, atX: x, showBox: true))
+            if chartElements.maxHigh.compare(chartElements.lastPrice) == .orderedDescending {
+                chartText.append(writeLabel(chartElements.lastPrice, for: stockData, atX: x, showBox: true))
 
-                if minSpace > abs(stockData.yFactor * stockData.lastPrice.subtracting(nextLabel).doubleValue) {
+                if minSpace > abs(chartElements.yFactor * chartElements.lastPrice.subtracting(nextLabel).doubleValue) {
                     nextLabel = nextLabel.subtracting(increment) // go to next label
                 }
             }
 
-            while nextLabel.compare(stockData.minLow) == .orderedDescending {
-                if minSpace < abs(stockData.yFactor * avoidLabel.subtracting(nextLabel).doubleValue) {
+            while nextLabel.compare(chartElements.minLow) == .orderedDescending {
+                if minSpace < abs(chartElements.yFactor * avoidLabel.subtracting(nextLabel).doubleValue) {
                     chartText.append(writeLabel(nextLabel, for: stockData, atX: x, showBox: false))
                 }
                 nextLabel = nextLabel.subtracting(increment)
-                if minSpace > abs(stockData.yFactor * stockData.lastPrice.subtracting(nextLabel).doubleValue) {
-                    avoidLabel = stockData.lastPrice
+                if minSpace > abs(chartElements.yFactor * chartElements.lastPrice.subtracting(nextLabel).doubleValue) {
+                    avoidLabel = chartElements.lastPrice
                 } else {
-                    avoidLabel = stockData.minLow
+                    avoidLabel = chartElements.minLow
                 }
             }
 
             // If last price is near the minLow, skip minLow
-            if minSpace < abs(stockData.yFactor * stockData.minLow.subtracting(stockData.lastPrice).doubleValue) {
-                chartText.append(writeLabel(stockData.minLow, for: stockData, atX: x, showBox: false))
+            if minSpace < abs(chartElements.yFactor * chartElements.minLow.subtracting(chartElements.lastPrice).doubleValue) {
+                chartText.append(writeLabel(chartElements.minLow, for: stockData, atX: x, showBox: false))
             }
         }
         chartText.append(contentsOf: renderFundamentals(comparison: comparison, stocks: stocks))
@@ -269,8 +270,8 @@ struct ChartRenderer {
                         if r + 1 < fundamentalAlignments.count && fundamentalAlignments[r + 1] > 0 {
                             // can calculate bar width to older report
                             qWidth = fundamentalAlignments[r] - fundamentalAlignments[r + 1] - 3
-                        } else { // no older reports so use default fundamental bar width
-                            qWidth = min(fundamentalAlignments[r], stockData.xFactor * 60 / barUnit)
+                        } else if r > 1 { // no older reports so use default fundamental bar width
+                            qWidth = fundamentalAlignments[r - 1] - fundamentalAlignments[r] - 3
                         }
 
                         let barHeight = reportValue.multiplying(by: sparklineYFactor).doubleValue
@@ -348,8 +349,8 @@ struct ChartRenderer {
                 let pressedBarIndex = stockData.oldestBarShown - barOffset // only overwrite pressedBarIndex if it's valid
 
                 if let (bar, monthName) = stockData.bar(at: pressedBarIndex) {
-                    let barHigh = stockData.yFloor - stockData.yFactor * bar.high
-                    let barLow = stockData.yFloor - stockData.yFactor * bar.low
+                    let barHigh = stockData.chartElements.yFloor - stockData.chartElements.yFactor * bar.high
+                    let barLow = stockData.chartElements.yFloor - stockData.chartElements.yFactor * bar.low
 
                     if yPressed < barLow && yPressed > barHigh {
                         lensContext.setFillColor(backgroundColor.withAlphaComponent(0.25).cgColor)
@@ -417,7 +418,7 @@ struct ChartRenderer {
     func writeLabel(_ price: NSDecimalNumber, for stock: StockData, atX x: CGFloat, showBox: Bool) -> ChartText {
         let l = numberFormatter.string(from: price) ?? ""
 
-        var y = stock.yFloor - stock.yFactor * price.doubleValue + 20
+        var y = stock.chartElements.yFloor - stock.chartElements.yFactor * price.doubleValue + 20
 
         let pxPerPoint: CGFloat = 1 / contentsScale
         y = ChartElements.pxAlign(y, alignTo: pxPerPoint)

@@ -129,11 +129,10 @@ class ScrollChartView: UIView, StockDataDelegate {
         sparklineHeight = CGFloat(100 * sparklineKeys.count)
 
         for stock in comparison.stockList {
-            let stockData = StockData(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset())
+            let combinedXFactor = xFactor * barUnit
+            let stockData = StockData(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
+                                      barUnit: barUnit, xFactor: combinedXFactor)
             stockDataList.append(stockData)
-
-            stockData.barUnit = barUnit
-            stockData.xFactor = xFactor * barUnit
             stockData.setPxHeight(pxHeight, sparklineHeight: sparklineHeight)
             stockData.fetchStockData()
         }
@@ -218,7 +217,7 @@ class ScrollChartView: UIView, StockDataDelegate {
 
     /// Check if a stock has less price data available so the caller can limit all stocks to that shorter date range
     /// Returns a tuple (maxSupportedPeriods, oldestBarShown)
-    func maxSupportedPeriodsForComparison() -> (Int, Int) {
+    func maxSupportedPeriodsForComparison(newBarUnit: CGFloat) -> (Int, Int) {
         var maxSupportedPeriods = 0
         var oldestBarShown = 0
 
@@ -226,7 +225,7 @@ class ScrollChartView: UIView, StockDataDelegate {
             if oldestBarShown == 0 {
                 oldestBarShown = stockData.oldestBarShown
             }
-            let periodCountAtNewScale = stockData.maxPeriodSupported(barUnit: barUnit)
+            let periodCountAtNewScale = stockData.maxPeriodSupported(newBarUnit: newBarUnit)
 
             if maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale {
                 maxSupportedPeriods = periodCountAtNewScale
@@ -242,7 +241,7 @@ class ScrollChartView: UIView, StockDataDelegate {
 
         var newXfactor = xFactor * newScale
 
-        // Keep xFactor and barUnit separate and multiply them together for StockData.xFactor
+        // Keep xFactor (width of bars) and barUnit (number of days per bar) separate
 
         if newXfactor < 1.0 {
             barUnit = 19.0 // switch to monthly
@@ -264,7 +263,7 @@ class ScrollChartView: UIView, StockDataDelegate {
         scaleShift = 0.0
 
         // Check if a stock has less price data available and limit all stocks to that shorter date rangev
-        let (maxSupportedPeriods, currentOldestShown) = maxSupportedPeriodsForComparison()
+        let (maxSupportedPeriods, currentOldestShown) = maxSupportedPeriodsForComparison(newBarUnit: barUnit)
 
         if newXfactor == xFactor {
             return // prevent strange pan when zoom hits max or min
@@ -278,23 +277,7 @@ class ScrollChartView: UIView, StockDataDelegate {
         chartPercentChange = NSDecimalNumber.zero
 
         for stockData in stockDataList {
-            stockData.xFactor = xFactor * barUnit
-
-            if stockData.barUnit != barUnit {
-                stockData.newestBarShown = Int(floor(CGFloat(stockData.newestBarShown) * stockData.barUnit / barUnit))
-                stockData.oldestBarShown = Int(floor(CGFloat(stockData.oldestBarShown) * stockData.barUnit / barUnit))
-                stockData.barUnit = barUnit
-
-                stockData.updatePeriodDataByDayWeekOrMonth()
-
-                if stockData.oldestBarShown > maxSupportedPeriods {
-                    stockData.oldestBarShown = maxSupportedPeriods
-                }
-
-                stockData.updateHighLow() // must be a separate call to handle shifting
-            }
-
-            stockData.setPxHeight(pxHeight, sparklineHeight: sparklineHeight)
+            stockData.updateBarFactors(barUnit: barUnit, xFactor: xFactor * barUnit, maxPeriods: maxSupportedPeriods)
 
             percentChange = stockData.shiftRedraw(shiftBars, withBars: maxBarOffset())
             if percentChange.compare(chartPercentChange) == .orderedDescending {
@@ -360,7 +343,7 @@ class ScrollChartView: UIView, StockDataDelegate {
 
         for stock in stockDataList {
             stock.setPxHeight(pxHeight, sparklineHeight: sparklineHeight)
-            stock.xFactor = xFactor * barUnit
+            // this shouldn't change on rotation stock.xFactor = xFactor * barUnit
             stock.newestBarShown = max(0, stock.oldestBarShown - maxBarOffset())
             stock.updateHighLow()
 
@@ -448,7 +431,7 @@ class ScrollChartView: UIView, StockDataDelegate {
 
         if stocksReady == stockDataList.count {
             // Check if a stock has less price data available and limit all stocks to that shorter date range
-            let (maxSupportedPeriods, _) = maxSupportedPeriodsForComparison()
+            let (maxSupportedPeriods, _) = maxSupportedPeriodsForComparison(newBarUnit: barUnit)
 
             for stockData in stockDataList where stockData.oldestBarShown > maxSupportedPeriods {
                 stockData.oldestBarShown = maxSupportedPeriods

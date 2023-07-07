@@ -19,11 +19,12 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     var refreshButton: UIBarButtonItem!
     var comparison: Comparison? // if the user browses a stock part of an existing comparison
     var stock: Stock? // if the user browses a stock on chartinsight.com that isn't in the watchlist
-    var urlString: String = "https://www.chartinsight.com"
+    let defaultURLString: String = "https://www.chartinsight.com"
+    var urlString: String = ""
 
     override func loadView() {
+        edgesForExtendedLayout = [] // don't let webView underlap tab bar as cookie dialogs appear half-hidden
         let configuration = WKWebViewConfiguration()
-
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
             configuration.applicationNameForUserAgent = "ChartInsight/\(version)"
         }
@@ -72,7 +73,10 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
                 }
             }
         }
-        if urlString.isEmpty == false, let url = URL(string: urlString) {
+        if urlString.isEmpty {
+            urlString = defaultURLString // switching to another tab and back will load defaultURLString
+        }
+        if let url = URL(string: urlString) {
             webView.load(URLRequest(url: url))
         }
     }
@@ -86,6 +90,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         progressView.isHidden = false
     }
 
+    /// If the user is browsing chartinsight.com, search for a stock ticker and update toolbar with a button to add to watchlist
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard webView.url?.absoluteString.contains("chartinsight.com") == true else { return }
         backButton.isEnabled = webView.canGoBack
