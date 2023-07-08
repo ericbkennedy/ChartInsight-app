@@ -203,7 +203,7 @@ class WatchlistViewController: UITableViewController {
         let shiftBars = Int(scrollChartView.layer.contentsScale
                               * delta/(scrollChartView.xFactor * scrollChartView.barUnit))
 
-        scrollChartView.updateMaxPercentChange(withBarsShifted: -shiftBars) // shiftBars are + when delta is -
+        scrollChartView.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
         scrollChartView.bounds = CGRect(x: 0, y: 0, width: width, height: height) // isNewFrameSize calculated height
         scrollChartView.resize()
 
@@ -278,7 +278,7 @@ class WatchlistViewController: UITableViewController {
         delta = (currentShift - lastShift) * UIScreen.main.scale
         deltaBars = Int(delta/(scrollChartView.xFactor * scrollChartView.barUnit))
         if deltaBars != 0 {
-            scrollChartView.updateMaxPercentChange(withBarsShifted: deltaBars)
+            scrollChartView.updateMaxPercentChange(barsShifted: deltaBars)
             lastShift = currentShift
         }
     }
@@ -508,7 +508,7 @@ class WatchlistViewController: UITableViewController {
         let shiftBars = Int(scrollChartView.layer.contentsScale
                                * delta/(scrollChartView.xFactor * scrollChartView.barUnit))
 
-         scrollChartView.updateMaxPercentChange(withBarsShifted: -shiftBars) // shiftBars are + when delta is -
+         scrollChartView.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
     }
 
     /// On iPad, presents the viewController in a popover with an arrow to the button. On iPhone, presents modal

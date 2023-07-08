@@ -14,19 +14,21 @@
 
 import Foundation
 
-class FundamentalFetcher: NSObject {
-    var isLoadingData: Bool = false
-    var ticker: String = ""
-    weak var delegate: StockData?
-    var year: [Int] = []
-    var month: [Int] = []
-    var day: [Int] = []
-    var columns: [String: [NSDecimalNumber]] = [:]
-    var barAlignments: [Int] = [] // set later by StockData to align dates
+let offscreen: Int = -1
 
-    func getFundamentals(for stock: Stock, delegate: StockData) {
-        guard isLoadingData == false else { return }
-        isLoadingData = true
+struct FundamentalAlignment {
+    var x = CGFloat(offscreen)
+    var bar: Int = offscreen
+    var year: Int = 0
+    var month: Int = 0
+    var day: Int = 0
+}
+
+class FundamentalFetcher: NSObject {
+    var ticker: String = ""
+    weak var delegate: StockActor?
+
+    func getFundamentals(for stock: Stock, delegate: StockActor) {
         ticker = stock.ticker
         self.delegate = delegate
 
@@ -49,7 +51,9 @@ class FundamentalFetcher: NSObject {
     func fetch(from url: URL) async throws {
 
         let datePartsCount = 4
-        var metricKeys: [String] = [] // in the order received from API
+        var metricKeys = [String]() // in the order received from API
+        var columns = [String: [NSDecimalNumber]]()
+        var alignments = [FundamentalAlignment]()
 
         // stream is a URLSession.AsyncBytes. Ignore URLResponse with _ param name
         let (stream, _) = try await URLSession.shared.bytes(from: url)
@@ -61,26 +65,23 @@ class FundamentalFetcher: NSObject {
                     for index in (datePartsCount ..< cols.count) {
                         let metricKey = cols[index]
                         metricKeys.append(metricKey)
-                        self.columns[metricKey] = []
+                        columns[metricKey] = []
                     }
                 } else {
                     if let year = Int(cols[0]),
                        let month = Int(cols[1]),
                        let day = Int(cols[2]) { // cols[3] is quarter and can be null (RDFN)
 
-                        self.year.append(year)
-                        self.month.append(month)
-                        self.day.append(day)
-                        self.barAlignments.append(-1) // for consistent row count
+                        alignments.append(FundamentalAlignment(year: year, month: month, day: day))
 
                         // Append metric values to columns
                         for index in (datePartsCount ..< cols.count) { // metric
                             let metricKey = metricKeys[index - datePartsCount]
 
                             if cols[index].isEmpty {
-                                self.columns[metricKey]?.append(NSDecimalNumber.notANumber)
+                                columns[metricKey]?.append(NSDecimalNumber.notANumber)
                             } else {
-                                self.columns[metricKey]?.append(NSDecimalNumber(string: cols[index]))
+                                columns[metricKey]?.append(NSDecimalNumber(string: cols[index]))
                             }
                         }
                     }
@@ -88,39 +89,10 @@ class FundamentalFetcher: NSObject {
             }
         }
 
-        if self.columns.count > 0 {
-            await MainActor.run {
-                self.isLoadingData = false
-                delegate?.fetcherLoadedFundamentals(self.columns)
-            }
+        if columns.count > 0 {
+            await delegate?.fetcherLoadedFundamentals(columns: columns, alignments: alignments)
         } else {
             print("FundamentalFetcher failed")
         }
-    }
-
-    // The year, month and day arrays all have the same count
-    func reportCount() -> Int {
-        return year.count
-    }
-
-    func setBarAlignment(_ barIndex: Int, report: Int) {
-        if report < barAlignments.count {
-            barAlignments[report] = barIndex
-        }
-    }
-
-    func barAlignmentFor(report: Int) -> Int {
-        if report < barAlignments.count {
-            return barAlignments[report]
-        }
-        return -1
-    }
-
-    func valueFor(report: Int, key: String) -> NSDecimalNumber {
-        if let metricValues = self.columns[key],
-           report < metricValues.count {
-            return metricValues[report]
-        }
-        return NSDecimalNumber.notANumber // ScrollChartView will skip it
     }
 }

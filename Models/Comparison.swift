@@ -118,10 +118,9 @@ class Comparison {
 
     /// Delete a single stock from this comparison
     func delete(stock: Stock) {
+        stockList.removeAll(where: {$0 == stock})
         Task {
-            if await DBActor.shared.delete(stock: stock) {
-                stockList.removeAll(where: {$0 == stock})
-            }
+            await DBActor.shared.delete(stock: stock)
         }
     }
 

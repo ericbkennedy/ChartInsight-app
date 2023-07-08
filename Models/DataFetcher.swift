@@ -8,20 +8,20 @@
 import Foundation
 
 protocol DataFetcherDelegate: AnyObject {
-    /// FundamentalFetcher calls StockData with the columns parsed out of the API
-    func fetcherLoadedFundamentals(_ columns: [String: [NSDecimalNumber]])
+    /// FundamentalFetcher calls StockActor with the columns parsed out of the API
+    func fetcherLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async
 
-    /// DataFetcher calls StockData with the array of historical price data
-    func fetcherLoadedHistoricalData(_ loadedData: [BarData])
+    /// DataFetcher calls StockActor with the array of historical price data
+    func fetcherLoadedHistoricalData(_ loadedData: [BarData]) async
 
-    /// DataFetcher calls StockData with intraday price data
-    func fetcherLoadedIntradayBar(_ intradayBar: BarData)
+    /// DataFetcher calls StockActor with intraday price data
+    func fetcherLoadedIntradayBar(_ intradayBar: BarData) async
 
     /// DataFetcher failed downloading historical data or intraday data
-    func fetcherFailed(_ message: String)
+    func fetcherFailed(_ message: String) async
 
     /// DataFetcher has an active download that must be allowed to finish or fail before accepting an additional request
-    func fetcherCanceled()
+    func fetcherCanceled() async
 }
 
 let apiKey = "placeholderToken"
@@ -39,7 +39,7 @@ class DataFetcher: NSObject {
     var isLoadingData: Bool = false
     var countBars: Int = 0
     var barsFromDB: Int = 0
-    weak var delegate: StockData?
+    weak var delegate: StockActor?
     var ticker: String = ""
     var stockId: Int = 0
     var requestNewest: Date = Date()
@@ -82,13 +82,13 @@ class DataFetcher: NSObject {
         return false
     }
 
-    func fetchIntradayQuote() {
+    func fetchIntradayQuote() async {
         if isLoadingData {
             print("loadingData = true so skipping Intraday fetch")
         } else if isRecent(lastOfflineError) {
             print("last offline error \(lastOfflineError) was too recent to try again %f",
                   Date().timeIntervalSince(lastOfflineError))
-            cancelDownload()
+            await cancelDownload()
             return
         }
 
@@ -96,25 +96,22 @@ class DataFetcher: NSObject {
         guard let url = URL(string: urlString) else { return }
         isLoadingData = true
 
-        Task { [weak self] in
-            do {
-                try await self?.fetchIntraday(from: url)
-            } catch {
-                self?.handleError(error)
-            }
+        do {
+            try await fetchIntraday(from: url)
+        } catch {
+            await handleError(error)
         }
     }
 
-    func handleError(_ error: Error) {
+    func handleError(_ error: Error) async {
         print("ERROR for \(ticker) \(error.localizedDescription)")
 
         lastOfflineError = Date()
 
         if barsFromDB > 0 { // send delegate the bars loaded from DB
-            cancelDownload()
+            await cancelDownload()
         }
-
-        delegate?.fetcherFailed(error.localizedDescription)
+        await delegate?.fetcherFailed(error.localizedDescription)
     }
 
     func fetchIntraday(from url: URL) async throws {
@@ -146,12 +143,12 @@ class DataFetcher: NSObject {
         let lastSaleDate = date(from: intradayBar)
 
         if lastSaleDate.compare(lastClose) == .orderedDescending {
-            self.delegate?.fetcherLoadedIntradayBar(intradayBar)
+            await self.delegate?.fetcherLoadedIntradayBar(intradayBar)
             self.lastIntradayFetch = Date()
         } else if !fetchedData.isEmpty && fabs(fetchedData[0].close - previousClose) > 0.02 {
             // Intraday API uses IEX data and may not have intraday data even when the market is open
             let message = "\(self.ticker) intraday prevClose \(previousClose) doesn't match (self.fetchedData[0].close)"
-            self.delegate?.fetcherFailed(message)
+            await self.delegate?.fetcherFailed(message)
         }
     }
 
@@ -172,7 +169,7 @@ class DataFetcher: NSObject {
         return nil
     }
 
-    /// StockData will call this with currentNewest date (or .distantPast) if self.nextClose is today or in the past
+    /// StockActor will call this with currentNewest date (or .distantPast) if self.nextClose is today or in the past
     func fetchNewerThanDate(currentNewest: Date) {
 
         if currentNewest.compare(.distantPast) == .orderedDescending {
@@ -212,7 +209,7 @@ class DataFetcher: NSObject {
 
             if isRecent(lastOfflineError) {
                 print("lastOfflineError \(lastOfflineError) was too recent to try again")
-                cancelDownload()
+                await cancelDownload()
             } else if Date().compare(nextClose) == .orderedDescending {
                 guard let url = formatRequestURL() else { return }
 
@@ -258,12 +255,12 @@ class DataFetcher: NSObject {
         await DBActor.shared.save(fetchedData, stockId: stockId)
     }
 
-    /// Call StockData delegate and have it update the bar data on a background thread
+    /// Call StockActor delegate and have it update the bar data on a background thread
     func historicalDataLoaded(barDataArray: [BarData]) async {
         guard barDataArray.count > 0 else {
             // should be a failure condition
             print("\(ticker) empty historicalDataLoaded \(barDataArray)")
-            delegate?.fetcherFailed("Empty response")
+            await delegate?.fetcherFailed("Empty response")
             return
         }
         lastClose = date(from: fetchedData[0])
@@ -271,8 +268,8 @@ class DataFetcher: NSObject {
             oldestDate = date(from: lastBar)
         }
 
-        isLoadingData = false // allows StockData to request intraday data if needed
-        self.delegate?.fetcherLoadedHistoricalData(barDataArray)
+        isLoadingData = false // allows StockActor to request intraday data if needed
+        await self.delegate?.fetcherLoadedHistoricalData(barDataArray)
     }
 
     func date(from bar: BarData) -> Date {
@@ -329,14 +326,14 @@ class DataFetcher: NSObject {
     }
 
     /// Called BEFORE creating a URLSessionTask if there was a recent offline error or it was too soon to try again
-    func cancelDownload() {
+    func cancelDownload() async {
         if isLoadingData {
             isLoadingData = false
         }
-        delegate?.fetcherCanceled()
+        await delegate?.fetcherCanceled()
     }
 
-    /// called by StockData when a stock is removed or the chart is cleared before switching stocks
+    /// called by StockActor when a stock is removed or the chart is cleared before switching stocks
     func invalidateAndCancel() {
         ephemeralSession.invalidateAndCancel()
         delegate = nil

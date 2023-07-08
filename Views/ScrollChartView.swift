@@ -3,7 +3,7 @@
 //  ChartInsight
 //
 //  View that requests rendered stock charts from ChartRenderer
-//  in an offscreen CGContext by providing ChartElements computed by StockData.
+//  in an offscreen CGContext by providing ChartElements computed by StockActor.
 
 //  Created by Eric Kennedy on 6/28/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
@@ -14,7 +14,7 @@ import UIKit
 
 let padding: CGFloat = 5
 
-class ScrollChartView: UIView, StockDataDelegate {
+class ScrollChartView: UIView, StockActorDelegate {
     var barUnit: CGFloat
     var pxWidth: CGFloat // chart area excluding axis and horizontal padding
     var svWidth: CGFloat
@@ -32,7 +32,7 @@ class ScrollChartView: UIView, StockDataDelegate {
     private var layerRef: CGLayer?
     private var chartRenderer: ChartRenderer?
 
-    private var stockDataList: [StockData]
+    private var stockActorList: [StockActor]
     private var chartPercentChange: NSDecimalNumber
     private var sparklineKeys: [String]
     private var gregorian: Calendar
@@ -49,7 +49,7 @@ class ScrollChartView: UIView, StockDataDelegate {
         (maxWidth, pxHeight, scaleShift, scaledWidth, sparklineHeight, svHeight) = (0, 0, 0, 0, 0, 0)
 
         comparison = Comparison()
-        stockDataList = []
+        stockActorList = []
         gregorian = Calendar(identifier: .gregorian)
         gregorian.locale = .autoupdatingCurrent // required for monthName from .shortNameSymbols
 
@@ -93,7 +93,7 @@ class ScrollChartView: UIView, StockDataDelegate {
         }
     }
 
-    /// Ensure any pending requests for prior comparison are invalidated and set stockData.delegate = nil
+    /// Ensure any pending requests for prior comparison are invalidated and set stockActor.delegate = nil
     func clearChart() {
         progressIndicator?.reset()
         if let layerRef = layerRef {
@@ -103,24 +103,26 @@ class ScrollChartView: UIView, StockDataDelegate {
         }
         setNeedsDisplay()
 
-        for stockData in stockDataList {
-            stockData.invalidateAndCancel() // cancel all requests
-            stockData.delegate = nil
+        Task {
+            for stockActor in stockActorList {
+                await stockActor.invalidateAndCancel() // cancel all requests
+            }
         }
-        stockDataList.removeAll()
+        stockActorList.removeAll()
     }
 
     /// Redraw charts without loading any data if a stock color, chart type or technical changes
     func redrawCharts() {
-        for stockData in stockDataList {
-            stockData.recompute(chartPercentChange, forceRecompute: true)
+        Task {
+            for stockActor in stockActorList {
+                await stockActor.recompute(chartPercentChange, forceRecompute: true)
+            }
+            await renderCharts()
         }
-        renderCharts()
     }
 
     /// Render charts for the stocks in scrollChartView.comparison and fetch data as needed
     func loadChart() {
-        chartPercentChange = NSDecimalNumber.zero
 
         updateDimensions() // adjusts chart area to allow one right axis per stock
 
@@ -128,25 +130,32 @@ class ScrollChartView: UIView, StockDataDelegate {
 
         sparklineHeight = CGFloat(100 * sparklineKeys.count)
 
-        for stock in comparison.stockList {
-            let combinedXFactor = xFactor * barUnit
-            let stockData = StockData(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
-                                      barUnit: barUnit, xFactor: combinedXFactor)
-            stockDataList.append(stockData)
-            stockData.setPxHeight(pxHeight, sparklineHeight: sparklineHeight)
-            stockData.fetchStockData()
+        Task {
+            for stock in comparison.stockList {
+                let stockActor = StockActor(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
+                                          barUnit: barUnit, xFactor: xFactor)
+                stockActorList.append(stockActor)
+                await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
+                await stockActor.fetchStockActor()
+            }
         }
     }
 
     /// Use ChartRenderer to render the charts in an offscreen CGContext and return a list of the chartText to render via UIGraphicsPushContext
     /// Apple deprecated the CoreGraphics function for rendering text with a specified CGContext so it is necessary
     /// to use UIGraphicsPushContext(context) to render text in the offscreen layerRef.context
-    func renderCharts() {
+    func renderCharts() async {
         if var renderer = chartRenderer, let context = layerRef?.context {
             renderer.barUnit = barUnit
             renderer.xFactor = xFactor
             renderer.pxWidth = pxWidth
-            let chartText = renderer.renderCharts(comparison: comparison, stocks: stockDataList)
+
+            var stockChartElements = [ChartElements]()
+            for stockActor in stockActorList {
+                stockChartElements.append(await stockActor.copyChartElements())
+            }
+
+            let chartText = renderer.renderCharts(comparison: comparison, stockChartElements: stockChartElements)
 
             UIGraphicsPushContext(context) // required for textData.text.draw(at: withAttributes:)
             context.setBlendMode(.plusLighter)
@@ -166,7 +175,6 @@ class ScrollChartView: UIView, StockDataDelegate {
 
         ctx.setFillColor(UIColor.systemBackground.cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: layer.contentsScale * maxWidth, height: pxHeight + 5))
-
         if let layerRef = layerRef {
              ctx.draw(layerRef, in: CGRect(x: 5 + scaleShift, y: 5, width: scaledWidth, height: svHeight))
         }
@@ -187,7 +195,7 @@ class ScrollChartView: UIView, StockDataDelegate {
             renderer.barUnit = barUnit
             renderer.xFactor = xFactor
             renderer.pxWidth = pxWidth - layer.position.x
-            return renderer.magnifyBar(x: xPress, y: yPress, stocks: stockDataList)
+            return renderer.magnifyBar(x: xPress, y: yPress, stocks: stockActorList)
         }
         return nil
     }
@@ -217,15 +225,15 @@ class ScrollChartView: UIView, StockDataDelegate {
 
     /// Check if a stock has less price data available so the caller can limit all stocks to that shorter date range
     /// Returns a tuple (maxSupportedPeriods, oldestBarShown)
-    func maxSupportedPeriodsForComparison(newBarUnit: CGFloat) -> (Int, Int) {
+    func maxSupportedPeriodsForComparison(newBarUnit: CGFloat) async -> (Int, Int) {
         var maxSupportedPeriods = 0
         var oldestBarShown = 0
 
-        for stockData in stockDataList {
+        for stockActor in stockActorList {
             if oldestBarShown == 0 {
-                oldestBarShown = stockData.oldestBarShown
+                oldestBarShown = await stockActor.oldestBarShown
             }
-            let periodCountAtNewScale = stockData.maxPeriodSupported(newBarUnit: newBarUnit)
+            let periodCountAtNewScale = await stockActor.maxPeriodSupported(newBarUnit: newBarUnit)
 
             if maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale {
                 maxSupportedPeriods = periodCountAtNewScale
@@ -237,6 +245,13 @@ class ScrollChartView: UIView, StockDataDelegate {
     /// Complete pinch/zoom transformation by rerendering the chart with the newScale
     /// Uses scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
     func scaleChart(_ newScale: CGFloat) {
+
+        if let layerRef = layerRef {
+            // clearing the layer context before renderCharts provides a better animation
+            layerRef.context?.clear(CGRect(x: 0, y: 0,
+                                           width: layerRef.size.width,
+                                           height: layerRef.size.height))
+        }
         scaledWidth = maxWidth // reset buffer output width after temporary transformation
 
         var newXfactor = xFactor * newScale
@@ -262,183 +277,149 @@ class ScrollChartView: UIView, StockDataDelegate {
         var shiftBars = Int(floor(Double(layer.contentsScale * scaleShift) / (barUnit * newXfactor)))
         scaleShift = 0.0
 
-        // Check if a stock has less price data available and limit all stocks to that shorter date rangev
-        let (maxSupportedPeriods, currentOldestShown) = maxSupportedPeriodsForComparison(newBarUnit: barUnit)
+        Task {
+            // Check if a stock has less price data available and limit all stocks to that shorter date rangev
+            let (maxSupportedPeriods, currentOldestShown) = await maxSupportedPeriodsForComparison(newBarUnit: barUnit)
 
-        if newXfactor == xFactor {
-            return // prevent strange pan when zoom hits max or min
-        } else if currentOldestShown + shiftBars > maxSupportedPeriods { // already at maxSupportedPeriods
-            shiftBars = 0
-        }
-
-        xFactor = newXfactor
-        var percentChange = NSDecimalNumber.one
-
-        chartPercentChange = NSDecimalNumber.zero
-
-        for stockData in stockDataList {
-            stockData.updateBarFactors(barUnit: barUnit, xFactor: xFactor * barUnit, maxPeriods: maxSupportedPeriods)
-
-            percentChange = stockData.shiftRedraw(shiftBars, withBars: maxBarOffset())
-            if percentChange.compare(chartPercentChange) == .orderedDescending {
-                chartPercentChange = percentChange
+            if newXfactor == xFactor {
+                return // prevent strange pan when zoom hits max or min
+            } else if currentOldestShown + shiftBars > maxSupportedPeriods { // already at maxSupportedPeriods
+                shiftBars = 0
             }
-        }
 
-        for stock in stockDataList {
-            stock.recompute(chartPercentChange, forceRecompute: false)
+            xFactor = newXfactor
+            var percentChange = NSDecimalNumber.one
+            chartPercentChange = NSDecimalNumber.zero
+
+            for stockActor in stockActorList {
+                await stockActor.updatePeriodData(barUnit: barUnit, xFactor: xFactor, maxPeriods: maxSupportedPeriods)
+
+                percentChange = await stockActor.shiftRedraw(shiftBars, screenBarWidth: maxBarOffset())
+                if percentChange.compare(chartPercentChange) == .orderedDescending {
+                    chartPercentChange = percentChange
+                }
+            }
+
+            for stockActor in stockActorList {
+                await stockActor.recompute(chartPercentChange, forceRecompute: false)
+            }
+            await renderCharts()
         }
-        renderCharts()
     }
 
     /// Determine range of chart
-    func updateMaxPercentChange(withBarsShifted barsShifted: Int) {
+    func updateMaxPercentChange(barsShifted: Int) {
         var percentChange = NSDecimalNumber.one
 
         var outOfBars = true
         let minBarsShown = 20
         var maxSupportedPeriods = 0, currentOldestShown = 0
+        Task {
+            for stockActor in stockActorList {
+                let stockOldestBarShown = await stockActor.oldestBarShown
+                let stockNewestBarShown = await stockActor.newestBarShown
 
-        for stock in stockDataList {
-            if maxSupportedPeriods == 0 || maxSupportedPeriods > stock.periodData.count {
-                maxSupportedPeriods = stock.periodData.count
-            }
-            if currentOldestShown == 0 {
-                currentOldestShown = stock.oldestBarShown
-            }
+                let stockMaxSupportedPeriods = await stockActor.maxPeriodSupported(newBarUnit: barUnit)
+                if maxSupportedPeriods == 0 || maxSupportedPeriods > stockMaxSupportedPeriods {
+                    maxSupportedPeriods = stockMaxSupportedPeriods // limit by stock with fewest periods available
+                }
+                if currentOldestShown == 0 {
+                    currentOldestShown = stockOldestBarShown
+                }
 
-            if barsShifted == 0 {
-                outOfBars = false
-            } else if barsShifted > 0 { // users panning to older dates
-                if currentOldestShown + barsShifted >= maxSupportedPeriods { // already at max
-                    outOfBars = true
-                } else if barsShifted < stock.periodData.count - stock.newestBarShown {
+                if barsShifted == 0 {
+                    outOfBars = false
+                } else if barsShifted > 0 { // users panning to older dates
+                    if currentOldestShown + barsShifted >= maxSupportedPeriods { // already at max
+                        outOfBars = true
+                    } else if barsShifted < stockMaxSupportedPeriods - stockNewestBarShown {
+                        outOfBars = false
+                    }
+                } else if barsShifted < 0 && stockOldestBarShown - barsShifted > minBarsShown {
                     outOfBars = false
                 }
-            } else if barsShifted < 0 && stock.oldestBarShown - barsShifted > minBarsShown {
-                outOfBars = false
             }
-        }
-        if outOfBars {
-            return
-        }
-        for stockData in stockDataList {
-            percentChange = stockData.shiftRedraw(barsShifted, withBars: maxBarOffset())
-            if percentChange.compare(chartPercentChange) == .orderedDescending {
-                chartPercentChange = percentChange
+            if outOfBars {
+                return
             }
+            for stockActor in stockActorList {
+                percentChange = await stockActor.shiftRedraw(barsShifted, screenBarWidth: maxBarOffset())
+                if percentChange.compare(chartPercentChange) == .orderedDescending {
+                    chartPercentChange = percentChange
+                }
+            }
+            for stockActor in stockActorList {
+                await stockActor.recompute(chartPercentChange, forceRecompute: false)
+            }
+            await renderCharts()
         }
-        for stock in stockDataList {
-            stock.recompute(chartPercentChange, forceRecompute: false)
-        }
-        renderCharts()
     }
 
     /// Create rendering context to match scrollChartViews.bounds. Called on initial load and after rotation
     func resize() {
         updateDimensions()
         createLayerContext()
+        guard stockActorList.isEmpty == false else { return }
 
         chartPercentChange = NSDecimalNumber.zero
 
-        for stock in stockDataList {
-            stock.setPxHeight(pxHeight, sparklineHeight: sparklineHeight)
-            // this shouldn't change on rotation stock.xFactor = xFactor * barUnit
-            stock.newestBarShown = max(0, stock.oldestBarShown - maxBarOffset())
-            stock.updateHighLow()
+        Task {
+            for stockActor in stockActorList {
+                await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
 
-            if stock.percentChange.compare(chartPercentChange) == .orderedDescending {
-                chartPercentChange = stock.percentChange
-            }
-        }
+                await stockActor.setNewestBarShown(stockActor.oldestBarShown - maxBarOffset())
+                let stockPercentChange = await stockActor.percentChangeAfterUpdateHighLow()
 
-        for stock in stockDataList {
-            stock.recompute(chartPercentChange, forceRecompute: false)
-        }
-        renderCharts()
-    }
-
-    /// User panned WatchlistViewController by barsShifted. Resize and rerender chart.
-    func updateMaxPercentChangeWithBarsShifted(barsShifted: Int) {
-        var percentChange = NSDecimalNumber.zero
-
-        var outOfBars = true
-        let minBarsShown = 20
-        var maxSupportedPeriods = 0
-        var currentOldestShown = 0
-
-        for stock in stockDataList {
-            if maxSupportedPeriods == 0 || maxSupportedPeriods > stock.periodData.count {
-                maxSupportedPeriods = stock.periodData.count
-            }
-            if currentOldestShown == 0 {
-                currentOldestShown = stock.oldestBarShown
-            }
-
-            if barsShifted == 0 {
-                outOfBars = false
-            } else if barsShifted > 0 {
-                // Users panning to older dates
-                if currentOldestShown + barsShifted >= maxSupportedPeriods {
-                    // Already at max
-                    outOfBars = true
-                } else if barsShifted < stock.periodData.count - stock.newestBarShown {
-                    outOfBars = false
+                if stockPercentChange.compare(chartPercentChange) == .orderedDescending {
+                    chartPercentChange = stockPercentChange
                 }
-            } else if barsShifted < 0 && stock.oldestBarShown - barsShifted > minBarsShown {
-                outOfBars = false
             }
-        }
 
-        if outOfBars {
-            return
-        }
-
-        for stockData in stockDataList {
-            percentChange = stockData.shiftRedraw(barsShifted, withBars: maxBarOffset())
-            if percentChange.compare(chartPercentChange) == .orderedDescending {
-                chartPercentChange = percentChange
+            for stockActor in stockActorList {
+                await stockActor.recompute(chartPercentChange, forceRecompute: false)
             }
+            await renderCharts()
         }
-
-        for stock in stockDataList {
-            stock.recompute(chartPercentChange, forceRecompute: false)
-        }
-
-        renderCharts()
     }
 
-    func showProgressIndicator() {
+    @MainActor func showProgressIndicator() {
         progressIndicator?.startAnimating()
     }
 
-    func stopProgressIndicator() {
+    @MainActor func stopProgressIndicator() {
         progressIndicator?.stopAnimating()
     }
 
-    func requestFailed(message: String) {
+    @MainActor func requestFailed(message: String) {
         progressIndicator?.stopAnimating()
     }
 
-    func requestFinished(newPercentChange: NSDecimalNumber) {
-        let stocksReady = stockDataList.reduce(0) { count, stock in
-            return stock.ready ? count + 1 : count
-        }
-
-        if newPercentChange.compare(chartPercentChange) == .orderedDescending {
-            chartPercentChange = newPercentChange
-        }
-
-        if stocksReady == stockDataList.count {
-            // Check if a stock has less price data available and limit all stocks to that shorter date range
-            let (maxSupportedPeriods, _) = maxSupportedPeriodsForComparison(newBarUnit: barUnit)
-
-            for stockData in stockDataList where stockData.oldestBarShown > maxSupportedPeriods {
-                stockData.oldestBarShown = maxSupportedPeriods
+    @MainActor func requestFinished(newPercentChange: NSDecimalNumber) {
+        Task {
+            var stocksReady = 0
+            if stockActorList.count > 1 {
+                for stockActor in stockActorList where await stockActor.ready {
+                    stocksReady += 1
+                }
+            } else {
+                stocksReady = 1 // since the StockActor that called this was ready
             }
-            layer.removeAllAnimations()
-            renderCharts()
-            progressIndicator?.stopAnimating()
+
+            if newPercentChange.compare(chartPercentChange) == .orderedDescending {
+                chartPercentChange = newPercentChange
+            }
+
+            if stocksReady == stockActorList.count {
+                // Check if a stock has less price data available and limit all stocks to that shorter date range
+                let (maxSupportedPeriods, _) = await maxSupportedPeriodsForComparison(newBarUnit: barUnit)
+                if maxSupportedPeriods > 0 { // Avoid resizing after reload by StockChangeService
+                    for stockActor in stockActorList where await stockActor.oldestBarShown > maxSupportedPeriods {
+                        await stockActor.setOldestBarShown(maxSupportedPeriods)
+                    }
+                }
+                await renderCharts()
+                progressIndicator?.stopAnimating()
+            }
         }
     }
 

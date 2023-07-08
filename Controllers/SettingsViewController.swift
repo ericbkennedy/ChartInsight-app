@@ -7,12 +7,13 @@
 //
 
 import Foundation
+import MessageUI
 
-public enum SectionType: Int {
-    case nightMode, stockList
+public enum SectionType: Int, CaseIterable {
+    case nightMode, stockList, contactSupport
 }
 
-class SettingsViewController: UITableViewController {
+class SettingsViewController: UITableViewController, MFMailComposeViewControllerDelegate {
 
     var delegate: WatchlistViewController?
     var list: [Comparison] = []
@@ -75,7 +76,9 @@ class SettingsViewController: UITableViewController {
             onOffSwitch.isOn = UserDefaults.standard.bool(forKey: "darkMode")
             onOffSwitch.addTarget(self, action: #selector(toggleNightDay), for: .touchUpInside)
             cell.accessoryView = onOffSwitch
-
+        } else if indexPath.section == SectionType.contactSupport.rawValue {
+            config.text = "Contact Support"
+            cell.accessoryType = .detailDisclosureButton
         } else if indexPath.row < list.count {
             let comparison = list[indexPath.row]
             config.text = comparison.title
@@ -86,11 +89,15 @@ class SettingsViewController: UITableViewController {
     }
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        return 2
+        let allSections = SectionType.allCases.count
+        if MFMailComposeViewController.canSendMail() == false {
+            return allSections - 1 // can't send mail so avoid showing Contact Support section
+        }
+        return allSections
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if section == SectionType.nightMode.rawValue {
+        if section != SectionType.stockList.rawValue {
             return 1
         }
         return list.count
@@ -120,7 +127,37 @@ class SettingsViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         if section == SectionType.stockList.rawValue {
             return "Watchlist stocks"
+        } else if section == SectionType.contactSupport.rawValue {
+            return "Help"
         }
         return ""
+    }
+
+    /// User tapped accessory button to contact support -- use mailto instead of
+    override func tableView(_ tableView: UITableView, accessoryButtonTappedForRowWith indexPath: IndexPath) {
+        guard indexPath.section == SectionType.contactSupport.rawValue else { return }
+
+        let composeVC = MFMailComposeViewController()
+        composeVC.mailComposeDelegate = self
+
+        // Configure the fields of the interface.
+        composeVC.setToRecipients(["support@chartinsight.com"])
+        composeVC.setSubject("ChartInsight App Feedback")
+
+        let appVersion = Bundle.main.infoDictionary?["CFBundleVersion"] ?? ""
+        let deviceType = UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+
+        let messageBody = "\n\nApp Version: \(appVersion)\nDevice: \(deviceType)\niOS: \(UIDevice.current.systemVersion)"
+
+        composeVC.setMessageBody(messageBody, isHTML: false)
+
+        // Present the view controller modally.
+        navigationController?.present(composeVC, animated: true)
+    }
+
+    /// Mail compose modal must be dismissed explicitly by the delegate
+    func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+        // Dismiss the mail compose view controller.
+        controller.dismiss(animated: true, completion: nil)
     }
 }

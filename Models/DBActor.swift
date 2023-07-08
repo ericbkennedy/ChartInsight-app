@@ -7,8 +7,6 @@
 //  Created by Eric Kennedy on 6/2/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
-// allow db variable name
-// swiftlint:disable identifier_name
 
 import Foundation
 
@@ -53,6 +51,7 @@ import Foundation
     func update(stockChanges: [StockChangeService.StockChange], delegate: WatchlistViewController) async {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
+        var userRowsChanged = 0 // if stockChanges require deleting user data, send new comparisonList to delegate
 
         for change in stockChanges {
             switch change.action {
@@ -94,6 +93,7 @@ import Foundation
                 if SQLITE_DONE != sqlite3_step(statement) {
                     print("change.split DB ERROR ", String(cString: sqlite3_errmsg(db)))
                 }
+                userRowsChanged += Int(sqlite3_changes(db))
                 sqlite3_finalize(statement)
             case .delisted:
                 var sql = "DELETE FROM comparisonStock WHERE stockId = ?"
@@ -103,6 +103,7 @@ import Foundation
                 if SQLITE_DONE != sqlite3_step(statement) {
                     print(String(format: "change.delisted comparisonStock DB ERROR '%s'.", sqlite3_errmsg(db)))
                 }
+                userRowsChanged += Int(sqlite3_changes(db))
                 sqlite3_finalize(statement)
 
                 sql = "DELETE FROM stock WHERE rowid = ?"
@@ -112,14 +113,17 @@ import Foundation
                 if SQLITE_DONE != sqlite3_step(statement) {
                     print(String(format: "change.delisted stock DB ERROR '%s'.", sqlite3_errmsg(db)))
                 }
+                userRowsChanged += Int(sqlite3_changes(db))
                 sqlite3_finalize(statement)
             }
         }
         sqlite3_close(db)
-        // fetch updated comparisonList and send it to the delegate
-        let list = comparisonList()
-        await MainActor.run {
-            delegate.update(list: list)
+        if userRowsChanged > 0 {
+            // fetch updated comparisonList and send it to the delegate
+            let list = comparisonList()
+            await MainActor.run {
+                delegate.update(list: list)
+            }
         }
     }
 
@@ -383,25 +387,21 @@ import Foundation
     }
 
     /// Delete stock from a comparison. Call delete(comparison:) to delete the last stock in a comparison
-    func delete(stock: Stock) -> Bool {
+    func delete(stock: Stock) {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
-        var isDeleted = false
 
-        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return false }
+        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
 
         let sql = "DELETE FROM comparisonStock WHERE stockId = ?"
-        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return false }
+        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
 
         sqlite3_bind_int64(statement, 1, Int64(stock.id))
 
-        if SQLITE_DONE == sqlite3_step(statement) {
-            isDeleted = true
-        } else {
+        if SQLITE_DONE != sqlite3_step(statement) {
             print(String(format: "delete(stock:) DB ERROR '%s'.", sqlite3_errmsg(db)))
         }
         sqlite3_finalize(statement)
         sqlite3_close(db)
-        return isDeleted
     }
 
     /// Load all comparisons or only those with the provided ticker
@@ -447,7 +447,7 @@ import Foundation
             title = title.appending("\(stock.ticker) ")
             stock.name = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.name.rawValue)))
             stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.startDate.rawValue)))
-            // startDateString will be converted to NSDate by [StockData init] as price data is loaded
+            // startDateString will be converted to NSDate by [StockActor init] as price data is loaded
 
             stock.hasFundamentals = 0 < sqlite3_column_int(statement, Col.hasFundamentals.rawValue)
             if let chartType = ChartType(rawValue: Int(sqlite3_column_int(statement, Col.chartType.rawValue))) {
@@ -479,4 +479,3 @@ import Foundation
         return list
     }
 }
-// swiftlint:enable identifier_name

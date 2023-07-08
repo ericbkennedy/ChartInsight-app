@@ -13,3 +13,5 @@ cyclomatic_complexity:
 large_tuple:
     warning: 4
     error: 5
+disabled_rules: 
+    - identifier_name

@@ -1,12 +1,12 @@
 //
-//  StockData.swift
+//  StockActor.swift
 //  ChartInsight
 //
 //  Delegates fetching of stock price and fundamental data (to DataFetcher and FundamentalFetcher).
-//  After DataFetcherDelegate methods are called, StockData computes ChartElements for all of the returned data
+//  After DataFetcherDelegate methods are called, StockActor computes ChartElements for all of the returned data
 //  and notifies its delegate (ScrollChartView) that it is ready.
 //  ScrollChartView calls copyChartElements() to get a thread-safe copy it can render while
-//  StockData is free to update its own copy (in tmp) as new data loads.
+//  StockActor is free to update its own copy (in tmp) as new data loads.
 //
 //  Created by Eric Kennedy on 6/27/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
@@ -15,43 +15,34 @@
 import Foundation
 import UIKit
 
-protocol StockDataDelegate: AnyObject {
+protocol StockActorDelegate: AnyObject {
     func showProgressIndicator()
     func stopProgressIndicator()
     func requestFailed(message: String)
     func requestFinished(newPercentChange: NSDecimalNumber)
 }
 
-class StockData: NSObject, DataFetcherDelegate {
+actor StockActor: DataFetcherDelegate {
     var stock: Stock
-    private var gregorian: Calendar
-    @objc weak var delegate: ScrollChartView?
+    private let gregorian: Calendar
+    weak var delegate: ScrollChartView?
 
     var newestBarShown: Int
     var oldestBarShown: Int
     private var xFactor: CGFloat // yFactor and yFloor are on chartElements
     private var barUnit: CGFloat
 
-    var ready = false // true if StockData has been loaded, computed and copied into chartElements.
-    var chartElements: ChartElements       // public for ScrollChartView rendering
-    private var tmp: ChartElements // private for background computation
+    var ready = false // true if StockActor has been loaded, computed and copied into chartElements.
+    private var tmp: ChartElements // caller must request a copy with copyChartElements()
     private var busy = false // true if it is currently recomputing tmp chart elements.
 
-    var percentChange: NSDecimalNumber
+    private var percentChange: NSDecimalNumber
     private var chartPercentChange: NSDecimalNumber
 
     private var oldest: Date
     private var newest: Date // newest loaded, not the newest shown
-    // Fundamental reports
-    var oldestReportInView: Int
-    var newestReportInView: Int
-    private var oldestReport: Int
-    private var newestReport: Int
-    private var fundamentalColumns: [String: [NSDecimalNumber]]
-
     private var dailyData: [BarData]
-    var periodData: [BarData] // points to dailyData or dailyData grouped by week or month
-    private var maxPeriodCount: Int = 0 // set using dailyData.count in barrier block
+    private var periodData: [BarData] // points to dailyData or dailyData grouped by week or month
     private var fetcher: DataFetcher?
     private var fundamentalFetcher: FundamentalFetcher?
     private var sma50: Bool
@@ -63,35 +54,36 @@ class StockData: NSObject, DataFetcherDelegate {
     private var chartBase: Double
     private var volumeBase: Double
     private var volumeHeight: Double
-    private var concurrentQueue: DispatchQueue?
 
-    @objc init(stock: Stock, gregorian: Calendar, delegate: ScrollChartView, oldestBarShown: Int,
-               barUnit: CGFloat, xFactor: CGFloat) {
+    init(stock: Stock, gregorian: Calendar, delegate: ScrollChartView, oldestBarShown: Int, barUnit: CGFloat, xFactor: CGFloat) {
         self.stock = stock
         self.gregorian = gregorian
         self.delegate = delegate
         self.oldestBarShown = oldestBarShown
         self.barUnit = barUnit
-        self.xFactor = xFactor
+        self.xFactor = xFactor * barUnit
         newestBarShown = 0
         fetcher = DataFetcher()
         fundamentalFetcher = FundamentalFetcher()
-        concurrentQueue = DispatchQueue(label: "com.chartinsight.\(stock.id)", attributes: .concurrent)
-        tmp = ChartElements()
-        chartElements = ChartElements()
+        tmp = ChartElements(stock: stock)
         periodData = []
         dailyData = []
-        fundamentalColumns = [:]
         (oldest, newest) = (Date.distantPast, Date.distantPast)
-        (oldestReport, oldestReportInView, newestReport, newestReportInView) = (0, 0, 0, 0)
         (pxHeight, sparklineHeight, chartBase, volumeBase, volumeHeight, maxVolume) = (0, 0, 0, 0, 0, 0)
         (percentChange, chartPercentChange) = (NSDecimalNumber.one, NSDecimalNumber.one)
         (ready, busy, sma50, sma200, bb20) = (false, false, false, false, false)
-        super.init()
+    }
+
+    func setNewestBarShown(_ calculatedNewestBarShown: Int) {
+        newestBarShown = max(0, calculatedNewestBarShown)
+    }
+
+    func setOldestBarShown(_ calculatedOldestBarShown: Int) {
+        oldestBarShown = max(0, calculatedOldestBarShown)
     }
 
     /// Request historical stock data price from DB and then remote server
-    func fetchStockData() {
+    func fetchStockActor() {
         if let fetcher = fetcher {
             fetcher.requestNewest = Date()
             fetcher.setRequestOldestWith(startString: stock.startDateString)
@@ -104,28 +96,19 @@ class StockData: NSObject, DataFetcherDelegate {
             fetcher.fetchNewerThanDate(currentNewest: Date.distantPast)
 
             if stock.fundamentalList.count > 4 {
-                delegate?.showProgressIndicator()
                 fundamentalFetcher = FundamentalFetcher()
                 fundamentalFetcher?.getFundamentals(for: stock, delegate: self)
             }
         }
     }
 
-    /// FundamentalFetcher calls StockData with the columns parsed out of the API
-    func fetcherLoadedFundamentals(_ columns: [String: [NSDecimalNumber]]) {
-        fundamentalColumns = columns
-
-        if busy == false && periodData.count > 0 {
-            concurrentQueue?.sync(flags: .barrier) {
-                updateFundamentalFetcherBarAlignment()
-                computeChart()
-            }
-            delegate?.requestFinished(newPercentChange: percentChange)
-        } else {
-            DispatchQueue.main.async { [weak self] in
-                self?.delegate?.stopProgressIndicator()
-            }
-        }
+    /// FundamentalFetcher calls StockActor with the columns parsed out of the API
+    func fetcherLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async {
+        tmp.fundamentalColumns = columns
+        tmp.fundamentalAlignments = alignments
+        updateFundamentalFetcherBarAlignment()
+        computeChart()
+        await delegate?.requestFinished(newPercentChange: percentChange)
     }
 
     /// Returns (BarData, monthName) for bar under user's finger during long press
@@ -144,10 +127,10 @@ class StockData: NSObject, DataFetcherDelegate {
     }
 
     /// Update values used to scale price data: pxHeight, sparklineHeight, volumeHeight, volumeBase, chartHeight
-    public func setPxHeight(_ height: Double, sparklineHeight: Double) {
+    public func setPxHeight(_ height: Double, sparklineHeight: Double, scale: CGFloat) {
         self.sparklineHeight = sparklineHeight
         pxHeight = height - sparklineHeight
-        volumeHeight = 40 * UIScreen.main.scale
+        volumeHeight = 40 * scale
         volumeBase = height - volumeHeight/2
         chartBase = volumeBase - volumeHeight/2 - sparklineHeight
     }
@@ -159,13 +142,14 @@ class StockData: NSObject, DataFetcherDelegate {
         fundamentalFetcher = nil // will trigger deinit on fundamentalFetcher
         fetcher?.invalidateAndCancel() // Also sets delegate = nil
         fetcher = nil
+        delegate = nil
     }
 
     /// Determine if moving averages are in the technicalList and if so compute them
     func calculateMovingAverages() {
-        sma50 = self.stock.technicalList.contains("sma50")
-        sma200 = self.stock.technicalList.contains("sma200")
-        bb20 = self.stock.technicalList.contains("bollingerBand")
+        sma50 = stock.technicalList.contains("sma50")
+        sma200 = stock.technicalList.contains("sma200")
+        bb20 = stock.technicalList.contains("bollingerBand")
 
         if sma200 || sma50 {
             BarData.calculateSMA(periodData: periodData)
@@ -175,34 +159,13 @@ class StockData: NSObject, DataFetcherDelegate {
         }
     }
 
-    /// Returns all fundamental metric keys or [] if fundamentals aren't loaded
-    func fundamentalKeys() -> [String] {
-        if !fundamentalColumns.isEmpty {
-            return Array(fundamentalColumns.keys)
-        }
-        return []
-    }
-
-    /// Metric value (or .notANumber) for a report index and metric key
-    func fundamentalValue(forReport report: Int, metric: String) -> NSDecimalNumber {
-        if !fundamentalColumns.isEmpty {
-            if let valuesForMetric = fundamentalColumns[metric], report < valuesForMetric.count {
-                return valuesForMetric[report]
-            }
-        }
-        return NSDecimalNumber.notANumber
-    }
-
     /// Align the array of fundamental data points to an offset into the self.periodData array
     private func updateFundamentalFetcherBarAlignment() {
-        if let fundamentalFetcher = self.fundamentalFetcher,
-           !fundamentalFetcher.isLoadingData,
-           fundamentalFetcher.columns.count > 0 {
-
+        if tmp.fundamentalAlignments.isEmpty == false {
             var index = 0
-            for reportIndex in 0 ..< fundamentalFetcher.reportCount() {
-                let lastReportYear = fundamentalFetcher.year[reportIndex]
-                let lastReportMonth = fundamentalFetcher.month[reportIndex]
+            for reportIndex in 0 ..< tmp.fundamentalAlignments.count {
+                let lastReportYear = tmp.fundamentalAlignments[reportIndex].year
+                let lastReportMonth = tmp.fundamentalAlignments[reportIndex].month
 
                 while index < periodData.count &&
                     (periodData[index].year > lastReportYear || periodData[index].month > lastReportMonth) {
@@ -211,7 +174,7 @@ class StockData: NSObject, DataFetcherDelegate {
 
                 if index < periodData.count && periodData[index].year == lastReportYear
                     && periodData[index].month == lastReportMonth {
-                    fundamentalFetcher.setBarAlignment(index, report: reportIndex)
+                    tmp.setBarAlignment(index, report: reportIndex)
                 }
             }
         }
@@ -273,8 +236,8 @@ class StockData: NSObject, DataFetcherDelegate {
         computeChart()
     }
 
-    /// User panned chart by barsShifted
-    func shiftRedraw(_ barsShifted: Int, withBars screenBarWidth: Int) -> NSDecimalNumber {
+    /// User panned ScrollChartView by barsShifted
+    func shiftRedraw(_ barsShifted: Int, screenBarWidth: Int) async -> NSDecimalNumber {
         if oldestBarShown + barsShifted >= periodData.count {
             print("oldestBarShown \(oldestBarShown) + barsShifted \(barsShifted) > \(periodData.count) barCount")
             return percentChange
@@ -285,121 +248,105 @@ class StockData: NSObject, DataFetcherDelegate {
         if oldestBarShown <= 0 { // nothing to show yet
             print("\(stock.ticker) oldestBarShown is less than zero at \(oldestBarShown)")
             tmp.clear()
-        } else if busy {
-            // Avoid deadlock by limiting concurrentQueue to updateHighLow and didFinishFetch*
-            concurrentQueue?.sync {
-                updateHighLow()
-            }
-            return percentChange
         }
 
-        if let fetcher = fetcher, 0 == newestBarShown {
-             if fetcher.shouldFetchIntradayQuote() {
-                 busy = true
-                 fetcher.fetchIntradayQuote()
-             } else if fetcher.isLoadingData == false && fetcher.nextClose.compare(Date()) == .orderedAscending {
-                 // next close is in the past
-                 print("api.nextClose \(fetcher.nextClose) vs now \(Date())")
-                 busy = true
-                 delegate?.showProgressIndicator()
-                 fetcher.fetchNewerThanDate(currentNewest: newest)
-             }
-         }
-         concurrentQueue?.sync {
-             updateHighLow()
-         }
-         return percentChange
-     }
+        if let fetcher = fetcher, 0 == newestBarShown && busy == false {
+            if fetcher.shouldFetchIntradayQuote() {
+                busy = true
+                await fetcher.fetchIntradayQuote()
+            } else if fetcher.isLoadingData == false && fetcher.nextClose.compare(Date()) == .orderedAscending {
+                // next close is in the past
+                print("api.nextClose \(fetcher.nextClose) vs now \(Date())")
+                busy = true
+                await delegate?.showProgressIndicator()
+                fetcher.fetchNewerThanDate(currentNewest: newest)
+            }
+        }
+        return percentChangeAfterUpdateHighLow()
+    }
+
+    public func percentChangeAfterUpdateHighLow() -> NSDecimalNumber {
+        ready = false
+        updateHighLow()
+        ready = true
+        return percentChange
+    }
 
     /// Determines if the percent change has increased and we need to redraw/
     public func recompute(_ maxPercentChange: NSDecimalNumber, forceRecompute: Bool) {
         if forceRecompute {
             calculateMovingAverages()
         }
-        let pctDifference = maxPercentChange.subtracting(self.chartPercentChange).doubleValue
-        if forceRecompute || pctDifference > 0.02 {
-            chartPercentChange = maxPercentChange
-            tmp.scaledLow = tmp.maxHigh.dividing(by: chartPercentChange)
 
-            concurrentQueue?.sync {
-                computeChart()
+        let pctDifference = maxPercentChange.subtracting(chartPercentChange).doubleValue
+        if forceRecompute || pctDifference > 0.02 {
+            if maxPercentChange.compare(NSDecimalNumber.zero) == .orderedDescending {
+                chartPercentChange = maxPercentChange
             }
+            tmp.scaledLow = tmp.maxHigh.dividing(by: chartPercentChange)
+            ready = false
+            computeChart()
+            ready = true
         } else {
             chartPercentChange = maxPercentChange
-            tmp.scaledLow = tmp.maxHigh.dividing(by: self.chartPercentChange)
+            tmp.scaledLow = tmp.maxHigh.dividing(by: chartPercentChange)
         }
     }
 
     /// DataFetcher has an active download that must be allowed to finish or fail before accepting an additional request
-    public func fetcherCanceled() {
+    public func fetcherCanceled() async {
         busy = false
-        DispatchQueue.main.async { [weak self] in
-            self?.delegate?.requestFailed(message: "Canceled request")
-        }
+        await delegate?.requestFailed(message: "Canceled request")
     }
 
     /// DataFetcher failed downloading historical data or intraday data
-    public func fetcherFailed(_ message: String) {
+    public func fetcherFailed(_ message: String) async {
         busy = false
-        DispatchQueue.main.async { [weak self] in
-            self?.delegate?.requestFailed(message: message)
-        }
+        await delegate?.requestFailed(message: message)
     }
 
-    /// DataFetcher calls StockData with intraday price data
-    func fetcherLoadedIntradayBar(_ intradayBar: BarData) {
+    /// DataFetcher calls StockActor with intraday price data
+    func fetcherLoadedIntradayBar(_ intradayBar: BarData) async {
+        if let apiNewest = fetcher?.date(from: intradayBar) {
+            let dateDiff = apiNewest.timeIntervalSince(newest)
 
-        // Avoid deadlock by limiting concurrentQueue to updateHighLow and fetcherLoaded*
-        concurrentQueue?.sync(flags: .barrier) {
-            if let apiNewest = fetcher?.date(from: intradayBar) {
-                let dateDiff = apiNewest.timeIntervalSince(self.newest)
-
-                if dateDiff < dayInSeconds { // Update existing intraday bar
-                    dailyData[0] = intradayBar
-                } else {
-                    dailyData.insert(intradayBar, at: 0)
-                }
-
-                tmp.lastPrice = NSDecimalNumber(value: dailyData[0].close)
-                newest = apiNewest
-
-                // For intraday update to weekly or monthly chart, decrement self.oldestBarShown only if
-                //    the intraday bar is for a different period (week or month) than the existing newest bar
-
-                updatePeriodDataByDayWeekOrMonth()
-                updateHighLow() // must be a separate call to handle daysAgo shifting
-                busy = false
+            if dateDiff < dayInSeconds { // Update existing intraday bar
+                dailyData[0] = intradayBar
+            } else {
+                dailyData.insert(intradayBar, at: 0)
             }
-        }
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.delegate?.requestFinished(newPercentChange: self.percentChange)
+
+            tmp.lastPrice = NSDecimalNumber(value: dailyData[0].close)
+            newest = apiNewest
+
+            updatePeriodDataByDayWeekOrMonth()
+            updateHighLow()
+            busy = false
+            await delegate?.requestFinished(newPercentChange: percentChange)
         }
     }
 
     /// Return the number of bars at the newBarUnit scale to check if one stock in a comparison
     /// will limit the date range that can be charted in the comparison
     public func maxPeriodSupported(newBarUnit: CGFloat) -> Int {
-        return Int(floor(Double(maxPeriodCount) / newBarUnit))
+        return Int(floor(Double(dailyData.count) / newBarUnit))
     }
 
-    public func updateBarFactors(barUnit: CGFloat, xFactor: CGFloat, maxPeriods: Int) {
-        // Avoid deadlock by limiting concurrentQueue to updateHighLow and fetcherLoaded*
-        concurrentQueue?.sync(flags: .barrier) {
-            if barUnit != self.barUnit {
-                self.newestBarShown = Int(floor(CGFloat(self.newestBarShown) * self.barUnit / barUnit))
-                self.oldestBarShown = Int(floor(CGFloat(self.oldestBarShown) * self.barUnit / barUnit))
-                self.barUnit = barUnit
-            }
-            self.xFactor = xFactor
-
-            updatePeriodDataByDayWeekOrMonth()
-
-            if self.oldestBarShown > maxPeriods {
-                self.oldestBarShown = maxPeriods
-            }
-            updateHighLow() // must be a separate call to handle shifting
+    /// Update data if necessary
+    public func updatePeriodData(barUnit: CGFloat, xFactor: CGFloat, maxPeriods: Int) {
+        if barUnit != self.barUnit {
+            self.newestBarShown = Int(floor(CGFloat(self.newestBarShown) * self.barUnit / barUnit))
+            self.oldestBarShown = Int(floor(CGFloat(self.oldestBarShown) * self.barUnit / barUnit))
+            self.barUnit = barUnit
         }
+        self.xFactor = xFactor * barUnit // caller tracks them separately to determine minimize bar width
+
+        self.updatePeriodDataByDayWeekOrMonth()
+
+        if self.oldestBarShown > maxPeriods {
+            self.oldestBarShown = maxPeriods
+        }
+        self.updateHighLow() // must be a separate call to handle shifting
     }
 
     /// User zoomed in or out so rescale dailyData by the updated barUnit
@@ -411,62 +358,52 @@ class StockData: NSObject, DataFetcherDelegate {
         } else {
             periodData = BarData.groupByWeek(dailyData, calendar: gregorian, startDate: newest)
         }
-        maxPeriodCount = periodData.count
 
         updateFundamentalFetcherBarAlignment()
         calculateMovingAverages()
     }
 
-    /// DataFetcher calls StockData with the array of historical price data
-    func fetcherLoadedHistoricalData(_ loadedData: [BarData]) {
+    /// DataFetcher calls StockActor with the array of historical price data
+    func fetcherLoadedHistoricalData(_ loadedData: [BarData]) async {
         guard loadedData.count > 0 else { return }
+        let newestBar = loadedData[0]
+        if let apiNewest = fetcher?.date(from: newestBar),
+           let apiOldest = fetcher?.oldestDate {
 
-        concurrentQueue?.sync(flags: .barrier) {
-            let newestBar = loadedData[0]
-            if let apiNewest = fetcher?.date(from: newestBar),
-               let apiOldest = fetcher?.oldestDate {
+            if dailyData.isEmpty { // case 1: First request
+                newest = apiNewest
+                tmp.lastPrice = NSDecimalNumber(value: newestBar.close)
+                oldest = apiOldest
+                dailyData.append(contentsOf: loadedData)
 
-                if dailyData.isEmpty { // case 1: First request
-                    newest = apiNewest
-                    tmp.lastPrice = NSDecimalNumber(value: newestBar.close)
-                    oldest = apiOldest
-                    dailyData.append(contentsOf: loadedData)
-
-                } else if newest.compare(apiNewest) == .orderedAscending { // case 2: Newer dates
-                    newest = apiNewest
-                    tmp.lastPrice = NSDecimalNumber(value: newestBar.close)
-                    if loadedData.count > dailyData.count {
-                        print("api is newer AND \(loadedData.count) > \(dailyData.count) so replacing dailyData with loadedData")
-                        dailyData = loadedData
-                    } else {
-                        print("api is newer, so inserting \(loadedData.count) bars at start of dailyData")
-                        for index in 0 ..< loadedData.count {
-                            dailyData.insert(loadedData[index], at: index)
-                        }
-                    }
-                } else if oldest.compare(apiOldest) == .orderedDescending { // case 3: Older dates
-                    oldest = apiOldest
-                    dailyData.append(contentsOf: loadedData)
-                    print("\(stock.ticker) older dates \(loadedData.count) new barData.count")
-                }
-
-                updatePeriodDataByDayWeekOrMonth()
-                updateHighLow()
-
-                if fetcher?.shouldFetchIntradayQuote() == true {
-                    busy = true
-                    fetcher?.fetchIntradayQuote()
+            } else if newest.compare(apiNewest) == .orderedAscending { // case 2: Newer dates
+                newest = apiNewest
+                tmp.lastPrice = NSDecimalNumber(value: newestBar.close)
+                if loadedData.count > dailyData.count {
+                    print("api is newer AND \(loadedData.count) > \(dailyData.count) so replacing dailyData with loadedData")
+                    dailyData = loadedData
                 } else {
-                    busy = false
-                    DispatchQueue.main.async { [weak self] in
-                        self?.delegate?.stopProgressIndicator()
+                    print("api is newer, so inserting \(loadedData.count) bars at start of dailyData")
+                    for index in 0 ..< loadedData.count {
+                        dailyData.insert(loadedData[index], at: index)
                     }
                 }
+            } else if oldest.compare(apiOldest) == .orderedDescending { // case 3: Older dates
+                oldest = apiOldest
+                dailyData.append(contentsOf: loadedData)
+                print("\(stock.ticker) older dates \(loadedData.count) new barData.count")
             }
-        }
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.delegate?.requestFinished(newPercentChange: self.percentChange)
+
+            updatePeriodDataByDayWeekOrMonth()
+            updateHighLow()
+
+            if fetcher?.shouldFetchIntradayQuote() == true {
+                busy = true
+                await fetcher?.fetchIntradayQuote()
+            } else {
+                busy = false
+            }
+            await self.delegate?.requestFinished(newPercentChange: self.percentChange)
         }
     }
 
@@ -479,7 +416,6 @@ class StockData: NSObject, DataFetcherDelegate {
         tmp.clear()
 
         if oldestBarShown < 1 || periodData.count == 0 {
-            ready = true
             return // No bars to draw
         } else if oldestBarShown < periodData.count {
             oldestValidBar = oldestBarShown
@@ -522,7 +458,7 @@ class StockData: NSObject, DataFetcherDelegate {
                     }
                 } else if barUnit > 5 { // only year markets
                     label = ""
-                } else if periodData.count < dailyData.count || xFactor < 2 { // shorten months
+                } else if barUnit > 1 || xFactor < 2 { // shorten months
                     label = String(label.prefix(1))
                 }
 
@@ -632,14 +568,13 @@ class StockData: NSObject, DataFetcherDelegate {
 
     /// Computes fundamental bar pixel alignment after computeChart sets oldestValidBar and xRaw
     func computeFundamentalBarPixelAlignments(from oldestValidBar: Int, xRaw: CGFloat) {
-        if let fundamentalFetcher = fundamentalFetcher,
-            fundamentalFetcher.isLoadingData == false && fundamentalFetcher.columns.count > 0 {
+        if tmp.fundamentalAlignments.isEmpty == false {
 
-            oldestReport = fundamentalFetcher.reportCount() - 1
-            newestReport = 0
+            var oldestReport = tmp.fundamentalAlignments.count - 1
+            var newestReport = 0
             var lastBarAlignment = 0
             for index in 0...oldestReport {
-                lastBarAlignment = fundamentalFetcher.barAlignmentFor(report: index)
+                lastBarAlignment = tmp.barAlignmentFor(report: index)
                 if newestReport > 0 && lastBarAlignment == -1 {
                     print("ran out of trading data after report \(newestReport)")
                 } else if lastBarAlignment > 0 && lastBarAlignment <= newestBarShown {
@@ -659,39 +594,32 @@ class StockData: NSObject, DataFetcherDelegate {
             }
 
             var index = newestReport
-            newestReportInView = newestReport
+            tmp.newestReportInView = newestReport
 
-            let offscreen: Int = -1 // Avoid showing any previous pixel alignments prior to user pan or zoom
-            if tmp.fundamentalAlignments.isEmpty {
-                tmp.fundamentalAlignments = Array(repeating: CGFloat(offscreen), count: fundamentalFetcher.reportCount())
-            } else { // reset to offscreen value
-                for index in 0 ..< tmp.fundamentalAlignments.count {
-                    tmp.fundamentalAlignments[index] = CGFloat(offscreen)
-                }
+            for index in 0 ..< tmp.fundamentalAlignments.count {
+                tmp.fundamentalAlignments[index].x = CGFloat(offscreen)
             }
             var barAlignment = offscreen
             lastBarAlignment = offscreen
 
             repeat {
                 lastBarAlignment = barAlignment
-                barAlignment = fundamentalFetcher.barAlignmentFor(report: index)
+                barAlignment = tmp.barAlignmentFor(report: index)
                 if barAlignment < 0 {
                     break
                 }
                 let xPosition = Double(oldestValidBar - barAlignment + 1) * xFactor + xRaw
-                tmp.fundamentalAlignments.insert(xPosition, at: index)
+                tmp.fundamentalAlignments[index].x = xPosition
                 index += 1
             } while index <= oldestReport
 
-            oldestReportInView = index
+            tmp.oldestReportInView = index
         }
     }
 
     /// Create a copy of the values mutated on a background thread by computeChart for use by ChartRenderer on the mainThread
-    func copyChartElements() {
-        concurrentQueue?.sync(flags: .barrier) {
-            // swiftlint:disable:next force_cast
-            chartElements = tmp.copy() as! ChartElements // copy() returns an Any
-        }
+    func copyChartElements() -> ChartElements {
+        // swiftlint:disable:next force_cast
+        return tmp.copy() as! ChartElements // copy() returns an Any
     }
 }
