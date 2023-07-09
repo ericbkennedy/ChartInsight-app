@@ -17,7 +17,7 @@ import Foundation
     let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     let READONLY_NOMUTEX = Int32(SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX)
 
-    nonisolated func dbPath() -> String {
+    func dbPath() -> String {
         return String(format: "%@/Documents/charts.db", NSHomeDirectory())
     }
 
@@ -57,7 +57,7 @@ import Foundation
             switch change.action {
             case .added:
                 if let name = change.name, let startDateInt = change.startDateInt, let hasFundamentals = change.hasFundamentals {
-                    let sql = "INSERT OR REPLACE INTO stock (rowid, ticker, name, startDate, hasFundamentals) VALUES (?, ?, ?, ?, ?)"
+                    let sql = "INSERT OR REPLACE INTO stock (stockId, ticker, name, startDate, hasFundamentals) VALUES (?, ?, ?, ?, ?)"
                     guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
                     sqlite3_bind_int64(statement, 1, Int64(change.stockId))
                     sqlite3_bind_text(statement, 2, NSString(string: change.ticker).utf8String, -1, SQLITE_TRANSIENT)
@@ -72,7 +72,7 @@ import Foundation
                 }
             case .tickerChange, .nameChange:
                 if let name = change.name, let startDateInt = change.startDateInt {
-                    let sql = "UPDATE stock SET ticker = ?, name = ?, startDate = ? WHERE rowid = ?"
+                    let sql = "UPDATE stock SET ticker = ?, name = ?, startDate = ? WHERE stockId = ?"
                     guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
                     sqlite3_bind_text(statement, 1, NSString(string: change.ticker).utf8String, -1, SQLITE_TRANSIENT)
                     sqlite3_bind_text(statement, 2, NSString(string: name).utf8String, -1, SQLITE_TRANSIENT)
@@ -106,7 +106,7 @@ import Foundation
                 userRowsChanged += Int(sqlite3_changes(db))
                 sqlite3_finalize(statement)
 
-                sql = "DELETE FROM stock WHERE rowid = ?"
+                sql = "DELETE FROM stock WHERE stockId = ?"
                 guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { continue }
                 sqlite3_bind_int64(statement, 1, Int64(change.stockId))
 
@@ -191,8 +191,7 @@ import Foundation
 
     /// Split the user's search text into words and calls findSymbol(search:db:) to query for matches
     /// Search performance was slow due to actor isolation with writes to the history table.
-    /// Read-only access to the stock table and nonisolated annotation allows caller to skip Task dispatch.
-    nonisolated func findStock(search: String) -> [Stock] {
+    func findStock(search: String) -> [Stock] {
          var list: [Stock] = []
          var exactMatches: [Stock] = []
          var db: Sqlite3ptr = nil
@@ -237,11 +236,11 @@ import Foundation
 
     /// Search db for term which can be both the user's full search text or a substring of it.
     /// findStock(search:) wraps this in order to split the user's search text into words if no exact matches occur.
-    nonisolated private func stockSearch(term: String, db: Sqlite3ptr) -> [Stock] {
+    private func stockSearch(term: String, db: Sqlite3ptr) -> [Stock] {
         var list: [Stock] = []
         var statement: Sqlite3ptr = nil
 
-        var sql = "SELECT rowid,ticker,name,startDate,hasFundamentals,offsets(stock)"
+        var sql = "SELECT stockId,ticker,name,startDate,hasFundamentals,offsets(stock)"
         sql += " FROM stock WHERE stock MATCH ? ORDER BY offsets(stock) ASC LIMIT 50"
 
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return list }
@@ -275,7 +274,7 @@ import Foundation
 
         guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return nil }
 
-        let sql = "SELECT rowid,ticker,name,startDate,hasFundamentals FROM stock WHERE ticker=?"
+        let sql = "SELECT stockId, ticker, name, startDate, hasFundamentals FROM stock WHERE ticker=?"
 
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return nil }
 
@@ -414,13 +413,13 @@ import Foundation
         enum Col: Int32 {
             case comparisonId, comparisonStockId, stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentalList, technicalList
         }
-        var sql = "SELECT K.rowid, CS.rowid, stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentals, technicals"
-        sql += " FROM comparison K JOIN comparisonStock CS on K.rowid = CS.comparisonId JOIN stock ON stock.rowid = stockId "
+        var sql = "SELECT C.rowid, CS.rowid, S.stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentals, technicals"
+        sql += " FROM comparison C JOIN comparisonStock CS on C.rowid = CS.comparisonId JOIN stock S ON S.stockId = CS.stockId "
 
         if ticker.count > 0 {
             sql += " WHERE stock.ticker = ? "
         }
-        sql += " ORDER BY K.rowid, CS.rowId"
+        sql += " ORDER BY C.rowid, CS.rowId"
 
         guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return list }
 

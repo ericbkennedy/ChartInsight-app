@@ -190,12 +190,39 @@ class ScrollChartView: UIView, StockActorDelegate {
     }
 
     /// Enlarged screenshot of chart under user's finger with a bar highlighted if coordinates match
-    func magnifyBar(xPress: CGFloat, yPress: CGFloat) -> UIImage? {
+    func magnifyBar(xPress: CGFloat, yPress: CGFloat) async -> UIImage? {
         if var renderer = chartRenderer {
             renderer.barUnit = barUnit
             renderer.xFactor = xFactor
             renderer.pxWidth = pxWidth - layer.position.x
-            return renderer.magnifyBar(x: xPress, y: yPress, stocks: stockActorList)
+
+            let centerX = xPress * layer.contentsScale
+            let centerY = yPress * layer.contentsScale
+            let barOffset = Int(round(centerX / (xFactor * barUnit)))
+
+            var matchedBar: BarData?
+
+            await withTaskGroup(of: BarData?.self) { group in
+                for stockActor in stockActorList {
+                    group.addTask {
+                        let pressedBarIndex = await stockActor.oldestBarShown - barOffset
+                        if let (bar, yHigh, yLow) = await stockActor.bar(at: pressedBarIndex) {
+                            if centerY >= yHigh && centerY <= yLow {
+                                return bar // good match (note CoreGraphics has yHigh < yLow)
+                            }
+                        }
+                        return nil
+                    }
+                }
+                for await barData in group where barData != nil {
+                    matchedBar = barData
+                    break // use first non-nil match because multiple bars are hard to read
+                }
+            }
+            if let barData = matchedBar {
+                let monthName = barData.monthName(calendar: gregorian)
+                return renderer.magnifyBar(x: xPress, y: yPress, bar: barData, monthName: monthName)
+            }
         }
         return nil
     }

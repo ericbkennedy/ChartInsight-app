@@ -11,6 +11,8 @@
 import Foundation
 
 struct StockChangeService {
+    let defaultsSyncTimestampKey = "syncStockChangeTimestamp"
+    let bundleDBTimestamp = 710306200.0 // charts.db includes stocks through 2023-7-6
 
     enum CorpAction: String, Decodable {
         case added, split, tickerChange, nameChange, delisted
@@ -26,8 +28,14 @@ struct StockChangeService {
     }
 
     private func formatRequestURL() -> URL? {
-        // TODO: track this in user defaults
-        let lastSyncDate = Date()
+        var lastSyncTimestamp = bundleDBTimestamp
+        let postInstallSync = UserDefaults.standard.double(forKey: defaultsSyncTimestampKey)
+
+        if postInstallSync > 0 {
+            lastSyncTimestamp = postInstallSync
+        }
+        let lastSyncDate = Date(timeIntervalSinceReferenceDate: lastSyncTimestamp)
+
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let lastSync = dateFormatter.string(from: lastSyncDate)
@@ -48,7 +56,9 @@ struct StockChangeService {
             guard (200...299).contains(httpResponse.statusCode) else {
                 throw ServiceError.http(statusCode: httpResponse.statusCode)
             }
-            return try JSONDecoder().decode([StockChange].self, from: data)
+            let changes = try JSONDecoder().decode([StockChange].self, from: data)
+            UserDefaults.standard.set(Date.timeIntervalSinceReferenceDate, forKey: defaultsSyncTimestampKey)
+            return changes
         } catch {
             print("error is \(error.localizedDescription)")
         }

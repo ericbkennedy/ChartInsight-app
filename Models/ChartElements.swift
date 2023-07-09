@@ -12,7 +12,7 @@
 
 import Foundation
 
-class ChartElements: NSObject, NSCopying {
+struct ChartElements {
     var stock: Stock
     var monthLabels: [String]
     var monthLines: [CGPoint]
@@ -41,8 +41,8 @@ class ChartElements: NSObject, NSCopying {
     var redVolume: [CGRect]
     var blackVolume: [CGRect]
 
-    convenience override init() {
-        self.init(stock: Stock(),
+    init(stock: Stock) {
+        self.init(stock: stock,
                   monthLabels: [],
                   monthLines: [],
                   oldestReportInView: 0,
@@ -68,11 +68,6 @@ class ChartElements: NSObject, NSCopying {
                   redBars: [],
                   redVolume: [],
                   blackVolume: [])
-    }
-
-    convenience init(stock: Stock) {
-        self.init()
-        self.stock = stock
     }
 
     init(stock: Stock, monthLabels: [String], monthLines: [CGPoint], oldestReportInView: Int, newestReportInView: Int,
@@ -120,7 +115,7 @@ class ChartElements: NSObject, NSCopying {
         return input
     }
 
-    func clear() {
+    mutating func clear() {
         monthLabels.removeAll(keepingCapacity: true)
         // Don't remove fundamentalColumns since the values loaded once and won't change
         // Don't remove fundamentalAlignments since the alignments will get updated
@@ -138,37 +133,6 @@ class ChartElements: NSObject, NSCopying {
         redBars.removeAll(keepingCapacity: true)
         redVolume.removeAll(keepingCapacity: true)
         blackVolume.removeAll(keepingCapacity: true)
-    }
-
-    /// Return a copy of all of the arrays and their elements so rendering can use these values while the user pans to trigger recomputation
-    func copy(with zone: NSZone? = nil) -> Any {
-        let copy = ChartElements(stock: stock,
-                                 monthLabels: monthLabels,
-                                 monthLines: monthLines,
-                                 oldestReportInView: oldestReportInView,
-                                 newestReportInView: newestReportInView,
-                                 fundamentalColumns: fundamentalColumns,
-                                 fundamentalAlignments: fundamentalAlignments,
-                                 points: points,
-                                 redPoints: redPoints,
-                                 yFactor: yFactor,
-                                 yFloor: yFloor,
-                                 maxHigh: maxHigh,
-                                 minLow: minLow,
-                                 scaledLow: scaledLow,
-                                 lastPrice: lastPrice,
-                                 movingAvg1: movingAvg1,
-                                 movingAvg2: movingAvg2,
-                                 upperBollingerBand: upperBollingerBand,
-                                 middleBollingerBand: middleBollingerBand,
-                                 lowerBollingerBand: lowerBollingerBand,
-                                 greenBars: greenBars,
-                                 filledGreenBars: filledGreenBars,
-                                 hollowRedBars: hollowRedBars,
-                                 redBars: redBars,
-                                 redVolume: redVolume,
-                                 blackVolume: blackVolume)
-        return copy
     }
 
     /// Returns all fundamental metric keys or [] if fundamentals aren't loaded
@@ -193,7 +157,7 @@ class ChartElements: NSObject, NSCopying {
         return fundamentalAlignments.count
     }
 
-    func setBarAlignment(_ barIndex: Int, report: Int) {
+    mutating func setBarAlignment(_ barIndex: Int, report: Int) {
         if report < fundamentalAlignments.count {
             fundamentalAlignments[report].bar = barIndex
         }

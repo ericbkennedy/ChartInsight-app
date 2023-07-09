@@ -24,7 +24,6 @@ class BarData {
     var movingAvg2: Double = -1.0
     var mbb: Double = -1.0
     var stdev: Double = -1.0
-    var upClose: Bool = false // currently only set after user long presses on the chart
 
     static func == (lhs: BarData, rhs: BarData) -> Bool {
 

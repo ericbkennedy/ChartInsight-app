@@ -306,110 +306,86 @@ struct ChartRenderer {
     }
 
     /// Enlarged screenshot of chart under user's finger with a bar highlighted if coordinates match
-    func magnifyBar(x: CGFloat, y: CGFloat, stocks: [StockActor]) -> UIImage? {
+    func magnifyBar(x: CGFloat, y: CGFloat, bar: BarData, monthName: String) -> UIImage? {
         UIGraphicsBeginImageContextWithOptions(CGSize(width: magnifierSize, height: magnifierSize), false, contentsScale)
         guard let lensContext = UIGraphicsGetCurrentContext() else { return nil }
 
         var backgroundColor = UIColor.white
-        var textColor = UIColor.black
-
+        var color = UIColor.black
         if UserDefaults.standard.bool(forKey: "darkMode") {
             backgroundColor = UIColor.black // reverse colors
-            textColor = UIColor.white
+            color = UIColor.white
         }
 
         lensContext.setFillColor(backgroundColor.cgColor)
         lensContext.fill(CGRect(x: 0, y: 0, width: magnifierSize, height: magnifierSize))
 
-        let yPressed = y * contentsScale
-
-        let scale = UIScreen.main.scale
         let magnification: CGFloat = 2.0
-
         let midpoint = magnifierSize / (2 * magnification)
 
         let x = (x - midpoint) * contentsScale // subtract midpoint to make the touch point the center of the lens, not the top left corner
-        let y = (y - 2 * midpoint) * contentsScale
+        var y = (y - 2 * midpoint) * contentsScale
 
-        if scale >= 1 {
-            lensContext.scaleBy(x: magnification / scale, y: magnification / scale)
+        if contentsScale >= 1 {
+            lensContext.scaleBy(x: magnification / contentsScale, y: magnification / contentsScale)
         }
         lensContext.draw(layerRef, at: CGPoint(x: -x, y: -y))
         lensContext.setBlendMode(.normal)
 
-        let centerX = x + midpoint * scale - xFactor * barUnit / 2 // because xRaw starts at xFactor/scale
+        // Overlay background color with 25% opacity so lensContext bar color stands out
+        lensContext.setFillColor(backgroundColor.withAlphaComponent(0.25).cgColor)
+        lensContext.fill(CGRect(x: 0, y: 0, width: magnifierSize, height: magnifierSize))
 
-        /*
-         EK: Have the caller determine which stock matches the user's finger and then pass that info in
+        let strokeColor = color
 
-        for stockActor in stocks {
-            let barOffset = Int(round(centerX / (xFactor * barUnit)))
-            if stockActor.oldestBarShown - barOffset >= 0 {
-                let pressedBarIndex = stockActor.oldestBarShown - barOffset // only overwrite pressedBarIndex if it's valid
+        lensContext.setStrokeColor(strokeColor.cgColor)
+        lensContext.setLineWidth(UIScreen.main.scale)
+        lensContext.setShadow(offset: CGSize(width: 0.5, height: 0.5), blur: 0.75)
+        numberFormatter.maximumFractionDigits = bar.high > 100 ? 0 : 2
 
-                if let (bar, monthName) = stockActor.bar(at: pressedBarIndex) {
-                    let barHigh = stockActor.chartElements.yFloor - stockActor.chartElements.yFactor * bar.high
-                    let barLow = stockActor.chartElements.yFloor - stockActor.chartElements.yFactor * bar.low
-
-                    if yPressed < barLow && yPressed > barHigh {
-                        lensContext.setFillColor(backgroundColor.withAlphaComponent(0.25).cgColor)
-                        lensContext.fill(CGRect(x: 0, y: 0, width: magnifierSize, height: magnifierSize))
-
-                        let strokeColor = bar.upClose ? stockActor.stock.upColor : stockActor.stock.color
-
-                        lensContext.setStrokeColor(strokeColor.cgColor)
-                        lensContext.setLineWidth(UIScreen.main.scale)
-                        lensContext.setShadow(offset: CGSize(width: 0.5, height: 0.5), blur: 0.75)
-                        numberFormatter.maximumFractionDigits = bar.high > 100 ? 0 : 2
-
-                        var label = monthName
-                        if barUnit < 19 {
-                            label += "\(bar.day)"
-                        } else {
-                            label += "'" + String(bar.year).suffix(2)
-                        }
-
-                        showString(label, at: CGPoint(x: 16.0 * scale, y: 7.0 * scale), with: textColor, size: 12.0)
-
-                        let scopeFactor = (bar.high > bar.low) ? 31.0 * scale / (bar.high - bar.low) : 0
-                        let midPoint = (bar.high + bar.low) / 2.0
-
-                        label = numberFormatter.string(from: NSNumber(value: bar.open)) ?? ""
-                        var y = 27.5 * scale + scopeFactor * (midPoint - bar.open)
-                        showString(label, at: CGPoint(x: 10.0 * scale, y: y), with: textColor, size: 12.0)
-
-                        y = (y < 27.5 * scale) ? y + 2.5 * scale : y - 5.0 * scale
-                        lensContext.move(to: CGPoint(x: 20.0 * scale, y: y))
-                        lensContext.addLine(to: CGPoint(x: 25.0 * scale, y: y))
-
-                        label = numberFormatter.string(from: NSNumber(value: bar.high)) ?? ""
-                        y = 27.5 * scale + scopeFactor * (midPoint - bar.high)
-                        showString(label, at: CGPoint(x: 22.0 * scale, y: y), with: textColor, size: 12.0)
-
-                        y = (y < 27.5 * scale) ? y + 2.5 * scale : y - 5.0 * scale
-                        lensContext.move(to: CGPoint(x: 25.0 * scale, y: y))
-
-                        label = numberFormatter.string(from: NSNumber(value: bar.low)) ?? ""
-                        y = 27.5 * scale + scopeFactor * (midPoint - bar.low)
-                        showString(label, at: CGPoint(x: 22.0 * scale, y: y), with: textColor, size: 12.0)
-
-                        y = (y < 27.5 * scale) ? y + 2.5 * scale : y - 5.0 * scale
-                        lensContext.addLine(to: CGPoint(x: 25.0 * scale, y: y))
-
-                        label = numberFormatter.string(from: NSNumber(value: bar.close)) ?? ""
-                        y = 27.5 * scale + scopeFactor * (midPoint - bar.close)
-                        showString(label, at: CGPoint(x: 33.0 * scale, y: y), with: textColor, size: 12.0)
-
-                        y = (y < 27.5 * scale) ? y + 2.5 * scale : y - 5.0 * scale
-                        lensContext.move(to: CGPoint(x: 25.0 * scale, y: y))
-                        lensContext.addLine(to: CGPoint(x: 30.0 * scale, y: y))
-                        lensContext.strokePath()
-                        break // use the first bar that fits to avoid overlap
-                    }
-                }
-            }
+        var label = monthName
+        if barUnit < 19 {
+            label += "\(bar.day)"
+        } else {
+            label += "'" + String(bar.year).suffix(2)
         }
-        */
+
+        showString(label, at: CGPoint(x: 16.0 * contentsScale, y: 7.0 * contentsScale), with: color, size: 12.0)
+
+        let scopeFactor = (bar.high > bar.low) ? 31.0 * contentsScale / (bar.high - bar.low) : 0
+        let midPoint = (bar.high + bar.low) / 2.0
+
+        label = numberFormatter.string(from: NSNumber(value: bar.open)) ?? ""
+        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.open)
+        showString(label, at: CGPoint(x: 10.0 * contentsScale, y: y), with: color, size: 12.0)
+
+        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
+        lensContext.move(to: CGPoint(x: 20.0 * contentsScale, y: y))
+        lensContext.addLine(to: CGPoint(x: 25.0 * contentsScale, y: y))
+
+        label = numberFormatter.string(from: NSNumber(value: bar.high)) ?? ""
+        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.high)
+        showString(label, at: CGPoint(x: 22.0 * contentsScale, y: y), with: color, size: 12.0)
+
+        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
+        lensContext.move(to: CGPoint(x: 25.0 * contentsScale, y: y))
+
+        label = numberFormatter.string(from: NSNumber(value: bar.low)) ?? ""
+        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.low)
+        showString(label, at: CGPoint(x: 22.0 * contentsScale, y: y), with: color, size: 12.0)
+
+        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
+        lensContext.addLine(to: CGPoint(x: 25.0 * contentsScale, y: y))
+
+        label = numberFormatter.string(from: NSNumber(value: bar.close)) ?? ""
+        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.close)
+        showString(label, at: CGPoint(x: 33.0 * contentsScale, y: y), with: color, size: 12.0)
+
+        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
+        lensContext.move(to: CGPoint(x: 25.0 * contentsScale, y: y))
+        lensContext.addLine(to: CGPoint(x: 30.0 * contentsScale, y: y))
+        lensContext.strokePath()
+
         let screenshot = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return screenshot

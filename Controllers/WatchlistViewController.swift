@@ -249,15 +249,16 @@ class WatchlistViewController: UITableViewController {
                                  y: yPress - magnifierHeight,
                                  width: magnifierWidth,
                                  height: magnifierHeight)
-
-        if let image = scrollChartView.magnifyBar(xPress: xPress, yPress: yPress) {
-            // Note that this returns an image even when the user moves to the Y axis labels        
-            magnifier.image = image
-            magnifier.layer.borderColor = UIColor.lightGray.cgColor
-            magnifier.layer.borderWidth = 1
-            magnifier.layer.cornerRadius = midpoint
-            magnifier.layer.masksToBounds = true
-            magnifier.isHidden = false
+        Task {
+            if let image = await scrollChartView.magnifyBar(xPress: xPress, yPress: yPress) {
+                // Note that this returns an image even when the user moves to the Y axis labels
+                magnifier.image = image
+                magnifier.layer.borderColor = UIColor.lightGray.cgColor
+                magnifier.layer.borderWidth = 1
+                magnifier.layer.cornerRadius = midpoint
+                magnifier.layer.masksToBounds = true
+                magnifier.isHidden = false
+            }
         }
     }
 
@@ -339,8 +340,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Reload the stock comparison list in the tableView and redraw the scrollChartView
-    @MainActor
-    func reload(keepExistingComparison: Bool) {
+    @MainActor func reload(keepExistingComparison: Bool) {
         Task {
             list = await Comparison.listAll()
             tableView.reloadData()
@@ -352,21 +352,24 @@ class WatchlistViewController: UITableViewController {
                 } else {
                     comparisonToChart = list[0]
                 }
-
-                scrollChartView.clearChart()
-                progressIndicator.startAnimating()
-                scrollChartView.comparison = comparisonToChart
-                updateNavStockButtonToolbar()
-                scrollChartView.loadChart()
+                load(comparisonToChart: comparisonToChart)
             }
         }
     }
 
-    /// Callback after async comparisonList reload
+    /// Callback after async comparisonList reload and by StockChangeService if user rows were updated
     func update(list: [Comparison]) {
+        var reloadComparison = true
+        if self.list.isEmpty == false && list.isEmpty == false {
+            if self.list[0].title == list[0].title {
+                // Avoid reloading the visible comparison since it hasn't changed even if other rows have
+                reloadComparison = false
+            }
+        }
+
         self.list = list
         tableView.reloadData()
-        if self.list.count > 0 {
+        if self.list.count > 0 && reloadComparison {
             loadComparison(listIndex: 0)
         }
     }
