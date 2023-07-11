@@ -117,13 +117,14 @@ import Foundation
                 sqlite3_finalize(statement)
             }
         }
-        sqlite3_close(db)
         if userRowsChanged > 0 {
             // fetch updated comparisonList and send it to the delegate
-            let list = comparisonList()
+            let list = comparisonList(dbConnection: db)
             await MainActor.run {
                 delegate.update(list: list)
             }
+        } else {
+            sqlite3_close(db)
         }
     }
 
@@ -303,67 +304,67 @@ import Foundation
     }
 
     /// Save a stock as part of a new comparison (if comparison.id == 0) or add to an existing comparison
-    func save(comparison: Comparison) {
+    func save(comparison: Comparison) -> [Comparison] {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
-        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
+        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return [] }
         var sql = ""
         if comparison.id == 0 {
             sql = "INSERT INTO comparison (sort) VALUES (0)"
-            guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
+            sqlite3_prepare_v2(db, sql, -1, &statement, nil)
             sqlite3_step(statement)
             sqlite3_finalize(statement)
             comparison.id = Int(sqlite3_last_insert_rowid(db))
         }
 
         for stock in comparison.stockList {
-           let hexColorUTF8     = NSString(string: stock.hexFromUpColor()).utf8String
-           let fundamentalsUTF8 = NSString(string: stock.fundamentalList).utf8String
-           let technicalsUTF8   = NSString(string: stock.technicalList).utf8String
+            let hexColorUTF8     = NSString(string: stock.hexFromUpColor()).utf8String
+            let fundamentalsUTF8 = NSString(string: stock.fundamentalList).utf8String
+            let technicalsUTF8   = NSString(string: stock.technicalList).utf8String
 
-           if stock.comparisonStockId > 0 {
-               sql = "UPDATE comparisonStock SET chartType=?, color=?, fundamentals=?, technicals=? WHERE rowid=?"
-               sqlite3_prepare(db, sql, -1, &statement, nil)
+            if stock.comparisonStockId > 0 {
+                sql = "UPDATE comparisonStock SET chartType=?, color=?, fundamentals=?, technicals=? WHERE rowid=?"
+                sqlite3_prepare(db, sql, -1, &statement, nil)
 
-               sqlite3_bind_int64(statement, 1, Int64(stock.chartType.rawValue))
-               sqlite3_bind_text(statement, 2, hexColorUTF8, -1, SQLITE_TRANSIENT)
-               sqlite3_bind_text(statement, 3, fundamentalsUTF8, -1, SQLITE_TRANSIENT)
-               sqlite3_bind_text(statement, 4, technicalsUTF8, -1, SQLITE_TRANSIENT)
-               sqlite3_bind_int64(statement, 5, Int64(stock.comparisonStockId))
+                sqlite3_bind_int64(statement, 1, Int64(stock.chartType.rawValue))
+                sqlite3_bind_text(statement, 2, hexColorUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_text(statement, 3, fundamentalsUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_text(statement, 4, technicalsUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_int64(statement, 5, Int64(stock.comparisonStockId))
 
-               if SQLITE_DONE != sqlite3_step(statement) {
-                   print("Save to DB ERROR ", String(cString: sqlite3_errmsg(db)), sql)
-               }
-               sqlite3_finalize(statement)
-           } else if stock.comparisonStockId == 0 {
-               sql = "INSERT OR REPLACE INTO comparisonStock (comparisonId, stockId, chartType, color, fundamentals, technicals)"
-               sql += " VALUES (?, ?, ?, ?, ?, ?)"
-               sqlite3_prepare(db, sql, -1, &statement, nil)
+                if SQLITE_DONE != sqlite3_step(statement) {
+                    print("Save to DB ERROR ", String(cString: sqlite3_errmsg(db)), sql)
+                }
+                sqlite3_finalize(statement)
+            } else if stock.comparisonStockId == 0 {
+                sql = "INSERT OR REPLACE INTO comparisonStock (comparisonId, stockId, chartType, color, fundamentals, technicals)"
+                sql += " VALUES (?, ?, ?, ?, ?, ?)"
+                sqlite3_prepare(db, sql, -1, &statement, nil)
 
-               sqlite3_bind_int64(statement, 1, Int64(comparison.id))
-               sqlite3_bind_int64(statement, 2, Int64(stock.id))
-               sqlite3_bind_int64(statement, 3, Int64(stock.chartType.rawValue))
-               sqlite3_bind_text(statement, 4, hexColorUTF8, -1, SQLITE_TRANSIENT)
-               sqlite3_bind_text(statement, 5, fundamentalsUTF8, -1, SQLITE_TRANSIENT)
-               sqlite3_bind_text(statement, 6, technicalsUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_int64(statement, 1, Int64(comparison.id))
+                sqlite3_bind_int64(statement, 2, Int64(stock.id))
+                sqlite3_bind_int64(statement, 3, Int64(stock.chartType.rawValue))
+                sqlite3_bind_text(statement, 4, hexColorUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_text(statement, 5, fundamentalsUTF8, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_text(statement, 6, technicalsUTF8, -1, SQLITE_TRANSIENT)
 
-               if SQLITE_DONE == sqlite3_step(statement) {
-                   stock.comparisonStockId = Int(sqlite3_last_insert_rowid(db))
-               } else {
-                   print("Save to DB ERROR ", String(cString: sqlite3_errmsg(db)), sql)
-               }
-               sqlite3_finalize(statement)
-           }
-       }
-       sqlite3_close(db)
+                if SQLITE_DONE == sqlite3_step(statement) {
+                    stock.comparisonStockId = Int(sqlite3_last_insert_rowid(db))
+                } else {
+                    print("Save to DB ERROR ", String(cString: sqlite3_errmsg(db)), sql)
+                }
+                sqlite3_finalize(statement)
+            }
+        }
+        return comparisonList(dbConnection: db)
     }
 
     /// Delete all stock from a comparison and the comparison row itself
-    func delete(comparison: Comparison) {
+    func delete(comparison: Comparison) -> [Comparison] {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
-        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
+        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return [] }
 
         var sql = "DELETE FROM comparisonStock WHERE comparisonId = ?"
-        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
+        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return [] }
 
         sqlite3_bind_int64(statement, 1, Int64(comparison.id))
 
@@ -373,7 +374,7 @@ import Foundation
         sqlite3_finalize(statement)
 
         sql = "DELETE FROM comparison WHERE rowid = ?"
-        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
+        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return [] }
 
         sqlite3_bind_int64(statement, 1, Int64(comparison.id))
 
@@ -381,18 +382,17 @@ import Foundation
             print(String(format: "Delete from comparison DB ERROR '%s'.", sqlite3_errmsg(db)))
         }
         sqlite3_finalize(statement)
-        sqlite3_close(db)
-
+        return comparisonList(dbConnection: db)
     }
 
     /// Delete stock from a comparison. Call delete(comparison:) to delete the last stock in a comparison
-    func delete(stock: Stock) {
+    func delete(stock: Stock) -> [Comparison] {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
-        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
+        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return [] }
 
         let sql = "DELETE FROM comparisonStock WHERE stockId = ?"
-        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
+        sqlite3_prepare_v2(db, sql, -1, &statement, nil)
 
         sqlite3_bind_int64(statement, 1, Int64(stock.id))
 
@@ -400,15 +400,22 @@ import Foundation
             print(String(format: "delete(stock:) DB ERROR '%s'.", sqlite3_errmsg(db)))
         }
         sqlite3_finalize(statement)
-        sqlite3_close(db)
+        return comparisonList(dbConnection: db)
     }
 
-    /// Load all comparisons or only those with the provided ticker
-    func comparisonList(ticker: String = "") -> [Comparison] {
+    /// Returns all comparisons or only those with the provided ticker
+    /// If a non-nil dbConnection is provided, it will be used and then closed
+    func comparisonList(dbConnection: Sqlite3ptr = nil, ticker: String = "") -> [Comparison] {
         var list: [Comparison] = []
-        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
-        guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return [] }
+        var db: Sqlite3ptr = nil
+        if dbConnection != nil {
+            db = dbConnection
+        } else {
+            guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return [] }
+        }
+
+        var statement: Sqlite3ptr = nil
 
         enum Col: Int32 {
             case comparisonId, comparisonStockId, stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentalList, technicalList
@@ -461,8 +468,10 @@ import Foundation
                 stock.setColorWith(hexString: "009900") // upColor = green, down = red
             }
 
-            if sqlite3_column_bytes(statement, Col.fundamentalList.rawValue) > 2 {
+            if stock.hasFundamentals && sqlite3_column_bytes(statement, Col.fundamentalList.rawValue) > 2 {
                 stock.fundamentalList = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.fundamentalList.rawValue)))
+            } else {
+                stock.fundamentalList = "" // Clear out default vaulue for fundamentalList
             }
 
             if sqlite3_column_bytes(statement, Col.technicalList.rawValue) > 2 {

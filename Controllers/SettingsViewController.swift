@@ -44,7 +44,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         Task {
-            list = await Comparison.listAll() // reload list on each apperence so it reflects added stock
+            list = await DBActor.shared.comparisonList() // reload list on each apperence so it reflects added stock
             await MainActor.run {
                 tableView.reloadData()
             }
@@ -111,11 +111,10 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         if indexPath.section == SectionType.stockList.rawValue && editingStyle == .delete {
             if indexPath.row < list.count {
                 let comparison = list[indexPath.row]
-                comparison.deleteFromDb()
                 Task {
-                    list = await Comparison.listAll() // reload list on each apperence so it reflects added stock
+                    list = await comparison.deleteFromDb()
                     await MainActor.run {
-                        delegate?.needsReload = true
+                        delegate?.update(list: list)
                         tableView.deleteRows(at: [indexPath], with: .fade)
                         tableView.reloadData()
                     }

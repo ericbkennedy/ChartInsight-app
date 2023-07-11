@@ -23,6 +23,7 @@ protocol StockActorDelegate: AnyObject {
 }
 
 actor StockActor: DataFetcherDelegate {
+    nonisolated let comparisonStockId: Int
     var stock: Stock
     private let gregorian: Calendar
     weak var delegate: ScrollChartView?
@@ -56,6 +57,7 @@ actor StockActor: DataFetcherDelegate {
     private var volumeHeight: Double
 
     init(stock: Stock, gregorian: Calendar, delegate: ScrollChartView, oldestBarShown: Int, barUnit: CGFloat, xFactor: CGFloat) {
+        self.comparisonStockId = stock.comparisonStockId
         self.stock = stock
         self.gregorian = gregorian
         self.delegate = delegate

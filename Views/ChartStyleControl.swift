@@ -101,7 +101,7 @@ class ChartStyleControl: UIControl {
             }
             button.setImage(image, for: .normal)
             button.setImage(image, for: .highlighted)
-            button.addTarget(self, action: #selector(tappedButton), for: .allEvents)
+            button.addTarget(self, action: #selector(tappedButton), for: .touchUpInside)
             buttons.append(button)
             stackView.addArrangedSubview(button)
         }

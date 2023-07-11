@@ -95,7 +95,9 @@ class ChartOptionsController: UITableViewController {
         updateListedMetrics()
 
         tableView.reloadData()
-        delegate?.reload(withStock: stock)
+        Task {
+            await delegate?.reload(stock: stock)
+        }
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -117,6 +119,8 @@ class ChartOptionsController: UITableViewController {
                 if indexPath.row == addFundamentalRowIndex {
                     config.text = "        + Add Financial Metric"
                     cell.accessoryView = nil
+                } else if stock.hasFundamentals == false {
+                    config.text = "Unavailable for \(stock.ticker)"
                 } else if indexPath.row < listedMetricKeys.count {
                     cell.selectionStyle = .none
                     config.text = Metrics.shared.title(for: listedMetricKeys[indexPath.row])
@@ -215,23 +219,28 @@ class ChartOptionsController: UITableViewController {
             stock.addToTechnicals(typeToggled)
         }
         tableView.reloadData()
-        delegate?.redraw(withStock: stock)
+        Task {
+            await delegate?.redraw(stock: stock)
+        }
     }
 
     @objc func fundamentalToggled(onOffSwitch: UISwitch) {
         let index = onOffSwitch.tag
         guard index >= 0 && index < listedMetricKeys.count else { return }
 
-        let typeToggled = listedMetricKeys[index]
-        if stock.fundamentalList.contains(typeToggled) {
-            listedMetricsEnabled[index] = false
-            stock.removeFromFundamentals(typeToggled)
-        } else {
-            listedMetricsEnabled[index] = true
-            stock.addToFundamentals(typeToggled)
+        Task {
+            let typeToggled = listedMetricKeys[index]
+            if stock.fundamentalList.contains(typeToggled) {
+                listedMetricsEnabled[index] = false
+                stock.removeFromFundamentals(typeToggled)
+                await delegate?.redraw(stock: stock)
+            } else {
+                listedMetricsEnabled[index] = true
+                stock.addToFundamentals(typeToggled)
+                await delegate?.reload(stock: stock) // requires call to server for new fundamental
+            }
+            tableView.reloadData()
         }
-        tableView.reloadData()
-        delegate?.reload(withStock: stock)  // requires call to server for new fundamental
     }
 
     /// Thumbnail image of moving average curve or fundamental bars
@@ -291,7 +300,9 @@ class ChartOptionsController: UITableViewController {
             stock.chartType = newChartType
             colorSegmentedControl.createSegments(for: newChartType)
             tableView.reloadData()
-            delegate?.redraw(withStock: stock)
+            Task {
+                await delegate?.redraw(stock: stock)
+            }
         }
     }
 
@@ -305,7 +316,9 @@ class ChartOptionsController: UITableViewController {
             stock.color = stock.upColor
         }
         tableView.reloadData()
-        delegate?.redraw(withStock: stock)
+        Task {
+            await delegate?.redraw(stock: stock)
+        }
     }
 
     /// User tapped "Add Financial Metric" button so present AddFundamentalController

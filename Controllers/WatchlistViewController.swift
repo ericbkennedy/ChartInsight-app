@@ -16,7 +16,6 @@ import Foundation
 class WatchlistViewController: UITableViewController {
     var progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: 320, height: 4))
     var magnifier = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
-    var needsReload: Bool = false // set by SettingsViewController after a comparison is deleted
 
     enum ZPosition: CGFloat {
         case tableView, scrollChartView, magnifier, progressIndicator
@@ -104,11 +103,6 @@ class WatchlistViewController: UITableViewController {
         navStockButtonToolbar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
         navStockButtonToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
 
-        if needsReload {
-            reload(keepExistingComparison: false) // handles case when user deletes the currently visible stock
-            needsReload = false
-        }
-
         updateNavStockButtonToolbar()
         navigationItem.titleView = navStockButtonToolbar
         view.layer.setNeedsDisplay()
@@ -156,9 +150,11 @@ class WatchlistViewController: UITableViewController {
     func loadComparison(listIndex: Int) {
         scrollChartView.clearChart()
         progressIndicator.startAnimating()
-        scrollChartView.comparison = list[listIndex]
-        scrollChartView.loadChart()
-        updateNavStockButtonToolbar()
+        Task {
+            let comparison = list[listIndex]
+            await scrollChartView.updateComparison(newComparison: comparison)
+            updateNavStockButtonToolbar()
+        }
     }
 
     /// Find the keyWindow and get the safeAreaInsets for the notch and other unsafe areas
@@ -302,75 +298,53 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Called by ChartOptionsController when chart color or type changes
-    func redraw(withStock: Stock) {
-        scrollChartView.comparison.saveToDb()
+    func redraw(stock: Stock) async {
+        list = await scrollChartView.comparison.saveToDb()
+        tableView.reloadData() // avoid update(list:) as that clears the chart for a second
         if let barButtonItems = navStockButtonToolbar.items {
-            for button in barButtonItems where button.tag == withStock.id {
-                button.tintColor = withStock.upColor
+            for button in barButtonItems where button.tag == stock.id {
+                button.tintColor = stock.upColor
             }
-            scrollChartView.redrawCharts()
+            await scrollChartView.redrawCharts()
         }
     }
 
     /// Called by ChartOptionsController when the user adds new fundamental metrics
-    func reload(withStock: Stock) {
-        scrollChartView.comparison.saveToDb()
-        scrollChartView.clearChart()
-        progressIndicator.startAnimating()
-        updateNavStockButtonToolbar()
-        scrollChartView.loadChart()
+    func reload(stock: Stock) async {
+        let updatedList = await scrollChartView.comparison.saveToDb()
+        update(list: updatedList)
     }
 
     /// Called after user taps the Trash icon in ChartOptionsController to delete a stock in a comparison
     @objc func deleteStock(_ stock: Stock) {
         let stockCountBeforeDeletion = scrollChartView.comparison.stockList.count
 
-        scrollChartView.comparison.delete(stock: stock)
-
-        if stockCountBeforeDeletion <= 1 {
-            // delete comparison
-            scrollChartView.comparison.deleteFromDb()
-            reload(keepExistingComparison: false)
-        } else {
-            scrollChartView.redrawCharts()
-            reload(keepExistingComparison: true)
-        }
-        updateNavStockButtonToolbar()
-        dismissPopover()
-    }
-
-    /// Reload the stock comparison list in the tableView and redraw the scrollChartView
-    @MainActor func reload(keepExistingComparison: Bool) {
         Task {
-            list = await Comparison.listAll()
-            tableView.reloadData()
+            var updatedList: [Comparison]
+            if stockCountBeforeDeletion <= 1 { // all stocks in comparison were deleted
+                updatedList = await scrollChartView.comparison.deleteFromDb()
 
-            if keepExistingComparison || list.count > 0 {
-                let comparisonToChart: Comparison
-                if keepExistingComparison {
-                   comparisonToChart = scrollChartView.comparison
-                } else {
-                    comparisonToChart = list[0]
-                }
-                load(comparisonToChart: comparisonToChart)
+            } else {  // comparison still has at least one stock left
+                updatedList = await scrollChartView.removeFromComparison(stock: stock)
             }
+            update(list: updatedList)
+            updateNavStockButtonToolbar()
+            dismissPopover()
         }
     }
 
     /// Callback after async comparisonList reload and by StockChangeService if user rows were updated
-    func update(list: [Comparison]) {
-        var reloadComparison = true
-        if self.list.isEmpty == false && list.isEmpty == false {
-            if self.list[0].title == list[0].title {
-                // Avoid reloading the visible comparison since it hasn't changed even if other rows have
-                reloadComparison = false
+    func update(list newList: [Comparison]) {
+        var selectedIndex = 0
+        if !newList.isEmpty && scrollChartView.comparison.id > 0 {
+            for (index, comparison) in newList.enumerated() where comparison.id == scrollChartView.comparison.id {
+                selectedIndex = index
             }
         }
-
-        self.list = list
+        self.list = newList
         tableView.reloadData()
-        if self.list.count > 0 && reloadComparison {
-            loadComparison(listIndex: 0)
+        if self.list.count > selectedIndex {
+            loadComparison(listIndex: selectedIndex)
         }
     }
 
@@ -394,9 +368,12 @@ class WatchlistViewController: UITableViewController {
             stock.color = otherColors[0]
         }
 
-        scrollChartView.comparison.add(stock)
-        reload(keepExistingComparison: true)
-        dismissPopover()
+        Task {
+            scrollChartView.addToComparison(stock: stock)
+            let updatedList = await scrollChartView.comparison.saveToDb()
+            update(list: updatedList)
+            dismissPopover()
+        }
     }
 
     /// Add toggleListButton and buttons for each stock in this comparison

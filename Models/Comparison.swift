@@ -97,35 +97,31 @@ class Comparison {
         return String(format: "%@/Documents/charts.db", NSHomeDirectory())
     }
 
-    func add(_ stock: Stock) {
-        stockList.append(stock)
-        saveToDb()
+    /// Insert or update this stock comparison.
+    /// Returns updated list of all stock comparisons
+    func saveToDb() async -> [Comparison] {
+        let updatedList = await DBActor.shared.save(comparison: self)
+        return updatedList
     }
 
-    /// Insert or update this stock comparison
-    func saveToDb() {
-        Task {
-            await DBActor.shared.save(comparison: self)
-        }
-    }
-
-    /// Deletes comparison row and all comparisonStock rows
-    func deleteFromDb() {
-        Task {
-            await DBActor.shared.delete(comparison: self)
-        }
+    /// Deletes comparison row and all comparisonStock rows.
+    /// Returns updated list of all stock comparisons
+    func deleteFromDb() async -> [Comparison] {
+        let updatedList = await DBActor.shared.delete(comparison: self)
+        return updatedList
     }
 
     /// Delete a single stock from this comparison
-    func delete(stock: Stock) {
-        stockList.removeAll(where: {$0 == stock})
-        Task {
-            await DBActor.shared.delete(stock: stock)
+    /// Returns updated list of all stock comparisons
+    func delete(stock: Stock) async -> [Comparison] {
+        let updatedList: [Comparison]
+        if stockList.count > 0 {
+            stockList.removeAll(where: {$0 == stock})
+            updatedList = await DBActor.shared.delete(stock: stock)
+        } else {
+            updatedList = await deleteFromDb()
         }
-    }
-
-    static func listAll() async -> [Comparison] {
-        return await DBActor.shared.comparisonList()
+        return updatedList
     }
 
 }

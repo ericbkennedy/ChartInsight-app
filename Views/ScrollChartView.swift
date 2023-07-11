@@ -102,43 +102,72 @@ class ScrollChartView: UIView, StockActorDelegate {
                                            height: layerRef.size.height))
         }
         setNeedsDisplay()
+    }
 
-        Task {
+    /// Remove stock from current comparison and return updated list of all comparisons
+    public func removeFromComparison(stock: Stock) async -> [Comparison] {
+        if comparison.stockList.count == 1 {
+            print("Error: delete the entire comparison instead of calling removeFromComparison")
+        }
+        for (index, stockActor) in stockActorList.enumerated() {
+            if stockActor.comparisonStockId == stock.comparisonStockId {
+                await stockActor.invalidateAndCancel()
+                _ = stockActorList.remove(at: index)
+                break
+            }
+        }
+
+        let updatedList = await comparison.delete(stock: stock)
+        return updatedList
+    }
+
+    /// Add stock to existing comparison
+    public func addToComparison(stock: Stock) {
+        comparison.stockList.append(stock)
+
+        let stockActor = StockActor(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
+                                    barUnit: barUnit, xFactor: xFactor)
+        stockActorList.append(stockActor)
+    }
+
+
+    public func updateComparison(newComparison: Comparison) async {
+        print("didSet(priorComparison)", comparison.id, comparison.title, newComparison.id, newComparison.title, stockActorList.count)
+        if newComparison.id != comparison.id {
+            // changes to existing comparisons are handled by removeFromComparison(stock:)
+            // and addToComparison(stock:)
+            // different comparison requires invalidating prior stockActor network sessions
             for stockActor in stockActorList {
                 await stockActor.invalidateAndCancel() // cancel all requests
             }
+            stockActorList.removeAll()
+            for stock in newComparison.stockList {
+                let stockActor = StockActor(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
+                                            barUnit: barUnit, xFactor: xFactor)
+                stockActorList.append(stockActor)
+            }
         }
-        stockActorList.removeAll()
+
+        comparison = newComparison
+        updateDimensions() // adjusts chart area to allow one right axis per stock
+        sparklineKeys = comparison.sparklineKeys()
+        sparklineHeight = CGFloat(100 * comparison.sparklineKeys().count)
+
+        for stockActor in stockActorList {
+            await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
+            await stockActor.fetchStockActor()
+        }
     }
 
     /// Redraw charts without loading any data if a stock color, chart type or technical changes
-    func redrawCharts() {
-        Task {
-            for stockActor in stockActorList {
-                await stockActor.recompute(chartPercentChange, forceRecompute: true)
-            }
-            await renderCharts()
-        }
-    }
-
-    /// Render charts for the stocks in scrollChartView.comparison and fetch data as needed
-    func loadChart() {
-
-        updateDimensions() // adjusts chart area to allow one right axis per stock
-
+    func redrawCharts() async {
         sparklineKeys = comparison.sparklineKeys()
-
-        sparklineHeight = CGFloat(100 * sparklineKeys.count)
-
-        Task {
-            for stock in comparison.stockList {
-                let stockActor = StockActor(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
-                                          barUnit: barUnit, xFactor: xFactor)
-                stockActorList.append(stockActor)
-                await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
-                await stockActor.fetchStockActor()
-            }
+        sparklineHeight = CGFloat(100 * comparison.sparklineKeys().count)
+        for stockActor in stockActorList {
+            await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
+            await stockActor.recompute(chartPercentChange, forceRecompute: true)
         }
+        await renderCharts()
     }
 
     /// Use ChartRenderer to render the charts in an offscreen CGContext and return a list of the chartText to render via UIGraphicsPushContext
