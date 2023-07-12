@@ -15,11 +15,12 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     private var webObservation: NSKeyValueObservation?
     var delegate: WatchlistViewController?
     var backButton = UIBarButtonItem(image: UIImage(systemName: "chevron.backward"), style: .plain, target: nil, action: #selector(goBack))
+    var addressBar = UITextField()
     var watchlistButton = UIBarButtonItem(title: "View on Watchlist", style: .plain, target: nil, action: #selector(viewOnWatchlist))
     var refreshButton: UIBarButtonItem!
     var comparison: Comparison? // if the user browses a stock part of an existing comparison
     var stock: Stock? // if the user browses a stock on chartinsight.com that isn't in the watchlist
-    let defaultURLString: String = "https://www.chartinsight.com"
+    let defaultURLString: String = "https://chartinsight.com/"
     var urlString: String = ""
 
     override func loadView() {
@@ -34,12 +35,24 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         webView.navigationDelegate = self
 
         backButton.target = self
+
+        addressBar.delegate = self
+        addressBar.translatesAutoresizingMaskIntoConstraints = false
+        addressBar.placeholder = "Enter URL"
+        addressBar.keyboardType = .default
+        addressBar.returnKeyType = .done
+        addressBar.autocorrectionType = .no
+        addressBar.borderStyle = .roundedRect
+        addressBar.clearButtonMode = .whileEditing
+        addressBar.clearsOnBeginEditing = false // allows users to edit the url
+        addressBar.contentVerticalAlignment = .center
+
         watchlistButton.target = self
         refreshButton = UIBarButtonItem(barButtonSystemItem: .refresh, target: webView, action: #selector(webView.reload))
         let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         toolbarItems = [self.backButton, spacer, refreshButton]
         navigationController?.isToolbarHidden = false
-        navigationController?.navigationBar.isHidden = true // hide navigation bar since the lower toolbar is easier to access
+        navigationController?.navigationBar.isHidden = false // addressBar will appear in navigationBar
     }
 
     override func viewDidLoad() {
@@ -50,6 +63,9 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         progressView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
         progressView.layoutIfNeeded()
+
+        navigationItem.titleView = addressBar
+        addressBar.layoutIfNeeded()
 
         webView.insetsLayoutMarginsFromSafeArea = true
         // Inset scrollable area of webView so it doesn't underlap the tabBar
@@ -76,6 +92,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         if urlString.isEmpty {
             urlString = defaultURLString // switching to another tab and back will load defaultURLString
         }
+        addressBar.text = urlString
         if let url = URL(string: urlString) {
             webView.load(URLRequest(url: url))
         }
@@ -92,12 +109,16 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
 
     /// If the user is browsing chartinsight.com, search for a stock ticker and update toolbar with a button to add to watchlist
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        guard webView.url?.absoluteString.contains("chartinsight.com") == true else { return }
+        if let newURL = webView.url {
+            addressBar.text = newURL.absoluteString
+        }
         backButton.isEnabled = webView.canGoBack
         progressView.isHidden = true
         watchlistButton.title = "" // reset and allow the evaluateJavaScript closure to set association if found
         comparison = nil
         stock = nil
+
+        guard webView.url?.absoluteString.contains("chartinsight.com") == true else { return }
 
         webView.evaluateJavaScript("document.querySelector('#leftTickTicker')?.innerHTML") { (result, error) in
             guard error == nil, let ticker = result as? String else { return }
@@ -153,6 +174,18 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
 
     deinit {
         webObservation = nil
+    }
+}
+
+/// If the user entered a valid URL, load it
+extension WebViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        if let newURL = addressBar.text, let url = URL(string: newURL) {
+            let request = URLRequest(url: url)
+            webView.load(request)
+            return true
+        }
+        return false
     }
 }
 

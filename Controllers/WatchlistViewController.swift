@@ -299,7 +299,7 @@ class WatchlistViewController: UITableViewController {
 
     /// Called by ChartOptionsController when chart color or type changes
     func redraw(stock: Stock) async {
-        list = await scrollChartView.comparison.saveToDb()
+        list = await scrollChartView.updateComparison(stock: stock)
         tableView.reloadData() // avoid update(list:) as that clears the chart for a second
         if let barButtonItems = navStockButtonToolbar.items {
             for button in barButtonItems where button.tag == stock.id {
@@ -311,7 +311,7 @@ class WatchlistViewController: UITableViewController {
 
     /// Called by ChartOptionsController when the user adds new fundamental metrics
     func reload(stock: Stock) async {
-        let updatedList = await scrollChartView.comparison.saveToDb()
+        let updatedList = await scrollChartView.updateComparison(stock: stock)
         update(list: updatedList)
     }
 
@@ -350,27 +350,25 @@ class WatchlistViewController: UITableViewController {
 
     /// Called by AddStockController when a new stock is added
     func insert(stock: Stock, isNewComparison: Bool) {
-
-        if isNewComparison || scrollChartView.comparison.stockList.isEmpty {
-            scrollChartView.comparison = Comparison()
-            stock.upColor = Stock.chartColors[0] // lightGreen
-            stock.color = .red
-        } else {
-            // Skip colors already used by other stocks in this comparison or use gray
-            var otherColors = Stock.chartColors
-            for otherStock in scrollChartView.comparison.stockList {
-                // end before lastIndex to always keep gray as an option
-                for index in 0 ..< otherColors.count - 1 where otherStock.hasUpColor(otherColor: otherColors[index]) {
-                    otherColors.remove(at: index)
-                }
-            }
-            stock.upColor = otherColors[0]
-            stock.color = otherColors[0]
-        }
-
         Task {
-            scrollChartView.addToComparison(stock: stock)
-            let updatedList = await scrollChartView.comparison.saveToDb()
+            if isNewComparison || scrollChartView.comparison.stockList.isEmpty {
+                await scrollChartView.updateComparison(newComparison: Comparison())
+                stock.upColor = Stock.chartColors[0] // lightGreen
+                stock.color = .red
+            } else {
+                // Skip colors already used by other stocks in this comparison or use gray
+                var otherColors = Stock.chartColors
+                for otherStock in scrollChartView.comparison.stockList {
+                    // end before lastIndex to always keep gray as an option
+                    for index in 0 ..< otherColors.count - 1 where otherStock.hasUpColor(otherColor: otherColors[index]) {
+                        otherColors.remove(at: index)
+                    }
+                }
+                stock.upColor = otherColors[0]
+                stock.color = otherColors[0]
+            }
+
+            let updatedList = await scrollChartView.addToComparison(stock: stock)
             update(list: updatedList)
             dismissPopover()
         }
@@ -481,6 +479,8 @@ class WatchlistViewController: UITableViewController {
 
         scrollChartView.svWidth -= delta
         scrollChartView.pxWidth = UIScreen.main.scale * scrollChartView.svWidth
+
+        scrollChartView.clearChart() // clear prior render to avoid odd animation
 
         scrollChartView.layer.position = CGPoint(x: scrollChartView.layer.position.x + delta,
                                                  y: scrollChartView.layer.position.y)

@@ -19,10 +19,9 @@ class ScrollChartView: UIView, StockActorDelegate {
     var pxWidth: CGFloat // chart area excluding axis and horizontal padding
     var svWidth: CGFloat
     var xFactor: CGFloat
-    var comparison: Comparison
+    private(set) var comparison: Comparison // use await updateComparison(comparison:) to change
     var progressIndicator: ProgressIndicator? // reference to WatchlistVC property
 
-    private var pxHPadding: CGFloat
     private var maxWidth: CGFloat
     private var pxHeight: CGFloat
     private var scaleShift: CGFloat
@@ -44,7 +43,6 @@ class ScrollChartView: UIView, StockActorDelegate {
         barUnit = 1.0 // daily
         pxWidth = frame.width
         svWidth = frame.width
-        pxHPadding = padding
 
         (maxWidth, pxHeight, scaleShift, scaledWidth, sparklineHeight, svHeight) = (0, 0, 0, 0, 0, 0)
 
@@ -65,14 +63,13 @@ class ScrollChartView: UIView, StockActorDelegate {
     }
 
     /// Adjusts _svWidth chart area to allow one right axis per stock
-    func updateDimensions() {
+    func updateDimensions(axisCount: Int = 1) {
         svHeight = bounds.size.height
         maxWidth = bounds.size.width
         scaledWidth = maxWidth
-        let horizontalPadding = padding + layer.position.x + 30 * CGFloat(comparison.stockList.count)
+        let horizontalPadding = padding + layer.position.x + 30 * CGFloat(axisCount)
         svWidth = maxWidth - horizontalPadding
         pxWidth = layer.contentsScale * svWidth
-        pxHPadding = layer.contentsScale * pxHPadding
         pxHeight = layer.contentsScale * svHeight
     }
 
@@ -93,7 +90,7 @@ class ScrollChartView: UIView, StockActorDelegate {
         }
     }
 
-    /// Ensure any pending requests for prior comparison are invalidated and set stockActor.delegate = nil
+    /// Clear prior render before resizing the chart to avoid odd animation
     func clearChart() {
         progressIndicator?.reset()
         if let layerRef = layerRef {
@@ -109,30 +106,51 @@ class ScrollChartView: UIView, StockActorDelegate {
         if comparison.stockList.count == 1 {
             print("Error: delete the entire comparison instead of calling removeFromComparison")
         }
-        for (index, stockActor) in stockActorList.enumerated() {
-            if stockActor.comparisonStockId == stock.comparisonStockId {
-                await stockActor.invalidateAndCancel()
-                _ = stockActorList.remove(at: index)
-                break
-            }
+        for (index, stockActor) in stockActorList.enumerated() where stockActor.comparisonStockId == stock.comparisonStockId {
+            await stockActor.invalidateAndCancel()
+            _ = stockActorList.remove(at: index)
+            break
         }
 
         let updatedList = await comparison.delete(stock: stock)
         return updatedList
     }
 
-    /// Add stock to existing comparison
-    public func addToComparison(stock: Stock) {
-        comparison.stockList.append(stock)
+    /// Update the stockActor for the stock provided so the next render will use the updated chart options
+    /// Returns the list of all stock comparisons
+    public func updateComparison(stock: Stock) async -> [Comparison] {
+        for stockActor in stockActorList where stockActor.comparisonStockId == stock.comparisonStockId {
+            await stockActor.update(updatedStock: stock)
+        }
+        let updatedList = await comparison.saveToDb()
+        return updatedList
+    }
 
+    /// Add stock to existing comparison
+    public func addToComparison(stock: Stock) async -> [Comparison] {
+        comparison.stockList.append(stock)
+        updateDimensions(axisCount: comparison.stockList.count)
+
+        // Reduce oldestBarShown to reflect the space for the additional axis for the new stock
+        for stockActor in stockActorList {
+            await stockActor.setOldestBarShown(maxBarOffset())
+        }
+
+        let updatedList = await comparison.saveToDb() // sets comparisonStockId for new stock
         let stockActor = StockActor(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
                                     barUnit: barUnit, xFactor: xFactor)
         stockActorList.append(stockActor)
+        return updatedList
     }
 
-
+    /// Invalidate and cancel any requests for the last comparison and create stockActors for the new one.
+    /// Note addToComparison(stock:) should be used to add a single stock to the current comparison
+    /// and removeFromComparison(stock:) should be used to delete a single stock from a multi-stock comparison.
+    ///  Returns the updated list of all stock comparisons
     public func updateComparison(newComparison: Comparison) async {
-        print("didSet(priorComparison)", comparison.id, comparison.title, newComparison.id, newComparison.title, stockActorList.count)
+        // updateDimensions to relect new axis count since it determines oldestBarShown
+        updateDimensions(axisCount: newComparison.stockList.count) // adjusts chart area to allow one right axis per stock
+
         if newComparison.id != comparison.id {
             // changes to existing comparisons are handled by removeFromComparison(stock:)
             // and addToComparison(stock:)
@@ -149,7 +167,6 @@ class ScrollChartView: UIView, StockActorDelegate {
         }
 
         comparison = newComparison
-        updateDimensions() // adjusts chart area to allow one right axis per stock
         sparklineKeys = comparison.sparklineKeys()
         sparklineHeight = CGFloat(100 * comparison.sparklineKeys().count)
 
@@ -430,7 +447,7 @@ class ScrollChartView: UIView, StockActorDelegate {
                     chartPercentChange = stockPercentChange
                 }
             }
-
+            // now that the chartPercentChange has been calculated, recompute each stock chart using it
             for stockActor in stockActorList {
                 await stockActor.recompute(chartPercentChange, forceRecompute: false)
             }

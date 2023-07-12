@@ -35,25 +35,41 @@ enum ServiceError: Error {
 }
 
 class DataFetcher: NSObject {
-    var fetchedData: [BarData] = []
-    var isLoadingData: Bool = false
-    var countBars: Int = 0
-    var barsFromDB: Int = 0
+    var fetchedData: [BarData]
+    var isLoadingData: Bool
+    var countBars: Int
+    var barsFromDB: Int
     weak var delegate: StockActor?
-    var ticker: String = ""
-    var stockId: Int = 0
-    var requestNewest: Date = Date()
-    var requestOldest: Date = Date(timeIntervalSinceReferenceDate: 0)
-    var lastClose: Date = Date(timeIntervalSinceReferenceDate: 0)
-    var nextClose: Date = Date(timeIntervalSinceReferenceDate: 0)
-    var oldestDate: Date = Date(timeIntervalSinceReferenceDate: 0)
-    var lastIntradayFetch: Date = Date(timeIntervalSinceReferenceDate: 0)
-    var lastOfflineError: Date = Date(timeIntervalSinceReferenceDate: 0)
-    var dateFormatter: DateFormatter = DateFormatter()
+    var ticker: String
+    var stockId: Int
+    var requestNewest: Date
+    var requestOldest: Date
+    var lastClose: Date {
+        didSet {
+            nextClose = getNextTradingDateAfter(date: lastClose)
+        }
+    }
+    var nextClose: Date
+    var oldestDate: Date
+    var lastIntradayFetch: Date
+    var lastOfflineError: Date
+    var dateFormatter: DateFormatter
     var gregorian: Calendar?
     var ephemeralSession: URLSession = URLSession(configuration: .ephemeral) // skip web cache
 
     override init() {
+        fetchedData = []
+        isLoadingData = false
+        (stockId, countBars, barsFromDB) = (0, 0, 0)
+        ticker = ""
+        requestNewest = Date()
+        requestOldest = Date(timeIntervalSinceReferenceDate: 0)
+        nextClose = Date(timeIntervalSinceReferenceDate: 0)
+        lastClose = Date(timeIntervalSinceReferenceDate: 0)
+        oldestDate = Date(timeIntervalSinceReferenceDate: 0)
+        lastIntradayFetch = Date(timeIntervalSinceReferenceDate: 0)
+        lastOfflineError = Date(timeIntervalSinceReferenceDate: 0)
+        dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // 1996-12-19T16:39:57-08:00
         dateFormatter.dateFormat = "yyyyMMdd'T'HH':'mm':'ss'Z'"  // Z means UTC time
         dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
@@ -69,10 +85,10 @@ class DataFetcher: NSObject {
         }
     }
 
-    /// Returns true if the last intraday fetch was more than a minte ago and it is during NYC market hours
+    /// Returns true if the last intraday fetch was more than a minute ago and it is after the market open but before closing data is available
     func shouldFetchIntradayQuote() -> Bool {
         let beforeOpen: TimeInterval = 23000.0
-        let afterClose: TimeInterval = -3600.0
+        let afterClose: TimeInterval = -3600.0 // Current API provider has closing data an hour after close
         let secondsUntilClose = nextClose.timeIntervalSinceNow
 
         if !isRecent(lastIntradayFetch) && secondsUntilClose < beforeOpen && secondsUntilClose > afterClose {
@@ -80,6 +96,17 @@ class DataFetcher: NSObject {
             return true
         }
         return false
+    }
+
+    /// Returns true if closing data should be available
+    func shouldFetchNextClose() -> Bool {
+        let afterClose: TimeInterval = 3600.0
+        let secondsAfterClose = Date().timeIntervalSince(nextClose)
+
+        if !isLoadingData && secondsAfterClose > afterClose {
+            return true
+        }
+        return false // either wait a minute to refetch intraday data or wait until an hour after close
     }
 
     func fetchIntradayQuote() async {
@@ -197,7 +224,6 @@ class DataFetcher: NSObject {
             if barsFromDB > 0 {
                 lastClose = date(from: fetchedData[0])
                 requestOldest = lastClose
-                nextClose = getNextTradingDateAfter(date: lastClose)
 
                 if requestNewest.timeIntervalSince(nextClose) >= dayInSeconds { // need to contact server
                     requestOldest = nextClose // skip dates loaded from DB

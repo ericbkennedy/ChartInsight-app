@@ -424,7 +424,7 @@ import Foundation
         sql += " FROM comparison C JOIN comparisonStock CS on C.rowid = CS.comparisonId JOIN stock S ON S.stockId = CS.stockId "
 
         if ticker.count > 0 {
-            sql += " WHERE stock.ticker = ? "
+            sql += " WHERE S.ticker = ? "
         }
         sql += " ORDER BY C.rowid, CS.rowId"
 

@@ -23,7 +23,7 @@ protocol StockActorDelegate: AnyObject {
 }
 
 actor StockActor: DataFetcherDelegate {
-    nonisolated let comparisonStockId: Int
+    let comparisonStockId: Int
     var stock: Stock
     private let gregorian: Calendar
     weak var delegate: ScrollChartView?
@@ -74,6 +74,11 @@ actor StockActor: DataFetcherDelegate {
         (pxHeight, sparklineHeight, chartBase, volumeBase, volumeHeight, maxVolume) = (0, 0, 0, 0, 0, 0)
         (percentChange, chartPercentChange) = (NSDecimalNumber.one, NSDecimalNumber.one)
         (ready, busy, sma50, sma200, bb20) = (false, false, false, false, false)
+    }
+
+    func update(updatedStock: Stock) {
+        guard stock.comparisonStockId == updatedStock.comparisonStockId else { return }
+        stock = updatedStock
     }
 
     func setNewestBarShown(_ calculatedNewestBarShown: Int) {
@@ -251,9 +256,7 @@ actor StockActor: DataFetcherDelegate {
             if fetcher.shouldFetchIntradayQuote() {
                 busy = true
                 await fetcher.fetchIntradayQuote()
-            } else if fetcher.isLoadingData == false && fetcher.nextClose.compare(Date()) == .orderedAscending {
-                // next close is in the past
-                print("api.nextClose \(fetcher.nextClose) vs now \(Date())")
+            } else if fetcher.shouldFetchNextClose() {
                 busy = true
                 await delegate?.showProgressIndicator()
                 fetcher.fetchNewerThanDate(currentNewest: newest)
