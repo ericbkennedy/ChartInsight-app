@@ -1,5 +1,5 @@
 //
-//  DataFetcher.swift
+//  HistoricalDataService.swift
 //  ChartInsight
 //
 //  Created by Eric Kennedy on 6/15/23.
@@ -7,61 +7,55 @@
 
 import Foundation
 
-protocol DataFetcherDelegate: AnyObject {
-    /// FundamentalFetcher calls StockActor with the columns parsed out of the API
-    func fetcherLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async
-
-    /// DataFetcher calls StockActor with the array of historical price data
-    func fetcherLoadedHistoricalData(_ loadedData: [BarData]) async
-
-    /// DataFetcher calls StockActor with intraday price data
-    func fetcherLoadedIntradayBar(_ intradayBar: BarData) async
-
-    /// DataFetcher failed downloading historical data or intraday data
-    func fetcherFailed(_ message: String) async
-
-    /// DataFetcher has an active download that must be allowed to finish or fail before accepting an additional request
-    func fetcherCanceled() async
+protocol ServiceDelegate: AnyObject {
+    func serviceLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async
+    func serviceLoadedHistoricalData(_ loadedData: [BarData]) async
+    func serviceLoadedIntradayBar(_ intradayBar: BarData) async
+    func serviceFailed(_ message: String) async
+    func serviceCanceled() async
 }
 
-let apiKey = "placeholderToken"
-let dayInSeconds: TimeInterval = 84600
+public let apiKey = "placeholderToken"
+public let dayInSeconds: TimeInterval = 84600
 
-enum ServiceError: Error {
+public enum ServiceError: Error {
     case network(reason: String)
     case http(statusCode: Int)
     case parsing
     case general(reason: String)
 }
 
-class DataFetcher: NSObject {
-    var fetchedData: [BarData]
-    var isLoadingData: Bool
-    var countBars: Int
-    var barsFromDB: Int
-    weak var delegate: StockActor?
-    var ticker: String
-    var stockId: Int
-    var requestNewest: Date
-    var requestOldest: Date
-    var lastClose: Date {
+final class HistoricalDataService {
+    public weak var delegate: ServiceDelegate?
+    public var requestNewest: Date
+    public var requestOldest: Date
+    public var lastClose: Date {
         didSet {
             nextClose = getNextTradingDateAfter(date: lastClose)
         }
     }
-    var nextClose: Date
-    var oldestDate: Date
-    var lastIntradayFetch: Date
-    var lastOfflineError: Date
-    var dateFormatter: DateFormatter
-    var gregorian: Calendar?
-    var ephemeralSession: URLSession = URLSession(configuration: .ephemeral) // skip web cache
+    public var oldestDate: Date
+    private var nextClose: Date
+    private var gregorian: Calendar?
+    private var ticker: String
+    private var stockId: Int
+    private var dateFormatter: DateFormatter
+    private var isLoadingData: Bool
+    private var countBars: Int
+    private var barsFromDB: Int
+    private var fetchedData: [BarData]
+    private var lastIntradayFetch: Date
+    private var hasIntradayData: Bool
+    private var lastOfflineError: Date
+    private var ephemeralSession: URLSession = URLSession(configuration: .ephemeral) // skip web cache
 
-    override init() {
+    public init(for stock: Stock, calendar: Calendar) {
         fetchedData = []
         isLoadingData = false
-        (stockId, countBars, barsFromDB) = (0, 0, 0)
-        ticker = ""
+        stockId = stock.id
+        ticker = stock.ticker
+        gregorian = calendar
+        (countBars, barsFromDB) = (0, 0)
         requestNewest = Date()
         requestOldest = Date(timeIntervalSinceReferenceDate: 0)
         nextClose = Date(timeIntervalSinceReferenceDate: 0)
@@ -69,15 +63,15 @@ class DataFetcher: NSObject {
         oldestDate = Date(timeIntervalSinceReferenceDate: 0)
         lastIntradayFetch = Date(timeIntervalSinceReferenceDate: 0)
         lastOfflineError = Date(timeIntervalSinceReferenceDate: 0)
+        hasIntradayData = true // will be set to false if a DecodingError occurs on intraday response
         dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // 1996-12-19T16:39:57-08:00
         dateFormatter.dateFormat = "yyyyMMdd'T'HH':'mm':'ss'Z'"  // Z means UTC time
         dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-        super.init()
     }
 
     /// Full text search is much faster if startDates are kept as strings until the user selects a stock
-    func setRequestOldestWith(startString: String) {
+    public func setRequestOldestWith(startString: String) {
         if let date = dateFormatter.date(from: "\(startString)T20:00:00Z") {
             requestOldest = date
         } else {
@@ -86,12 +80,12 @@ class DataFetcher: NSObject {
     }
 
     /// Returns true if the last intraday fetch was more than a minute ago and it is after the market open but before closing data is available
-    func shouldFetchIntradayQuote() -> Bool {
+    public func shouldFetchIntradayQuote() -> Bool {
         let beforeOpen: TimeInterval = 23000.0
         let afterClose: TimeInterval = -3600.0 // Current API provider has closing data an hour after close
         let secondsUntilClose = nextClose.timeIntervalSinceNow
 
-        if !isRecent(lastIntradayFetch) && secondsUntilClose < beforeOpen && secondsUntilClose > afterClose {
+        if hasIntradayData && !isRecent(lastIntradayFetch) && secondsUntilClose < beforeOpen && secondsUntilClose > afterClose {
             // current time in NYC is between 9:30am and 5pm of nextClose so only intraday data is available
             return true
         }
@@ -99,7 +93,7 @@ class DataFetcher: NSObject {
     }
 
     /// Returns true if closing data should be available
-    func shouldFetchNextClose() -> Bool {
+    public func shouldFetchNextClose() -> Bool {
         let afterClose: TimeInterval = 3600.0
         let secondsAfterClose = Date().timeIntervalSince(nextClose)
 
@@ -109,7 +103,7 @@ class DataFetcher: NSObject {
         return false // either wait a minute to refetch intraday data or wait until an hour after close
     }
 
-    func fetchIntradayQuote() async {
+    public func fetchIntradayQuote() async {
         if isLoadingData {
             print("loadingData = true so skipping Intraday fetch")
         } else if isRecent(lastOfflineError) {
@@ -125,23 +119,33 @@ class DataFetcher: NSObject {
 
         do {
             try await fetchIntraday(from: url)
-        } catch {
-            await handleError(error)
-        }
-    }
 
-    func handleError(_ error: Error) async {
-        print("ERROR for \(ticker) \(error.localizedDescription)")
-
-        lastOfflineError = Date()
-
-        if barsFromDB > 0 { // send delegate the bars loaded from DB
+        } catch DecodingError.keyNotFound(let key, let context) {
+            print("error decoding intraday for \(ticker): \(key.stringValue) was not found, \(context.debugDescription)")
+            hasIntradayData = false
             await cancelDownload()
+        } catch {
+            lastOfflineError = Date()
+            print("ERROR on fetchIntradayQuote \(ticker) \(error.localizedDescription) from \(urlString)")
+            await delegate?.serviceFailed(error.localizedDescription)
         }
-        await delegate?.fetcherFailed(error.localizedDescription)
     }
 
-    func fetchIntraday(from url: URL) async throws {
+    /// Intraday API has different format than BarData since it adds prevClose and the date parts start with "lastSale"
+    internal struct IntradayResponse: Decodable {
+        let ticker: String
+        let lastSaleYear: Int
+        let lastSaleMonth: Int
+        let lastSaleDay: Int
+        let open: Double
+        let high: Double
+        let low: Double
+        let last: Double
+        let prevClose: Double
+        let volume: Int
+    }
+
+    private func fetchIntraday(from url: URL) async throws {
 
         let (data, response) = try await ephemeralSession.data(from: url)
 
@@ -170,16 +174,16 @@ class DataFetcher: NSObject {
         let lastSaleDate = date(from: intradayBar)
 
         if lastSaleDate.compare(lastClose) == .orderedDescending {
-            await self.delegate?.fetcherLoadedIntradayBar(intradayBar)
+            await delegate?.serviceLoadedIntradayBar(intradayBar)
             self.lastIntradayFetch = Date()
         } else if !fetchedData.isEmpty && fabs(fetchedData[0].close - previousClose) > 0.02 {
             // Intraday API uses IEX data and may not have intraday data even when the market is open
             let message = "\(self.ticker) intraday prevClose \(previousClose) doesn't match (self.fetchedData[0].close)"
-            await self.delegate?.fetcherFailed(message)
+            await delegate?.serviceFailed(message)
         }
     }
 
-    func formatRequestURL() -> URL? {
+    private func formatRequestURL() -> URL? {
         if let startY = gregorian?.component(.year, from: requestOldest),
            let startM = gregorian?.component(.month, from: requestOldest),
            let startD = gregorian?.component(.day, from: requestOldest),
@@ -197,7 +201,7 @@ class DataFetcher: NSObject {
     }
 
     /// StockActor will call this with currentNewest date (or .distantPast) if self.nextClose is today or in the past
-    func fetchNewerThanDate(currentNewest: Date) {
+    public func fetchNewerThanDate(currentNewest: Date) {
 
         if currentNewest.compare(.distantPast) == .orderedDescending {
             requestOldest = getNextTradingDateAfter(date: currentNewest)
@@ -242,6 +246,7 @@ class DataFetcher: NSObject {
                 do {
                     try await fetchDailyData(from: url)
                 } catch {
+                    lastOfflineError = Date()
                     print("Error occurred: \(error.localizedDescription)")
                     if fetchedData.isEmpty == false { // send what we have
                         await historicalDataLoaded(barDataArray: fetchedData)
@@ -252,7 +257,7 @@ class DataFetcher: NSObject {
     }
 
     /// Fetch historical price data via API and parse CSV lines into BarData
-    func fetchDailyData(from url: URL) async throws {
+    private func fetchDailyData(from url: URL) async throws {
 
         // stream is a URLSession.AsyncBytes. Ignore URLResponse with _ param name
         let (stream, _) = try await URLSession.shared.bytes(from: url)
@@ -282,11 +287,11 @@ class DataFetcher: NSObject {
     }
 
     /// Call StockActor delegate and have it update the bar data on a background thread
-    func historicalDataLoaded(barDataArray: [BarData]) async {
+    private func historicalDataLoaded(barDataArray: [BarData]) async {
         guard barDataArray.count > 0 else {
             // should be a failure condition
             print("\(ticker) empty historicalDataLoaded \(barDataArray)")
-            await delegate?.fetcherFailed("Empty response")
+            await delegate?.serviceFailed("Empty response")
             return
         }
         lastClose = date(from: fetchedData[0])
@@ -295,20 +300,17 @@ class DataFetcher: NSObject {
         }
 
         isLoadingData = false // allows StockActor to request intraday data if needed
-        await self.delegate?.fetcherLoadedHistoricalData(barDataArray)
+        await self.delegate?.serviceLoadedHistoricalData(barDataArray)
     }
 
-    func date(from bar: BarData) -> Date {
+    public func date(from bar: BarData) -> Date {
         let dateString = String(format: "%ld%02ld%02ldT20:00:00Z", bar.year, bar.month, bar.day)
         let date = dateFormatter.date(from: dateString)
         return date!
     }
 
-    func dateInt(from date: Date) -> Int {
-        guard gregorian != nil else {
-            print("Gregorian calendar missing")
-            return 0
-        }
+    private func dateInt(from date: Date) -> Int {
+        guard gregorian != nil else { return 0 }
 
         let year = gregorian?.component(.year, from: date) ?? 0
         let month = gregorian?.component(.month, from: date) ?? 0
@@ -317,16 +319,16 @@ class DataFetcher: NSObject {
         return year * 10000 + month * 100 + day
     }
 
-    func isHoliday(date: Date) -> Bool {
+    private func isHoliday(date: Date) -> Bool {
         let dateIntValue = dateInt(from: date)
-        let holidays = [20230619, 20230704, 20230904, 20231123, 20231225,
+        let holidays = [20230904, 20231123, 20231225,
          20240101, 20240115, 20240219, 20240329, 20240527, 20240619, 20240704, 20240902, 20241128, 20241225,
          20250101, 20250120, 20250217, 20250418, 20250526, 20250619, 20250704, 20250901, 20251127, 20251225]
 
         return holidays.contains(dateIntValue)
     }
 
-    func getNextTradingDateAfter(date: Date) -> Date {
+    private func getNextTradingDateAfter(date: Date) -> Date {
         guard gregorian != nil else { return date }
 
         let oneDay = DateComponents(day: 1), sunday = 1, saturday = 7
@@ -347,35 +349,21 @@ class DataFetcher: NSObject {
         return nextTradingDate
     }
 
-    func isRecent(_ date: Date) -> Bool {
+    private func isRecent(_ date: Date) -> Bool {
         return date.timeIntervalSinceNow > -60.0
     }
 
     /// Called BEFORE creating a URLSessionTask if there was a recent offline error or it was too soon to try again
-    func cancelDownload() async {
+    private func cancelDownload() async {
         if isLoadingData {
             isLoadingData = false
         }
-        await delegate?.fetcherCanceled()
+        await delegate?.serviceCanceled()
     }
 
     /// called by StockActor when a stock is removed or the chart is cleared before switching stocks
-    func invalidateAndCancel() {
+    public func invalidateAndCancel() {
         ephemeralSession.invalidateAndCancel()
         delegate = nil
     }
-}
-
-/// Intraday API has different format than BarData since it adds prevClose and the date parts start with "lastSale"
-struct IntradayResponse: Decodable {
-    let ticker: String
-    let lastSaleYear: Int
-    let lastSaleMonth: Int
-    let lastSaleDay: Int
-    let open: Double
-    let high: Double
-    let low: Double
-    let last: Double
-    let prevClose: Double
-    let volume: Int
 }

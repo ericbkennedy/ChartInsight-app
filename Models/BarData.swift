@@ -10,22 +10,22 @@
 
 import Foundation
 
-class BarData {
-    var year: NSInteger = 0
-    var month: NSInteger = 0
-    var day: NSInteger = 0
-    var open: Double = 0.0
-    var high: Double = 0.0
-    var low: Double = 0.0
-    var close: Double = 0.0
-    var adjClose: Double = 0.0
-    var volume: Double = 0.0 // Converted from int to simplify graphics code
-    var movingAvg1: Double = -1.0
-    var movingAvg2: Double = -1.0
-    var mbb: Double = -1.0
-    var stdev: Double = -1.0
+final class BarData {
+    public var year: NSInteger = 0
+    public var month: NSInteger = 0
+    public var day: NSInteger = 0
+    public var open: Double = 0.0
+    public var high: Double = 0.0
+    public var low: Double = 0.0
+    public var close: Double = 0.0
+    public var adjClose: Double = 0.0
+    public var volume: Double = 0.0 // Converted from int to simplify graphics code
+    public var movingAvg1: Double = -1.0
+    public var movingAvg2: Double = -1.0
+    public var mbb: Double = -1.0
+    public var stdev: Double = -1.0
 
-    static func == (lhs: BarData, rhs: BarData) -> Bool {
+    public static func == (lhs: BarData, rhs: BarData) -> Bool {
 
         if lhs.year == rhs.year && lhs.month == rhs.month && lhs.day == rhs.day {
             return true
@@ -34,12 +34,12 @@ class BarData {
     }
 
     /// Returns 20230630 for 2023 June 30
-    func dateIntFromBar() -> Int {
+    public func dateIntFromBar() -> Int {
         return year * 10000 + month * 100 + day
     }
 
     /// Returns a short month name for this bar with a trailing space to append the year as space allows
-    func monthName(calendar: Calendar) -> String {
+    public func monthName(calendar: Calendar) -> String {
         var monthName = ""
         let monthShortNames = calendar.shortMonthSymbols
         if month >= 0 && month <= monthShortNames.count {
@@ -51,7 +51,7 @@ class BarData {
     /// If CSV line contains yyyy-mm-dd,open,high,low,close,volume then a new BarData object will be returned
     /// date,open,high,low,close,volume
     /// 2023-06-15,179.9650,180.1200,177.4300,179.2100,64848374
-    static func parse(from line: String) -> BarData? {
+    public static func parse(from line: String) -> BarData? {
         if line.count > 0 {
             let cols = line.components(separatedBy: ",")
             if cols.count == 6 {
@@ -76,7 +76,7 @@ class BarData {
     }
 
     /// Calculate weekly high, low, close and volume starting from startDate using calendar to advance a week at at time
-    static func groupByWeek(_ dailyData: [BarData], calendar: Calendar, startDate: Date) -> [BarData] {
+    public static func groupByWeek(_ dailyData: [BarData], calendar: Calendar, startDate: Date) -> [BarData] {
         var startDate = startDate // will be updated in repeat while loop
         var dayIndex = 0
         var weekIndex = 0
@@ -136,7 +136,7 @@ class BarData {
     }
 
     /// Calculate monthly high, low, close and volume
-    static func groupByMonth(_ dailyData: [BarData]) -> [BarData] {
+    public static func groupByMonth(_ dailyData: [BarData]) -> [BarData] {
         var dayIndex = 0
         var monthIndex = 0
         var periodData: [BarData] = []
@@ -177,7 +177,7 @@ class BarData {
     }
 
     /// Calculate 50 and 200 period simple moving averages starting from the last bar in periodData
-    static func calculateSMA(periodData: [BarData]) {
+    public static func calculateSMA(periodData: [BarData]) {
         let oldest50available = periodData.count - 50
         let oldest200available = periodData.count - 200
 
@@ -211,7 +211,7 @@ class BarData {
     /// Bollinger bands use a 20 period simple moving average with parallel bands a standard deviation above and below
     /// Upper Band = 20-day SMA + (20-day standard deviation of price x 2)
     /// Lower Band = 20-day SMA - (20-day standard deviation of price x 2)
-    static func calculateBollingerBands(periodData: [BarData]) {
+    public static func calculateBollingerBands(periodData: [BarData]) {
         let period = 20
         let firstFullPeriod = periodData.count - period
 

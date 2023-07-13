@@ -9,19 +9,19 @@
 import Foundation
 import WebKit
 
-class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
-    var webView: WKWebView!
-    var progressView = UIProgressView(progressViewStyle: .default)
+final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
+    public weak var delegate: WatchlistViewController?
+    public var urlString: String = ""
+    private var webView: WKWebView!
+    private var progressView = UIProgressView(progressViewStyle: .default)
     private var webObservation: NSKeyValueObservation?
-    var delegate: WatchlistViewController?
-    var backButton = UIBarButtonItem(image: UIImage(systemName: "chevron.backward"), style: .plain, target: nil, action: #selector(goBack))
-    var addressBar = UITextField()
-    var watchlistButton = UIBarButtonItem(title: "View on Watchlist", style: .plain, target: nil, action: #selector(viewOnWatchlist))
-    var refreshButton: UIBarButtonItem!
-    var comparison: Comparison? // if the user browses a stock part of an existing comparison
-    var stock: Stock? // if the user browses a stock on chartinsight.com that isn't in the watchlist
-    let defaultURLString: String = "https://chartinsight.com/"
-    var urlString: String = ""
+    private var backButton = UIBarButtonItem(image: UIImage(systemName: "chevron.backward"), style: .plain, target: nil, action: #selector(goBack))
+    private var addressBar = UITextField()
+    private var watchlistButton = UIBarButtonItem(title: "View on Watchlist", style: .plain, target: nil, action: #selector(viewOnWatchlist))
+    private var refreshButton: UIBarButtonItem!
+    private var comparison: Comparison? // if the user browses a stock part of an existing comparison
+    private var stock: Stock? // if the user browses a stock on chartinsight.com that isn't in the watchlist
+    private let defaultURLString: String = "https://chartinsight.com/"
 
     override func loadView() {
         edgesForExtendedLayout = [] // don't let webView underlap tab bar as cookie dialogs appear half-hidden
@@ -103,12 +103,12 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         urlString = ""
     }
 
-    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+    public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         progressView.isHidden = false
     }
 
     /// If the user is browsing chartinsight.com, search for a stock ticker and update toolbar with a button to add to watchlist
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         if let newURL = webView.url {
             addressBar.text = newURL.absoluteString
         }
@@ -179,7 +179,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
 
 /// If the user entered a valid URL, load it
 extension WebViewController: UITextFieldDelegate {
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    public func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         if let newURL = addressBar.text, let url = URL(string: newURL) {
             let request = URLRequest(url: url)
             webView.load(request)

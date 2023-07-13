@@ -20,17 +20,17 @@ struct ChartText {
 }
 
 struct ChartRenderer {
-    var layerRef: CGLayer
-    var contentsScale: CGFloat
-    var xFactor: CGFloat
-    var barUnit: CGFloat
-    var pxWidth: CGFloat
-    let magnifierSize: CGFloat = 100.0 // both width and height
-    let numberFormatter = BigNumberFormatter()
-    var roundDown = NSDecimalNumberHandler(roundingMode: .down, scale: 0,
+    public var layerRef: CGLayer
+    public var contentsScale: CGFloat
+    public var xFactor: CGFloat
+    public var barUnit: CGFloat
+    public var pxWidth: CGFloat
+    private let magnifierSize: CGFloat = 100.0 // both width and height
+    private let numberFormatter = BigNumberFormatter()
+    private let roundDown = NSDecimalNumberHandler(roundingMode: .down, scale: 0,
                                            raiseOnExactness: false, raiseOnOverflow: false, raiseOnUnderflow: false, raiseOnDivideByZero: false)
 
-    func renderCharts(comparison: Comparison, stockChartElements: [ChartElements]) -> [ChartText] {
+    public func renderCharts(comparison: Comparison, stockChartElements: [ChartElements]) -> [ChartText] {
         var chartText: [ChartText] = [] // will return to caller because Apple deprecated CGContext-based methods
         let context = layerRef.context!
         context.clear(CGRect(x: 0, y: 0, width: layerRef.size.width, height: layerRef.size.height))
@@ -306,7 +306,7 @@ struct ChartRenderer {
     }
 
     /// Enlarged screenshot of chart under user's finger with a bar highlighted if coordinates match
-    func magnifyBar(x: CGFloat, y: CGFloat, bar: BarData, monthName: String) -> UIImage? {
+    public func magnifyBar(x: CGFloat, y: CGFloat, bar: BarData, monthName: String) -> UIImage? {
         UIGraphicsBeginImageContextWithOptions(CGSize(width: magnifierSize, height: magnifierSize), false, contentsScale)
         guard let lensContext = UIGraphicsGetCurrentContext() else { return nil }
 
@@ -391,7 +391,7 @@ struct ChartRenderer {
         return screenshot
     }
 
-    func writeLabel(_ price: NSDecimalNumber, for chartElements: ChartElements, atX x: CGFloat, showBox: Bool) -> ChartText {
+    private func writeLabel(_ price: NSDecimalNumber, for chartElements: ChartElements, atX x: CGFloat, showBox: Bool) -> ChartText {
         let l = numberFormatter.string(from: price) ?? ""
 
         var y = chartElements.yFloor - chartElements.yFactor * price.doubleValue + 20
@@ -416,20 +416,20 @@ struct ChartRenderer {
     }
 
     /// Returns ChartText struct with info for string with point, color and size to chartText array for later rendering in pushed graphics context
-    func string(_ string: String, at point: CGPoint, with color: UIColor, size: CGFloat = 22) -> ChartText {
+    private func string(_ string: String, at point: CGPoint, with color: UIColor, size: CGFloat = 22) -> ChartText {
         let adjustedPoint = CGPoint(x: point.x, y: point.y - size)
         return ChartText(string: string, position: adjustedPoint, color: color, size: size)
     }
 
     /// Renders string in current graphics context
-    func showString(_ string: String, at point: CGPoint, with color: UIColor, size: CGFloat) {
+    private func showString(_ string: String, at point: CGPoint, with color: UIColor, size: CGFloat) {
         let textAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: size),
                               NSAttributedString.Key.foregroundColor: color]
         string.draw(at: CGPoint(x: point.x, y: point.y - size), withAttributes: textAttributes)
     }
 
     /// Create a continuous path using the points provided and stroke the final path
-    func strokeLineFromPoints(_ points: [CGPoint], context: CGContext) {
+    private func strokeLineFromPoints(_ points: [CGPoint], context: CGContext) {
         guard points.count > 0 else {
             return
         }
@@ -446,7 +446,7 @@ struct ChartRenderer {
     }
 
     /// Create separate lines from each pair of points and stroke each line separately
-    func strokeLinesFromPoints(_ points: [CGPoint], context: CGContext) {
+    private func strokeLinesFromPoints(_ points: [CGPoint], context: CGContext) {
         for (index, point) in points.enumerated() {
 
             if index % 2 == 0 {

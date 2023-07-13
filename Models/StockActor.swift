@@ -2,8 +2,8 @@
 //  StockActor.swift
 //  ChartInsight
 //
-//  Delegates fetching of stock price and fundamental data (to DataFetcher and FundamentalFetcher).
-//  After DataFetcherDelegate methods are called, StockActor computes ChartElements for all of the returned data
+//  Uses HistoricalDataService and FundamentalService to fetch price and fundamental data.
+//  After ServiceDelegate methods are called, StockActor computes ChartElements for all of the returned data
 //  and notifies its delegate (ScrollChartView) that it is ready.
 //  ScrollChartView calls copyChartElements() to get a thread-safe copy it can render while
 //  StockActor is free to update its own copy (in tmp) as new data loads.
@@ -22,14 +22,14 @@ protocol StockActorDelegate: AnyObject {
     func requestFinished(newPercentChange: NSDecimalNumber)
 }
 
-actor StockActor: DataFetcherDelegate {
-    let comparisonStockId: Int
-    var stock: Stock
+actor StockActor: ServiceDelegate {
+    public let comparisonStockId: Int
+    private var stock: Stock
     private let gregorian: Calendar
-    weak var delegate: ScrollChartView?
+    public weak var delegate: ScrollChartView?
 
-    var newestBarShown: Int
-    var oldestBarShown: Int
+    public var newestBarShown: Int
+    public var oldestBarShown: Int
     private var xFactor: CGFloat // yFactor and yFloor are on chartElements
     private var barUnit: CGFloat
 
@@ -44,8 +44,8 @@ actor StockActor: DataFetcherDelegate {
     private var newest: Date // newest loaded, not the newest shown
     private var dailyData: [BarData]
     private var periodData: [BarData] // points to dailyData or dailyData grouped by week or month
-    private var fetcher: DataFetcher?
-    private var fundamentalFetcher: FundamentalFetcher?
+    private var historicalDataService: HistoricalDataService!
+    private var fundamentalService: FundamentalService?
     private var sma50: Bool
     private var sma200: Bool
     private var bb20: Bool
@@ -65,8 +65,6 @@ actor StockActor: DataFetcherDelegate {
         self.barUnit = barUnit
         self.xFactor = xFactor * barUnit
         newestBarShown = 0
-        fetcher = DataFetcher()
-        fundamentalFetcher = FundamentalFetcher()
         chartElements = ChartElements(stock: stock)
         periodData = []
         dailyData = []
@@ -74,11 +72,13 @@ actor StockActor: DataFetcherDelegate {
         (pxHeight, sparklineHeight, chartBase, volumeBase, volumeHeight, maxVolume) = (0, 0, 0, 0, 0, 0)
         (percentChange, chartPercentChange) = (NSDecimalNumber.one, NSDecimalNumber.one)
         (ready, busy, sma50, sma200, bb20) = (false, false, false, false, false)
+        historicalDataService = HistoricalDataService(for: stock, calendar: gregorian)
     }
 
     func update(updatedStock: Stock) {
         guard stock.comparisonStockId == updatedStock.comparisonStockId else { return }
         stock = updatedStock
+        chartElements.stock = updatedStock // required for updated chart options
     }
 
     func setNewestBarShown(_ calculatedNewestBarShown: Int) {
@@ -90,27 +90,24 @@ actor StockActor: DataFetcherDelegate {
     }
 
     /// Request historical stock data price from DB and then remote server
-    func fetchStockActor() {
-        if let fetcher = fetcher {
-            fetcher.requestNewest = Date()
-            fetcher.setRequestOldestWith(startString: stock.startDateString)
-            newest = fetcher.requestOldest // fetcher converts string to date
+    func fetchPriceAndFundamentals() {
+        historicalDataService.delegate = self
+        historicalDataService.requestNewest = Date()
+        historicalDataService.setRequestOldestWith(startString: stock.startDateString)
+        // Ensure newest >= oldest now that historicalDataService has converted stock.startDateString to a date
+        if newest.compare(historicalDataService.requestOldest) == .orderedAscending {
+            newest = historicalDataService.requestOldest
+        }
 
-            fetcher.ticker = stock.ticker
-            fetcher.stockId = stock.id
-            fetcher.gregorian = gregorian
-            fetcher.delegate = self
-            fetcher.fetchNewerThanDate(currentNewest: Date.distantPast)
+        historicalDataService.fetchNewerThanDate(currentNewest: Date.distantPast)
 
-            if stock.fundamentalList.count > 4 {
-                fundamentalFetcher = FundamentalFetcher()
-                fundamentalFetcher?.getFundamentals(for: stock, delegate: self)
-            }
+        if stock.fundamentalList.count > 4 {
+            fundamentalService = FundamentalService(for: stock, delegate: self)
         }
     }
 
-    /// FundamentalFetcher calls StockActor with the columns parsed out of the API
-    func fetcherLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async {
+    /// FundamentalService calls StockActor with the columns parsed out of the API
+    func serviceLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async {
         chartElements.fundamentalColumns = columns
         chartElements.fundamentalAlignments = alignments
         updateFundamentalFetcherBarAlignment()
@@ -139,11 +136,11 @@ actor StockActor: DataFetcherDelegate {
 
     /// Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
     func invalidateAndCancel() {
-        // fundamentalFetcher uses the sharedSession so don't invalidate it
-        fundamentalFetcher?.delegate = nil
-        fundamentalFetcher = nil // will trigger deinit on fundamentalFetcher
-        fetcher?.invalidateAndCancel() // Also sets delegate = nil
-        fetcher = nil
+        // FundamentalService uses the sharedSession so don't invalidate it
+        fundamentalService?.delegate = nil
+        fundamentalService = nil // will trigger deinit on FundamentalService
+        historicalDataService?.invalidateAndCancel() // Also sets delegate = nil
+        historicalDataService = nil
         delegate = nil
     }
 
@@ -252,7 +249,7 @@ actor StockActor: DataFetcherDelegate {
             chartElements.clear()
         }
 
-        if let fetcher = fetcher, 0 == newestBarShown && busy == false {
+        if let fetcher = historicalDataService, 0 == newestBarShown && busy == false {
             if fetcher.shouldFetchIntradayQuote() {
                 busy = true
                 await fetcher.fetchIntradayQuote()
@@ -293,21 +290,21 @@ actor StockActor: DataFetcherDelegate {
         }
     }
 
-    /// DataFetcher has an active download that must be allowed to finish or fail before accepting an additional request
-    public func fetcherCanceled() async {
+    /// HistoricalDataService has an active download that must be allowed to finish or fail before accepting an additional request
+    public func serviceCanceled() async {
         busy = false
-        await delegate?.requestFailed(message: "Canceled request")
+        await delegate?.stopProgressIndicator()
     }
 
-    /// DataFetcher failed downloading historical data or intraday data
-    public func fetcherFailed(_ message: String) async {
+    /// HistoricalDataService failed downloading historical data or intraday data
+    public func serviceFailed(_ message: String) async {
         busy = false
         await delegate?.requestFailed(message: message)
     }
 
-    /// DataFetcher calls StockActor with intraday price data
-    func fetcherLoadedIntradayBar(_ intradayBar: BarData) async {
-        if let apiNewest = fetcher?.date(from: intradayBar) {
+    /// HistoricalDataService calls StockActor with intraday price data
+    func serviceLoadedIntradayBar(_ intradayBar: BarData) async {
+        if let apiNewest = historicalDataService?.date(from: intradayBar) {
             let dateDiff = apiNewest.timeIntervalSince(newest)
 
             if dateDiff < dayInSeconds { // Update existing intraday bar
@@ -329,7 +326,10 @@ actor StockActor: DataFetcherDelegate {
     /// Return the number of bars at the newBarUnit scale to check if one stock in a comparison
     /// will limit the date range that can be charted in the comparison
     public func maxPeriodSupported(newBarUnit: CGFloat) -> Int {
-        return Int(floor(Double(dailyData.count) / newBarUnit))
+        if newBarUnit != barUnit {
+            updatePeriodDataByDayWeekOrMonth()
+        }
+        return periodData.count
     }
 
     /// Update data if necessary
@@ -338,10 +338,10 @@ actor StockActor: DataFetcherDelegate {
             self.newestBarShown = Int(floor(CGFloat(self.newestBarShown) * self.barUnit / barUnit))
             self.oldestBarShown = Int(floor(CGFloat(self.oldestBarShown) * self.barUnit / barUnit))
             self.barUnit = barUnit
+
+            self.updatePeriodDataByDayWeekOrMonth()
         }
         self.xFactor = xFactor * barUnit // caller tracks them separately to determine minimize bar width
-
-        self.updatePeriodDataByDayWeekOrMonth()
 
         if self.oldestBarShown > maxPeriods {
             self.oldestBarShown = maxPeriods
@@ -363,12 +363,13 @@ actor StockActor: DataFetcherDelegate {
         calculateMovingAverages()
     }
 
-    /// DataFetcher calls StockActor with the array of historical price data
-    func fetcherLoadedHistoricalData(_ loadedData: [BarData]) async {
+    /// HistoricalDataService calls StockActor with the array of historical price data
+    func serviceLoadedHistoricalData(_ loadedData: [BarData]) async {
         guard loadedData.count > 0 else { return }
         let newestBar = loadedData[0]
-        if let apiNewest = fetcher?.date(from: newestBar),
-           let apiOldest = fetcher?.oldestDate {
+
+        if let apiNewest = historicalDataService?.date(from: newestBar),
+           let apiOldest = historicalDataService?.oldestDate {
 
             if dailyData.isEmpty { // case 1: First request
                 newest = apiNewest
@@ -383,9 +384,12 @@ actor StockActor: DataFetcherDelegate {
                     print("api is newer AND \(loadedData.count) > \(dailyData.count) so replacing dailyData with loadedData")
                     dailyData = loadedData
                 } else {
-                    print("api is newer, so inserting \(loadedData.count) bars at start of dailyData")
-                    for index in 0 ..< loadedData.count {
-                        dailyData.insert(loadedData[index], at: index)
+                    for (index, barData) in loadedData.enumerated() {
+                        if barData.dateIntFromBar() > dailyData[0].dateIntFromBar() {
+                            dailyData.insert(barData, at: index)
+                        } else {
+                            break // all newer dates have been added
+                        }
                     }
                 }
             } else if oldest.compare(apiOldest) == .orderedDescending { // case 3: Older dates
@@ -397,9 +401,9 @@ actor StockActor: DataFetcherDelegate {
             updatePeriodDataByDayWeekOrMonth()
             updateHighLow()
 
-            if fetcher?.shouldFetchIntradayQuote() == true {
+            if historicalDataService?.shouldFetchIntradayQuote() == true {
                 busy = true
-                await fetcher?.fetchIntradayQuote()
+                await historicalDataService?.fetchIntradayQuote()
             } else {
                 busy = false
             }

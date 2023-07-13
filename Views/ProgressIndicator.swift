@@ -10,7 +10,7 @@
 
 import Foundation
 
-class ProgressIndicator: UIView {
+final class ProgressIndicator: UIView {
     var progressView = UIProgressView()
     var timer: Timer?
     var activeDownloads: Double = 0
@@ -28,7 +28,7 @@ class ProgressIndicator: UIView {
         super.init(coder: aDecoder)
     }
 
-    func reset() {
+    public func reset() {
         timer?.invalidate()
         timer = nil
         isHidden = true
@@ -38,11 +38,11 @@ class ProgressIndicator: UIView {
     }
 
     /// Update progressView with ratio of progressNumerator divided by activeDownloads
-    func updateDownloadProgress() {
+    private func updateDownloadProgress() {
         progressView.setProgress(Float(progressNumerator / activeDownloads), animated: true)
     }
 
-    func startAnimating() {
+    public func startAnimating() {
         activeDownloads += 1
         if timer == nil {
             isHidden = false
@@ -58,7 +58,7 @@ class ProgressIndicator: UIView {
         isHidden = false
     }
 
-    func stopAnimating() {
+    public func stopAnimating() {
         if activeDownloads >= 1 {
             // When a download completes, subtract its share of progress
             // (progressNumerator/activeDownloads) and remove from activeDownloads

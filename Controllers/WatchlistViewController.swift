@@ -138,7 +138,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Called by WebViewController when user wants to switch from the WebView to an existing comparison in the list
-    func load(comparisonToChart: Comparison) {
+    public func load(comparisonToChart: Comparison) {
         for (index, comparison) in list.enumerated() where comparison.id == comparisonToChart.id {
             tableView.selectRow(at: IndexPath(row: index, section: 0), animated: false, scrollPosition: .middle)
             loadComparison(listIndex: index)
@@ -147,7 +147,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Called when app first loads (with listIndex == 0) or when user taps a tableView row
-    func loadComparison(listIndex: Int) {
+    private func loadComparison(listIndex: Int) {
         scrollChartView.clearChart()
         progressIndicator.startAnimating()
         Task {
@@ -170,7 +170,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Determine if the frame size has changed and subviews must be resized
-    func isNewFrameSize(newSize: CGSize) -> Bool {
+    private func isNewFrameSize(newSize: CGSize) -> Bool {
         let newWidth = newSize.width
         var newHeight = newSize.height - padding
         let safeAreaInsets = getSafeAreaInsets()
@@ -191,7 +191,7 @@ class WatchlistViewController: UITableViewController {
         return false
     }
 
-    func resizeSubviews(newSize: CGSize) {
+    private func resizeSubviews(newSize: CGSize) {
         navStockButtonToolbar.frame = CGRect(x: 0, y: 0, width: newSize.width, height: toolbarHeight)
         tableView.reloadData()
 
@@ -298,7 +298,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Called by ChartOptionsController when chart color or type changes
-    func redraw(stock: Stock) async {
+    public func redraw(stock: Stock) async {
         list = await scrollChartView.updateComparison(stock: stock)
         tableView.reloadData() // avoid update(list:) as that clears the chart for a second
         if let barButtonItems = navStockButtonToolbar.items {
@@ -310,13 +310,13 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Called by ChartOptionsController when the user adds new fundamental metrics
-    func reload(stock: Stock) async {
+    public func reload(stock: Stock) async {
         let updatedList = await scrollChartView.updateComparison(stock: stock)
         update(list: updatedList)
     }
 
     /// Called after user taps the Trash icon in ChartOptionsController to delete a stock in a comparison
-    @objc func deleteStock(_ stock: Stock) {
+    public func deleteStock(_ stock: Stock) {
         let stockCountBeforeDeletion = scrollChartView.comparison.stockList.count
 
         Task {
@@ -334,7 +334,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Callback after async comparisonList reload and by StockChangeService if user rows were updated
-    func update(list newList: [Comparison]) {
+    public func update(list newList: [Comparison]) {
         var selectedIndex = 0
         if !newList.isEmpty && scrollChartView.comparison.id > 0 {
             for (index, comparison) in newList.enumerated() where comparison.id == scrollChartView.comparison.id {
@@ -349,8 +349,9 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Called by AddStockController when a new stock is added
-    func insert(stock: Stock, isNewComparison: Bool) {
+    public func insert(stock: Stock, isNewComparison: Bool) {
         Task {
+            var stock = stock
             if isNewComparison || scrollChartView.comparison.stockList.isEmpty {
                 await scrollChartView.updateComparison(newComparison: Comparison())
                 stock.upColor = Stock.chartColors[0] // lightGreen
@@ -375,7 +376,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// Add toggleListButton and buttons for each stock in this comparison
-    func updateNavStockButtonToolbar() {
+    private func updateNavStockButtonToolbar() {
         var buttons: [UIBarButtonItem] = [toggleListButton]
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
 
@@ -488,11 +489,11 @@ class WatchlistViewController: UITableViewController {
         let shiftBars = Int(scrollChartView.layer.contentsScale
                                * delta/(scrollChartView.xFactor * scrollChartView.barUnit))
 
-         scrollChartView.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
+        scrollChartView.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
     }
 
     /// On iPad, presents the viewController in a popover with an arrow to the button. On iPhone, presents modal
-    func popoverPush(viewController: UIViewController, from button: UIBarButtonItem) {
+    private func popoverPush(viewController: UIViewController, from button: UIBarButtonItem) {
         popOverNav = UINavigationController(rootViewController: viewController)
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
         popOverNav.overrideUserInterfaceStyle = isDarkMode ? .dark : .light

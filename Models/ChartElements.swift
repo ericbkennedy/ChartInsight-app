@@ -13,33 +13,33 @@
 import Foundation
 
 struct ChartElements {
-    var stock: Stock
-    var monthLabels: [String]
-    var monthLines: [CGPoint]
+    public var stock: Stock
+    public var monthLabels: [String]
+    public var monthLines: [CGPoint]
     // Fundamental reports
-    var oldestReportInView: Int
-    var newestReportInView: Int
-    var fundamentalColumns: [String: [NSDecimalNumber]]
-    var fundamentalAlignments: [FundamentalAlignment]
-    var points: [CGPoint]
-    var redPoints: [CGPoint]
-    var yFactor: CGFloat
-    var yFloor: CGFloat
-    var maxHigh: NSDecimalNumber
-    var minLow: NSDecimalNumber
-    var scaledLow: NSDecimalNumber
-    var lastPrice: NSDecimalNumber
-    var movingAvg1: [CGPoint]
-    var movingAvg2: [CGPoint]
-    var upperBollingerBand: [CGPoint]
-    var middleBollingerBand: [CGPoint]
-    var lowerBollingerBand: [CGPoint]
-    var greenBars: [CGRect]
-    var filledGreenBars: [CGRect]
-    var hollowRedBars: [CGRect]
-    var redBars: [CGRect]
-    var redVolume: [CGRect]
-    var blackVolume: [CGRect]
+    public var oldestReportInView: Int
+    public var newestReportInView: Int
+    public var fundamentalColumns: [String: [NSDecimalNumber]]
+    public var fundamentalAlignments: [FundamentalAlignment]
+    public var points: [CGPoint]
+    public var redPoints: [CGPoint]
+    public var yFactor: CGFloat
+    public var yFloor: CGFloat
+    public var maxHigh: NSDecimalNumber
+    public var minLow: NSDecimalNumber
+    public var scaledLow: NSDecimalNumber
+    public var lastPrice: NSDecimalNumber
+    public var movingAvg1: [CGPoint]
+    public var movingAvg2: [CGPoint]
+    public var upperBollingerBand: [CGPoint]
+    public var middleBollingerBand: [CGPoint]
+    public var lowerBollingerBand: [CGPoint]
+    public var greenBars: [CGRect]
+    public var filledGreenBars: [CGRect]
+    public var hollowRedBars: [CGRect]
+    public var redBars: [CGRect]
+    public var redVolume: [CGRect]
+    public var blackVolume: [CGRect]
 
     init(stock: Stock) {
         self.init(stock: stock,
@@ -107,7 +107,7 @@ struct ChartElements {
 
     /// Center a stroked line in the center of a pixel.  Point value can be 0.25, 0.333, 0.5, 0.666, or 0.75
     /// bitmap graphics always use pixel context, so they always have alignTo=0.5
-    static func pxAlign(_ input: Double, alignTo: Double) -> Double {
+    public static func pxAlign(_ input: Double, alignTo: Double) -> Double {
         var intPart = 0.0
         if modf(input, &intPart) != alignTo { // modf separates integer and fractional parts
             return intPart + alignTo
@@ -115,7 +115,7 @@ struct ChartElements {
         return input
     }
 
-    mutating func clear() {
+    public mutating func clear() {
         monthLabels.removeAll(keepingCapacity: true)
         // Don't remove fundamentalColumns since the values loaded once and won't change
         // Don't remove fundamentalAlignments since the alignments will get updated
@@ -136,7 +136,7 @@ struct ChartElements {
     }
 
     /// Returns all fundamental metric keys or [] if fundamentals aren't loaded
-    func fundamentalKeys() -> [String] {
+    public func fundamentalKeys() -> [String] {
         if !fundamentalColumns.isEmpty {
             return Array(fundamentalColumns.keys)
         }
@@ -144,7 +144,7 @@ struct ChartElements {
     }
 
     /// Metric value (or .notANumber) for a report index and metric key
-    func fundamentalValue(forReport report: Int, metric: String) -> NSDecimalNumber {
+    public func fundamentalValue(forReport report: Int, metric: String) -> NSDecimalNumber {
         if !fundamentalColumns.isEmpty {
             if let valuesForMetric = fundamentalColumns[metric], report < valuesForMetric.count {
                 return valuesForMetric[report]
@@ -153,24 +153,24 @@ struct ChartElements {
         return NSDecimalNumber.notANumber
     }
 
-    func fundamentalReportCount() -> Int {
+    public func fundamentalReportCount() -> Int {
         return fundamentalAlignments.count
     }
 
-    mutating func setBarAlignment(_ barIndex: Int, report: Int) {
+    public mutating func setBarAlignment(_ barIndex: Int, report: Int) {
         if report < fundamentalAlignments.count {
             fundamentalAlignments[report].bar = barIndex
         }
     }
 
-    func barAlignmentFor(report: Int) -> Int {
+    public func barAlignmentFor(report: Int) -> Int {
         if report < fundamentalAlignments.count {
             return fundamentalAlignments[report].bar
         }
         return -1
     }
 
-    func valueFor(report: Int, key: String) -> NSDecimalNumber {
+    public func valueFor(report: Int, key: String) -> NSDecimalNumber {
         if let metricValues = fundamentalColumns[key],
            report < metricValues.count {
             return metricValues[report]

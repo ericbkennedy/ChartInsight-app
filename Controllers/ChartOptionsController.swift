@@ -9,21 +9,17 @@
 import Foundation
 
 class ChartOptionsController: UITableViewController {
-    var stock: Stock
-    var delegate: WatchlistViewController?
-    var sparklineKeys: [String] = []
-
+    public var sparklineKeys: [String] = []
+    public var stock: Stock
+    private weak var delegate: WatchlistViewController?
     private enum SectionType: Int {
         case chartType, chartColor, financials, technicals, setDefaults
     }
-
     private enum TechnicalType: String, CaseIterable {
         case sma50, sma200, bollingerBand220
     }
-
     private var normalCellId = "normalCell"
     private var chartStyleControlCellId = "chartStyleControlCell"
-
     private var defaultsActionText = "Use These Settings For New Charts" // will be updated after tap
     private var doneButton = UIBarButtonItem(systemItem: .done)
     private var sections = ["", "Color", "Financials", "Technicals", "Defaults"]
@@ -37,7 +33,7 @@ class ChartOptionsController: UITableViewController {
     private var listedMetricsEnabled: [Bool] = [] // parallel array to preseve sort
 
     /// Desiginated initializer set stock and delegate to avoid optional values
-    init(stock: Stock, delegate: WatchlistViewController) {
+    public init(stock: Stock, delegate: WatchlistViewController) {
         self.stock = stock
         self.delegate = delegate
         typeSegmentedControl = ChartStyleControl(type: .chartType, frame: segmentFrame, stock: stock)
@@ -87,7 +83,7 @@ class ChartOptionsController: UITableViewController {
     }
 
     /// AddFundamentalViewController will call this with the metric key after the user has selected another metric
-    func addedFundamental(key: String) {
+    public func addedFundamental(key: String) {
         stock.addToFundamentals(key)
         listedMetricKeys.removeAll()
         listedMetricsEnabled.removeAll()
@@ -244,7 +240,7 @@ class ChartOptionsController: UITableViewController {
     }
 
     /// Thumbnail image of moving average curve or fundamental bars
-    func image(isMovingAverage: Bool, color: UIColor) -> UIImage? {
+    private func image(isMovingAverage: Bool, color: UIColor) -> UIImage? {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 40))
         let img = renderer.image { ctx in
             if isMovingAverage {
@@ -272,7 +268,7 @@ class ChartOptionsController: UITableViewController {
     }
 
     /// Update the array of metric keys and parallel array listedMetricsEnabled indicating if the metric is enabled.
-    func updateListedMetrics() {
+    private func updateListedMetrics() {
         for category in Metrics.shared.metrics {
             for metric in category {
                 let key = metric[0]

@@ -14,15 +14,15 @@ import Foundation
     static let shared = DBActor()
 
     typealias Sqlite3ptr = OpaquePointer?
-    let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-    let READONLY_NOMUTEX = Int32(SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX)
+    private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+    private let READONLY_NOMUTEX = Int32(SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX)
 
-    func dbPath() -> String {
+    private func dbPath() -> String {
         return String(format: "%@/Documents/charts.db", NSHomeDirectory())
     }
 
     /// Ensure DB is in app's Documents directory. Then load stock comparison list and send to the delegate.
-    func moveIfNeeded(delegate: WatchlistViewController) async {
+    public func moveIfNeeded(delegate: WatchlistViewController) async {
         guard let path = Bundle.main.path(forResource: "charts.db", ofType: nil) else {
             print("charts.db is missing from Bundle")
             return
@@ -48,7 +48,7 @@ import Foundation
     }
 
     /// Update DB with the provided array of stock changes (splits, IPOs, ticker changes and delistings)
-    func update(stockChanges: [StockChangeService.StockChange], delegate: WatchlistViewController) async {
+    public func update(stockChanges: [StockChangeService.StockChange], delegate: WatchlistViewController) async {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
         var userRowsChanged = 0 // if stockChanges require deleting user data, send new comparisonList to delegate
@@ -128,7 +128,7 @@ import Foundation
         }
     }
 
-    func save(_ barDataArray: [BarData], stockId: Int) {
+    public func save(_ barDataArray: [BarData], stockId: Int) {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
@@ -157,7 +157,7 @@ import Foundation
         sqlite3_close(db)
     }
 
-    func loadBarData(for stockId: Int, startDateInt: Int) -> [BarData] {
+    public func loadBarData(for stockId: Int, startDateInt: Int) -> [BarData] {
         var rowsLoaded: [BarData] = []
 
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
@@ -192,7 +192,7 @@ import Foundation
 
     /// Split the user's search text into words and calls findSymbol(search:db:) to query for matches
     /// Search performance was slow due to actor isolation with writes to the history table.
-    func findStock(search: String) -> [Stock] {
+    public func findStock(search: String) -> [Stock] {
          var list: [Stock] = []
          var exactMatches: [Stock] = []
          var db: Sqlite3ptr = nil
@@ -227,7 +227,7 @@ import Foundation
          sqlite3_close(db)
 
          if list.count == 0 { // Add placeholder
-             let stock = Stock()
+             var stock = Stock()
              stock.ticker = ""
              stock.name = "No matches with supported fundamentals"
              list.append(stock)
@@ -251,7 +251,7 @@ import Foundation
         sqlite3_bind_text(statement, 1, wildcardSearch.utf8String, -1, SQLITE_TRANSIENT)
 
         while SQLITE_ROW == sqlite3_step(statement) {
-            let stock = Stock()
+            var stock = Stock()
             stock.id = Int(sqlite3_column_int(statement, 0))
 
             stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(1))))
@@ -270,7 +270,7 @@ import Foundation
     }
 
     /// Returns a stock with the provided ticker or nil if not found
-    func getStock(ticker: String) -> Stock? {
+    public func getStock(ticker: String) -> Stock? {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
         guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return nil }
@@ -282,7 +282,7 @@ import Foundation
         sqlite3_bind_text(statement, 1, NSString(string: ticker).utf8String, -1, SQLITE_TRANSIENT)
 
         if SQLITE_ROW == sqlite3_step(statement) {
-            let stock = Stock()
+            var stock = Stock()
             stock.id = Int(sqlite3_column_int(statement, 0))
 
             stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, Int32(1))))
@@ -304,9 +304,11 @@ import Foundation
     }
 
     /// Save a stock as part of a new comparison (if comparison.id == 0) or add to an existing comparison
-    func save(comparison: Comparison) -> [Comparison] {
+    /// Returns a tuple with the list of all comparisons and the comparisonStockId if a new stock (with comparisonStockId=0) was inserted
+    public func save(comparison: Comparison) -> ([Comparison], Int) {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
-        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return [] }
+        var insertedComparisonStockId = 0
+        guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return ([], insertedComparisonStockId) }
         var sql = ""
         if comparison.id == 0 {
             sql = "INSERT INTO comparison (sort) VALUES (0)"
@@ -320,7 +322,6 @@ import Foundation
             let hexColorUTF8     = NSString(string: stock.hexFromUpColor()).utf8String
             let fundamentalsUTF8 = NSString(string: stock.fundamentalList).utf8String
             let technicalsUTF8   = NSString(string: stock.technicalList).utf8String
-
             if stock.comparisonStockId > 0 {
                 sql = "UPDATE comparisonStock SET chartType=?, color=?, fundamentals=?, technicals=? WHERE rowid=?"
                 sqlite3_prepare(db, sql, -1, &statement, nil)
@@ -348,18 +349,19 @@ import Foundation
                 sqlite3_bind_text(statement, 6, technicalsUTF8, -1, SQLITE_TRANSIENT)
 
                 if SQLITE_DONE == sqlite3_step(statement) {
-                    stock.comparisonStockId = Int(sqlite3_last_insert_rowid(db))
+                    insertedComparisonStockId = Int(sqlite3_last_insert_rowid(db))
                 } else {
                     print("Save to DB ERROR ", String(cString: sqlite3_errmsg(db)), sql)
                 }
                 sqlite3_finalize(statement)
             }
         }
-        return comparisonList(dbConnection: db)
+        let updatedList = comparisonList(dbConnection: db)
+        return (updatedList, insertedComparisonStockId)
     }
 
     /// Delete all stock from a comparison and the comparison row itself
-    func delete(comparison: Comparison) -> [Comparison] {
+    public func delete(comparison: Comparison) -> [Comparison] {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return [] }
 
@@ -386,7 +388,7 @@ import Foundation
     }
 
     /// Delete stock from a comparison. Call delete(comparison:) to delete the last stock in a comparison
-    func delete(stock: Stock) -> [Comparison] {
+    public func delete(stock: Stock) -> [Comparison] {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
 
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return [] }
@@ -405,7 +407,7 @@ import Foundation
 
     /// Returns all comparisons or only those with the provided ticker
     /// If a non-nil dbConnection is provided, it will be used and then closed
-    func comparisonList(dbConnection: Sqlite3ptr = nil, ticker: String = "") -> [Comparison] {
+    public func comparisonList(dbConnection: Sqlite3ptr = nil, ticker: String = "") -> [Comparison] {
         var list: [Comparison] = []
 
         var db: Sqlite3ptr = nil
@@ -446,7 +448,7 @@ import Foundation
                 comparison?.id = lastComparisonId
                 list.append(comparison!)
             }
-            let stock = Stock()
+            var stock = Stock()
             stock.comparisonStockId = Int(sqlite3_column_int(statement, Col.comparisonStockId.rawValue))
             stock.id = Int(sqlite3_column_int(statement, Col.stockId.rawValue))
             stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.ticker.rawValue)))

@@ -15,14 +15,12 @@ enum ChartStyleControlType {
     case color, chartType
 }
 
-class ChartStyleControl: UIControl {
-    let stock: Stock
-    let stackView = UIStackView(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
-    var delegate: ChartOptionsController?
-    var type: ChartStyleControlType
-    var currentChartType: ChartType = .hlc
-    var buttons: [UIButton] = []
-    var selectedIndex: Int = 0 {
+final class ChartStyleControl: UIControl {
+    public var delegate: ChartOptionsController?
+    public var type: ChartStyleControlType
+    public var currentChartType: ChartType = .hlc
+    public var buttons: [UIButton] = []
+    public var selectedIndex: Int = 0 {
         didSet(oldValue) {
             if buttons.count > 0 && oldValue != selectedIndex { // remove shadow from old button and add to new
                 buttons[oldValue].layer.shadowOpacity = 0
@@ -31,6 +29,8 @@ class ChartStyleControl: UIControl {
             }
         }
     }
+    private let stock: Stock
+    private let stackView = UIStackView(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
 
     @objc func tappedButton(button: UIButton) {
         selectedIndex = button.tag
@@ -41,7 +41,7 @@ class ChartStyleControl: UIControl {
         }
     }
 
-    init(type: ChartStyleControlType, frame: CGRect, stock: Stock) {
+    public init(type: ChartStyleControlType, frame: CGRect, stock: Stock) {
         self.type = type
         self.stock = stock
         super.init(frame: frame)
@@ -65,7 +65,7 @@ class ChartStyleControl: UIControl {
     /// Add segments to StackView by rendering images and creating a button for each image.
     /// ChartOptionsController calls this method on the color ChartStyleControl
     /// when the user taps the other ChartStyleControl to change the chartType.
-    func createSegments(for newChartType: ChartType) {
+    public func createSegments(for newChartType: ChartType) {
         currentChartType = newChartType
         var images: [UIImage] = []
         if type == .chartType {
@@ -107,7 +107,7 @@ class ChartStyleControl: UIControl {
         }
     }
 
-    func addShadow(to button: UIButton) {
+    private func addShadow(to button: UIButton) {
         button.backgroundColor = UIColor.systemBackground
         button.layer.shadowColor = UIColor.darkGray.cgColor
         button.layer.shadowRadius = 2
@@ -117,7 +117,7 @@ class ChartStyleControl: UIControl {
     }
 
     /// Mini stock chart image used to change current chart type or color
-    func image(chartType: ChartType, colorIndex: Int, showLabel: Bool = false) -> UIImage? {
+    private func image(chartType: ChartType, colorIndex: Int, showLabel: Bool = false) -> UIImage? {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 36, height: 36))
         let img = renderer.image { ctx in
             let upCGColor = Stock.chartColors[colorIndex].cgColor

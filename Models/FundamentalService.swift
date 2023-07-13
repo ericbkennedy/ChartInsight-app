@@ -1,12 +1,12 @@
 //
-//  FundamentalFetcher.swift
+//  FundamentalService.swift
 //  ChartInsight
 //
 //  Loads fundamental metrics for a company as arrays of objects:
 //      Quarter end date stored as year, month and day in 3 arrays of equal length (report count)
 //      Columns dictionary with metric keys (e.g. EarningsPerShareBasic) and array of NSDecimalNumbers
 //
-//  Unlike the DataFetcher, the FundamentalFetcher will be called once until a metric is added or removed
+//  Unlike the HistoricalDataService, the FundamentalService will be called once until a metric is added or removed
 //
 //  Created by Eric Kennedy on 6/22/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
@@ -14,9 +14,9 @@
 
 import Foundation
 
-let offscreen: Int = -1
+public let offscreen: Int = -1
 
-struct FundamentalAlignment {
+public struct FundamentalAlignment {
     var x = CGFloat(offscreen)
     var bar: Int = offscreen
     var year: Int = 0
@@ -24,11 +24,11 @@ struct FundamentalAlignment {
     var day: Int = 0
 }
 
-class FundamentalFetcher: NSObject {
-    var ticker: String = ""
-    weak var delegate: StockActor?
+final class FundamentalService {
+    public weak var delegate: StockActor?
+    private let ticker: String
 
-    func getFundamentals(for stock: Stock, delegate: StockActor) {
+    init(for stock: Stock, delegate: StockActor) {
         ticker = stock.ticker
         self.delegate = delegate
 
@@ -43,12 +43,12 @@ class FundamentalFetcher: NSObject {
         }
     }
 
-    func formatRequestURL(keys: String) -> URL? {
+    private func formatRequestURL(keys: String) -> URL? {
         let urlString = "https://chartinsight.com/api/fundamentalTSV/\(ticker)/\(keys)?&token=\(apiKey)"
         return URL(string: urlString)
     }
 
-    func fetch(from url: URL) async throws {
+    private func fetch(from url: URL) async throws {
 
         let datePartsCount = 4
         var metricKeys = [String]() // in the order received from API
@@ -90,9 +90,9 @@ class FundamentalFetcher: NSObject {
         }
 
         if columns.count > 0 {
-            await delegate?.fetcherLoadedFundamentals(columns: columns, alignments: alignments)
+            await delegate?.serviceLoadedFundamentals(columns: columns, alignments: alignments)
         } else {
-            print("FundamentalFetcher failed")
+            await delegate?.serviceFailed("FundamentalService failed to parse columns of data")
         }
     }
 }

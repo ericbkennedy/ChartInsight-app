@@ -8,13 +8,13 @@
 
 import Foundation
 
-class AddStockController: UITableViewController, UISearchBarDelegate {
+final class AddStockController: UITableViewController, UISearchBarDelegate {
 
-    var delegate: WatchlistViewController?
-    var isNewComparison: Bool = false
-    var list: [Stock] = []
-    var searchBar = UISearchBar()
-    let cellID = "stockCell"
+    public var delegate: WatchlistViewController?
+    public var isNewComparison: Bool = false
+    private var list: [Stock] = []
+    private var searchBar = UISearchBar()
+    private let cellID = "stockCell"
 
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -71,7 +71,7 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
         return list.count
     }
 
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+    public func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if let searchText = searchBar.text {
 
             Task(priority: .high) {
@@ -89,14 +89,14 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
     }
 
     /// Clicking the done/return button or typing return on simulator will send the 1st stock in the list to the delegate
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    public func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard delegate != nil else { return }
         if list.count > 0 && list[0].ticker.count > 0 {
             delegate?.insert(stock: list[0], isNewComparison: isNewComparison)
         }
     }
 
-    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+    public func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
         self.dismiss(animated: true)
     }
 
@@ -104,8 +104,7 @@ class AddStockController: UITableViewController, UISearchBarDelegate {
         guard delegate != nil else { return }
         if list.count > indexPath.row {
             let selected = list[indexPath.row]
-
-            if selected.isKind(of: Stock.self) && selected.ticker.count > 0 {
+            if selected.ticker.count > 0 {
                 delegate?.insert(stock: selected, isNewComparison: isNewComparison)
             } else { // user selected placeholder for no matches so reset search
                 searchBar.text = ""

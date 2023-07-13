@@ -34,8 +34,8 @@
 		80ACF8CD2A4F85FD001A1D7B /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80ACF8CB2A4F85FD001A1D7B /* WebViewController.swift */; };
 		80B858B32A4B849900139EBA /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A82A4B849900139EBA /* DBActor.swift */; };
 		80B858B42A4B849900139EBA /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A82A4B849900139EBA /* DBActor.swift */; };
-		80B858B52A4B849900139EBA /* FundamentalFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A92A4B849900139EBA /* FundamentalFetcher.swift */; };
-		80B858B62A4B849900139EBA /* FundamentalFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A92A4B849900139EBA /* FundamentalFetcher.swift */; };
+		80B858B52A4B849900139EBA /* FundamentalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A92A4B849900139EBA /* FundamentalService.swift */; };
+		80B858B62A4B849900139EBA /* FundamentalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A92A4B849900139EBA /* FundamentalService.swift */; };
 		80B858B72A4B849900139EBA /* Comparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AA2A4B849900139EBA /* Comparison.swift */; };
 		80B858B82A4B849900139EBA /* Comparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AA2A4B849900139EBA /* Comparison.swift */; };
 		80B858B92A4B849900139EBA /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AC2A4B849900139EBA /* Stock.swift */; };
@@ -44,8 +44,8 @@
 		80B858BC2A4B849900139EBA /* BarData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AD2A4B849900139EBA /* BarData.swift */; };
 		80B858BD2A4B849900139EBA /* BigNumberFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AE2A4B849900139EBA /* BigNumberFormatter.swift */; };
 		80B858BE2A4B849900139EBA /* BigNumberFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AE2A4B849900139EBA /* BigNumberFormatter.swift */; };
-		80B858BF2A4B849900139EBA /* DataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AF2A4B849900139EBA /* DataFetcher.swift */; };
-		80B858C02A4B849900139EBA /* DataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AF2A4B849900139EBA /* DataFetcher.swift */; };
+		80B858BF2A4B849900139EBA /* HistoricalDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AF2A4B849900139EBA /* HistoricalDataService.swift */; };
+		80B858C02A4B849900139EBA /* HistoricalDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858AF2A4B849900139EBA /* HistoricalDataService.swift */; };
 		80B858C12A4B849900139EBA /* ChartElements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858B02A4B849900139EBA /* ChartElements.swift */; };
 		80B858C22A4B849900139EBA /* ChartElements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858B02A4B849900139EBA /* ChartElements.swift */; };
 		80B858C42A4BEC0200139EBA /* StockActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858C32A4BEC0200139EBA /* StockActor.swift */; };
@@ -95,12 +95,12 @@
 		80ACF8C82A4F361B001A1D7B /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
 		80ACF8CB2A4F85FD001A1D7B /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
 		80B858A82A4B849900139EBA /* DBActor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DBActor.swift; sourceTree = "<group>"; };
-		80B858A92A4B849900139EBA /* FundamentalFetcher.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FundamentalFetcher.swift; sourceTree = "<group>"; };
+		80B858A92A4B849900139EBA /* FundamentalService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FundamentalService.swift; sourceTree = "<group>"; };
 		80B858AA2A4B849900139EBA /* Comparison.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Comparison.swift; sourceTree = "<group>"; };
 		80B858AC2A4B849900139EBA /* Stock.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
 		80B858AD2A4B849900139EBA /* BarData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BarData.swift; sourceTree = "<group>"; };
 		80B858AE2A4B849900139EBA /* BigNumberFormatter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigNumberFormatter.swift; sourceTree = "<group>"; };
-		80B858AF2A4B849900139EBA /* DataFetcher.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataFetcher.swift; sourceTree = "<group>"; };
+		80B858AF2A4B849900139EBA /* HistoricalDataService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HistoricalDataService.swift; sourceTree = "<group>"; };
 		80B858B02A4B849900139EBA /* ChartElements.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartElements.swift; sourceTree = "<group>"; };
 		80B858C32A4BEC0200139EBA /* StockActor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StockActor.swift; sourceTree = "<group>"; };
 		80D3DB782A55C2B000E063B9 /* StockChangeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockChangeService.swift; sourceTree = "<group>"; };
@@ -216,9 +216,9 @@
 				80B858AE2A4B849900139EBA /* BigNumberFormatter.swift */,
 				80B858B02A4B849900139EBA /* ChartElements.swift */,
 				80B858AA2A4B849900139EBA /* Comparison.swift */,
-				80B858AF2A4B849900139EBA /* DataFetcher.swift */,
 				80B858A82A4B849900139EBA /* DBActor.swift */,
-				80B858A92A4B849900139EBA /* FundamentalFetcher.swift */,
+				80B858A92A4B849900139EBA /* FundamentalService.swift */,
+				80B858AF2A4B849900139EBA /* HistoricalDataService.swift */,
 				80ACF8C82A4F361B001A1D7B /* Metrics.swift */,
 				80B858AC2A4B849900139EBA /* Stock.swift */,
 				80B858C32A4BEC0200139EBA /* StockActor.swift */,
@@ -367,13 +367,13 @@
 				80E587332A435BB700A380AA /* AppDelegate.swift in Sources */,
 				80B858BB2A4B849900139EBA /* BarData.swift in Sources */,
 				80B858B72A4B849900139EBA /* Comparison.swift in Sources */,
-				80B858B52A4B849900139EBA /* FundamentalFetcher.swift in Sources */,
+				80B858B52A4B849900139EBA /* FundamentalService.swift in Sources */,
 				809F32352A36C7430018526F /* AddStockController.swift in Sources */,
 				80B858C12A4B849900139EBA /* ChartElements.swift in Sources */,
 				8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */,
 				80278A792A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */,
 				80A48AA42A49F686001E5E04 /* ChartStyleControl.swift in Sources */,
-				80B858BF2A4B849900139EBA /* DataFetcher.swift in Sources */,
+				80B858BF2A4B849900139EBA /* HistoricalDataService.swift in Sources */,
 				80B858B32A4B849900139EBA /* DBActor.swift in Sources */,
 				80AA23252A4902EB004F95F0 /* ChartOptionsController.swift in Sources */,
 				80278A762A4CE3240051CFBE /* ScrollChartView.swift in Sources */,
@@ -397,9 +397,9 @@
 			files = (
 				80ACF8CD2A4F85FD001A1D7B /* WebViewController.swift in Sources */,
 				80D3DB7A2A55C2B000E063B9 /* StockChangeService.swift in Sources */,
-				80B858B62A4B849900139EBA /* FundamentalFetcher.swift in Sources */,
+				80B858B62A4B849900139EBA /* FundamentalService.swift in Sources */,
 				80278A7A2A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */,
-				80B858C02A4B849900139EBA /* DataFetcher.swift in Sources */,
+				80B858C02A4B849900139EBA /* HistoricalDataService.swift in Sources */,
 				80E587342A435BB700A380AA /* AppDelegate.swift in Sources */,
 				80B858BC2A4B849900139EBA /* BarData.swift in Sources */,
 				80B858C22A4B849900139EBA /* ChartElements.swift in Sources */,

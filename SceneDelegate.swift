@@ -62,7 +62,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
     }
 
-    func showWebView(urlString: String) {
+    public func showWebView(urlString: String) {
         webViewController.urlString = urlString
         tabBarController.selectedIndex = TabIndex.web.rawValue
     }
@@ -99,7 +99,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     /// Switch color scheme with darkMode when isOn == true
-    func darkMode(isOn: Bool) {
+    public func darkMode(isOn: Bool) {
         UserDefaults.standard.setValue(isOn, forKey: "darkMode")
 
         tabBarController.overrideUserInterfaceStyle = isOn ? .dark : .light

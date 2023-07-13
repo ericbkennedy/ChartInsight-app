@@ -14,10 +14,9 @@ public enum SectionType: Int, CaseIterable {
 }
 
 class SettingsViewController: UITableViewController, MFMailComposeViewControllerDelegate {
-
-    var delegate: WatchlistViewController?
-    var list: [Comparison] = []
-    let cellID = "settingsCell"
+    public var delegate: WatchlistViewController?
+    private var list: [Comparison] = []
+    private let cellID = "settingsCell"
 
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -155,7 +154,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
     }
 
     /// Mail compose modal must be dismissed explicitly by the delegate
-    func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+    public func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
         // Dismiss the mail compose view controller.
         controller.dismiss(animated: true, completion: nil)
     }

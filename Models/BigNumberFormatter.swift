@@ -10,7 +10,7 @@
 
 import Foundation
 
-class BigNumberFormatter: NumberFormatter {
+final class BigNumberFormatter: NumberFormatter {
 
     override func string(from number: NSNumber) -> String? {
         return super.string(from: number)
@@ -18,7 +18,7 @@ class BigNumberFormatter: NumberFormatter {
 
     // Format string for bars of financial metrics like revenue which can be in the billions
     // maxDigits < 4 will set maximumFractionDigits=0 and avoid showing decimal point
-    func string(number: NSDecimalNumber, maxDigits: Float) -> String? {
+    public func string(number: NSDecimalNumber, maxDigits: Float) -> String? {
 
         let thousand = NSDecimalNumber(mantissa: 1, exponent: 3, isNegative: false)
         let million = NSDecimalNumber(mantissa: 1, exponent: 6, isNegative: false)

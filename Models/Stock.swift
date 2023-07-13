@@ -2,6 +2,10 @@
 //  Stock.swift
 //  ChartInsight
 //
+//  Stock objects contain user settings for a stock comparison plus company info like ticker, name, startDate, hasFundamentals.
+//  When the user selects a new stock from AddStockController, comparisonStockId == 0 so DBActor knows to insert it into comparisonStock
+//  and return the insertedComparisonStockId. 
+//
 //  Created by Eric Kennedy on 6/19/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
@@ -13,28 +17,28 @@ enum ChartType: Int, CaseIterable {
     case ohlc, hlc, candle, close
 }
 
-class Stock: NSObject {
-    static let chartColors = [UIColor.init(red: 0, green: 0.6, blue: 0, alpha: 1.0), // green
-                              UIColor.init(red: 0, green: 0.6, blue: 1.0, alpha: 1.0), // blue
-                              UIColor.init(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0), // purple
-                              UIColor.init(red: 1.0, green: 0.8, blue: 0, alpha: 1.0), // yellow
-                              UIColor.init(red: 1.0, green: 0.6, blue: 0, alpha: 1.0), // orange
-                              UIColor.init(red: 0.6, green: 0.6, blue: 0.6, alpha: 1.0)] // gray
+struct Stock {
+    public static let chartColors = [UIColor.init(red: 0, green: 0.6, blue: 0, alpha: 1.0), // green
+                                     UIColor.init(red: 0, green: 0.6, blue: 1.0, alpha: 1.0), // blue
+                                     UIColor.init(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0), // purple
+                                     UIColor.init(red: 1.0, green: 0.8, blue: 0, alpha: 1.0), // yellow
+                                     UIColor.init(red: 1.0, green: 0.6, blue: 0, alpha: 1.0), // orange
+                                     UIColor.init(red: 0.6, green: 0.6, blue: 0.6, alpha: 1.0)] // gray
 
-    var id: Int = 0
-    var chartType: ChartType = .close
-    var comparisonStockId: Int = 0
-    var hasFundamentals: Bool = true
-    var color: UIColor = .red {
+    public var  id: Int = 0
+    public var  chartType: ChartType = .close
+    public var  comparisonStockId: Int = 0
+    public var  hasFundamentals: Bool = true
+    public var  color: UIColor = .red {
         willSet(newColor) {
             let (red, green, blue) = newColor.rgba
             colorHalfAlpha = UIColor.init(red: red, green: green, blue: blue, alpha: 0.5)
         }
     }
-    var colorHalfAlpha: UIColor = .init(red: 1, green: 0, blue: 0, alpha: 0.5)
-    var colorInverse: UIColor = .green
-    var colorInverseHalfAlpha: UIColor = .init(red: 0, green: 1, blue: 0, alpha: 0.5)
-    var upColor: UIColor = .init(red: 0, green: 0.6, blue: 0, alpha: 1) {
+    public var  colorHalfAlpha: UIColor = .init(red: 1, green: 0, blue: 0, alpha: 0.5)
+    public var  colorInverse: UIColor = .green
+    public var  colorInverseHalfAlpha: UIColor = .init(red: 0, green: 1, blue: 0, alpha: 0.5)
+    public var  upColor: UIColor = .init(red: 0, green: 0.6, blue: 0, alpha: 1) {
         willSet(newColor) {
             let (red, green, blue) = newColor.rgba
             upColorHalfAlpha = UIColor.init(red: red, green: green, blue: blue, alpha: 0.5)
@@ -42,15 +46,15 @@ class Stock: NSObject {
             colorInverseHalfAlpha = UIColor.init(red: 1 - red, green: 1 - green, blue: 1 - blue, alpha: 0.5)
         }
     }
-    var upColorHalfAlpha: UIColor = .init(red: 0, green: 0.6, blue: 0, alpha: 0.5)
-    var ticker: String = ""
-    var name: String = ""
-    var fundamentalList: String = ""
-    var technicalList: String = ""
-    var startDateString: String = "" // full text search returns a string value
-    var startDate: Date?             // converted from startDateString
+    public var  upColorHalfAlpha: UIColor = .init(red: 0, green: 0.6, blue: 0, alpha: 0.5)
+    public var  ticker: String = ""
+    public var  name: String = ""
+    public var  fundamentalList: String = ""
+    public var  technicalList: String = ""
+    public var  startDateString: String = "" // full text search returns a string value
+    public var  startDate: Date?             // converted from startDateString
 
-    override init() {
+    public init() {
         if let defaultChartType = ChartType(rawValue: UserDefaults.standard.integer(forKey: "chartTypeDefault")) {
             chartType = defaultChartType
         }
@@ -66,11 +70,9 @@ class Stock: NSObject {
         } else {
             fundamentalList = "CIRevenuePerShare,EarningsPerShareBasic,CINetCashFromOpsPerShare,"
         }
-
-        super.init()
     }
 
-    func setColorWith(hexString: String) {
+    public mutating func setColorWith(hexString: String) {
 
         if let upColor = UIColor.init(hex: hexString) {
             self.upColor = upColor
@@ -84,11 +86,11 @@ class Stock: NSObject {
         }
     }
 
-    func hexFromUpColor() -> String {
+    public func hexFromUpColor() -> String {
         return upColor.hexString
     }
 
-    func hasUpColor(otherColor: UIColor) -> Bool {
+    public func hasUpColor(otherColor: UIColor) -> Bool {
 
         if upColor.hexString == otherColor.hexString {
             return true
@@ -96,25 +98,25 @@ class Stock: NSObject {
         return false
     }
 
-    func addToFundamentals(_ metric: String) {
+    public mutating func addToFundamentals(_ metric: String) {
         if fundamentalList.contains(metric) == false {
             fundamentalList = fundamentalList.appending("\(metric),")
         }
     }
 
-    func removeFromFundamentals(_ metric: String) {
+    public mutating func removeFromFundamentals(_ metric: String) {
         if fundamentalList.contains(metric) {
             fundamentalList = fundamentalList.replacingOccurrences(of: "\(metric),", with: "")
         }
     }
 
-    func addToTechnicals(_ metric: String) {
+    public mutating func addToTechnicals(_ metric: String) {
         if technicalList.contains(metric) == false {
             technicalList = technicalList.appending("\(metric),")
         }
     }
 
-    func removeFromTechnicals(_ metric: String) {
+    public mutating func removeFromTechnicals(_ metric: String) {
         if technicalList.contains(metric) {
             technicalList = technicalList.replacingOccurrences(of: "\(metric),", with: "")
         }
