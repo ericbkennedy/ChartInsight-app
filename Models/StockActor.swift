@@ -33,7 +33,7 @@ actor StockActor: ServiceDelegate {
     private var xFactor: CGFloat // yFactor and yFloor are on chartElements
     private var barUnit: CGFloat
 
-    var ready = false // true if StockActor has been loaded, computed and copied into chartElements.
+    var ready = false // true after price data has been loaded and processed by computeChart into chartElements
     private var chartElements: ChartElements // caller must request a copy with copyChartElements()
     private var busy = false // true if it is currently recomputing tmp chart elements.
 
@@ -110,9 +110,11 @@ actor StockActor: ServiceDelegate {
     func serviceLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async {
         chartElements.fundamentalColumns = columns
         chartElements.fundamentalAlignments = alignments
-        updateFundamentalFetcherBarAlignment()
-        computeChart()
-        await delegate?.requestFinished(newPercentChange: percentChange)
+        if ready { // Only notify delegate after historicalDataService has completed and ready == true
+            updateFundamentalFetcherBarAlignment()
+            computeChart()
+            await delegate?.requestFinished(newPercentChange: percentChange)
+        }
     }
 
     /// Returns (BarData, yHigh, yLow) for bar under user's finger during long press
@@ -238,7 +240,7 @@ actor StockActor: ServiceDelegate {
     /// User panned ScrollChartView by barsShifted
     func shiftRedraw(_ barsShifted: Int, screenBarWidth: Int) async -> NSDecimalNumber {
         if oldestBarShown + barsShifted >= periodData.count {
-            print("oldestBarShown \(oldestBarShown) + barsShifted \(barsShifted) > \(periodData.count) barCount")
+            // no older bars available so return to caller
             return percentChange
         }
         oldestBarShown += barsShifted
@@ -323,30 +325,23 @@ actor StockActor: ServiceDelegate {
         }
     }
 
-    /// Return the number of bars at the newBarUnit scale to check if one stock in a comparison
+    /// Return tuple with number of bars at newBarUnit scale and currentOldestShown to check if one stock in a comparison
     /// will limit the date range that can be charted in the comparison
-    public func maxPeriodSupported(newBarUnit: CGFloat) -> Int {
+    public func maxPeriodSupported(newBarUnit: CGFloat, newXFactor: CGFloat) -> (Int, Int) {
+        xFactor = newXFactor * newBarUnit // caller tracks them separately to determine minimize bar width
         if newBarUnit != barUnit {
+            // Calculate new values for newestBarShown and oldestBarShown which may be reduced by maxPeriod
+            newestBarShown = Int(floor(CGFloat(newestBarShown) * barUnit / newBarUnit))
+            oldestBarShown = Int(floor(CGFloat(oldestBarShown) * barUnit / newBarUnit))
+            barUnit = newBarUnit
             updatePeriodDataByDayWeekOrMonth()
         }
-        return periodData.count
-    }
+        let maxPeriod = periodData.count - 1
 
-    /// Update data if necessary
-    public func updatePeriodData(barUnit: CGFloat, xFactor: CGFloat, maxPeriods: Int) {
-        if barUnit != self.barUnit {
-            self.newestBarShown = Int(floor(CGFloat(self.newestBarShown) * self.barUnit / barUnit))
-            self.oldestBarShown = Int(floor(CGFloat(self.oldestBarShown) * self.barUnit / barUnit))
-            self.barUnit = barUnit
-
-            self.updatePeriodDataByDayWeekOrMonth()
+        if oldestBarShown > maxPeriod {
+            oldestBarShown = maxPeriod
         }
-        self.xFactor = xFactor * barUnit // caller tracks them separately to determine minimize bar width
-
-        if self.oldestBarShown > maxPeriods {
-            self.oldestBarShown = maxPeriods
-        }
-        self.updateHighLow() // must be a separate call to handle shifting
+        return (maxPeriod, oldestBarShown)
     }
 
     /// User zoomed in or out so rescale dailyData by the updated barUnit
@@ -380,16 +375,11 @@ actor StockActor: ServiceDelegate {
             } else if newest.compare(apiNewest) == .orderedAscending { // case 2: Newer dates
                 newest = apiNewest
                 chartElements.lastPrice = NSDecimalNumber(value: newestBar.close)
-                if loadedData.count > dailyData.count {
-                    print("api is newer AND \(loadedData.count) > \(dailyData.count) so replacing dailyData with loadedData")
-                    dailyData = loadedData
-                } else {
-                    for (index, barData) in loadedData.enumerated() {
-                        if barData.dateIntFromBar() > dailyData[0].dateIntFromBar() {
-                            dailyData.insert(barData, at: index)
-                        } else {
-                            break // all newer dates have been added
-                        }
+                for (index, barData) in loadedData.enumerated() {
+                    if barData.dateIntFromBar() > dailyData[0].dateIntFromBar() {
+                        dailyData.insert(barData, at: index)
+                    } else {
+                        break // all newer dates have been added
                     }
                 }
             } else if oldest.compare(apiOldest) == .orderedDescending { // case 3: Older dates

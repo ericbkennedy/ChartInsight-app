@@ -291,7 +291,8 @@ class ChartOptionsController: UITableViewController {
     }
 
     /// User clicked on chartStyleControl to change the chart type
-    @objc func chartTypeChanged(to chartTypeIndex: Int) {
+    /// Returns the updated stock so caller can update its copy
+    func chartTypeChanged(to chartTypeIndex: Int) -> Stock {
         if let newChartType = ChartType(rawValue: chartTypeIndex) {
             stock.chartType = newChartType
             colorSegmentedControl.createSegments(for: newChartType)
@@ -300,21 +301,18 @@ class ChartOptionsController: UITableViewController {
                 await delegate?.redraw(stock: stock)
             }
         }
+        return stock
     }
 
     /// User clicked on chartStyleControl to change the chart color
-    @objc func chartColorChanged(to colorIndex: Int) {
-        if colorIndex == 0 {
-            stock.upColor = Stock.chartColors[0]
-            stock.color = UIColor.red
-        } else if colorIndex < Stock.chartColors.count {
-            stock.upColor = Stock.chartColors[colorIndex]
-            stock.color = stock.upColor
-        }
+    /// Returns the updated stock so caller can update its copy
+    public func chartColorChanged(to colorIndex: Int) -> Stock {
+        stock.setColors(upHexColor: ChartHexColor.allCases[colorIndex])
         tableView.reloadData()
         Task {
             await delegate?.redraw(stock: stock)
         }
+        return stock
     }
 
     /// User tapped "Add Financial Metric" button so present AddFundamentalController

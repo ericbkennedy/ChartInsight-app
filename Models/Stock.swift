@@ -13,18 +13,11 @@
 import Foundation
 import UIKit
 
-enum ChartType: Int, CaseIterable {
+public enum ChartType: Int, CaseIterable {
     case ohlc, hlc, candle, close
 }
 
 struct Stock {
-    public static let chartColors = [UIColor.init(red: 0, green: 0.6, blue: 0, alpha: 1.0), // green
-                                     UIColor.init(red: 0, green: 0.6, blue: 1.0, alpha: 1.0), // blue
-                                     UIColor.init(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0), // purple
-                                     UIColor.init(red: 1.0, green: 0.8, blue: 0, alpha: 1.0), // yellow
-                                     UIColor.init(red: 1.0, green: 0.6, blue: 0, alpha: 1.0), // orange
-                                     UIColor.init(red: 0.6, green: 0.6, blue: 0.6, alpha: 1.0)] // gray
-
     public var  id: Int = 0
     public var  chartType: ChartType = .close
     public var  comparisonStockId: Int = 0
@@ -38,7 +31,7 @@ struct Stock {
     public var  colorHalfAlpha: UIColor = .init(red: 1, green: 0, blue: 0, alpha: 0.5)
     public var  colorInverse: UIColor = .green
     public var  colorInverseHalfAlpha: UIColor = .init(red: 0, green: 1, blue: 0, alpha: 0.5)
-    public var  upColor: UIColor = .init(red: 0, green: 0.6, blue: 0, alpha: 1) {
+    public var  upColor: UIColor = ChartHexColor.greenAndRed.color() {
         willSet(newColor) {
             let (red, green, blue) = newColor.rgba
             upColorHalfAlpha = UIColor.init(red: red, green: green, blue: blue, alpha: 0.5)
@@ -72,27 +65,20 @@ struct Stock {
         }
     }
 
-    public mutating func setColorWith(hexString: String) {
+    /// Set the up color using provided ChartHexColor value and if that value is .greenAndRed then down color is .red
+    public mutating func setColors(upHexColor: ChartHexColor) {
 
-        if let upColor = UIColor.init(hex: hexString) {
-            self.upColor = upColor
-            if hexString == "009900" && chartType != .close {
-                color = .red // upColor is green so other bars should be red
-            } else {
-                color = upColor
-            }
+        upColor = upHexColor.color()
+        if upHexColor == .greenAndRed && chartType != .close {
+            color = .red // upColor is green so other bars should be red
         } else {
-            color = .red // default: when color == red, upColor is green
+            color = upColor
         }
     }
 
-    public func hexFromUpColor() -> String {
-        return upColor.hexString
-    }
+    public func hasUpColor(otherHexColor: ChartHexColor) -> Bool {
 
-    public func hasUpColor(otherColor: UIColor) -> Bool {
-
-        if upColor.hexString == otherColor.hexString {
+        if upColor.hexString == otherHexColor.rawValue {
             return true
         }
         return false

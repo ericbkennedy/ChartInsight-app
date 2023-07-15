@@ -319,7 +319,7 @@ import Foundation
         }
 
         for stock in comparison.stockList {
-            let hexColorUTF8     = NSString(string: stock.hexFromUpColor()).utf8String
+            let hexColorUTF8     = NSString(string: stock.upColor.hexString).utf8String
             let fundamentalsUTF8 = NSString(string: stock.fundamentalList).utf8String
             let technicalsUTF8   = NSString(string: stock.technicalList).utf8String
             if stock.comparisonStockId > 0 {
@@ -464,10 +464,10 @@ import Foundation
 
             let hexString = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.color.rawValue)))
 
-            if hexString != "" {
-                stock.setColorWith(hexString: hexString)
+            if hexString != "", let chartHexColor = ChartHexColor(rawValue: hexString) {
+                stock.setColors(upHexColor: chartHexColor)
             } else {
-                stock.setColorWith(hexString: "009900") // upColor = green, down = red
+                stock.setColors(upHexColor: .greenAndRed) // upColor = green, down = red
             }
 
             if stock.hasFundamentals && sqlite3_column_bytes(statement, Col.fundamentalList.rawValue) > 2 {

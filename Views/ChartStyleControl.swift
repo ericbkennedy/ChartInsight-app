@@ -29,15 +29,17 @@ final class ChartStyleControl: UIControl {
             }
         }
     }
-    private let stock: Stock
+    private var stock: Stock
     private let stackView = UIStackView(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
 
     @objc func tappedButton(button: UIButton) {
         selectedIndex = button.tag
-        if type == .color {
-            delegate?.chartColorChanged(to: selectedIndex)
-        } else {
-            delegate?.chartTypeChanged(to: selectedIndex)
+        if let delegate = delegate {
+            if type == .color {
+                stock = delegate.chartColorChanged(to: selectedIndex)
+            } else {
+                stock = delegate.chartTypeChanged(to: selectedIndex)
+            }
         }
     }
 
@@ -70,7 +72,7 @@ final class ChartStyleControl: UIControl {
         var images: [UIImage] = []
         if type == .chartType {
             for (index, chartType) in ChartType.allCases.enumerated() {
-                if let miniChart = image(chartType: chartType, colorIndex: 0, showLabel: true) {
+                if let miniChart = image(chartType: chartType, colorHex: .greenAndRed, showLabel: true) {
                     images.append(miniChart)
                 }
                 if stock.chartType == chartType {
@@ -78,11 +80,11 @@ final class ChartStyleControl: UIControl {
                 }
             }
         } else {
-            for (index, color) in Stock.chartColors.enumerated() {
-                if let miniChart = image(chartType: currentChartType, colorIndex: index) {
+            for (index, hexColor) in ChartHexColor.allCases.enumerated() {
+                if let miniChart = image(chartType: currentChartType, colorHex: hexColor) {
                     images.append(miniChart)
                 }
-                if stock.hasUpColor(otherColor: color) {
+                if stock.color.hexString == hexColor.rawValue {
                     selectedIndex = index
                 }
             }
@@ -117,11 +119,11 @@ final class ChartStyleControl: UIControl {
     }
 
     /// Mini stock chart image used to change current chart type or color
-    private func image(chartType: ChartType, colorIndex: Int, showLabel: Bool = false) -> UIImage? {
+    private func image(chartType: ChartType, colorHex: ChartHexColor, showLabel: Bool = false) -> UIImage? {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 36, height: 36))
         let img = renderer.image { ctx in
-            let upCGColor = Stock.chartColors[colorIndex].cgColor
-            let downCGColor = colorIndex > 0 ? upCGColor : UIColor.red.cgColor
+            let upCGColor = colorHex.color().cgColor
+            let downCGColor = colorHex == .greenAndRed ? UIColor.red.cgColor : upCGColor
             ctx.cgContext.setLineWidth(1)
             ctx.cgContext.setStrokeColor(upCGColor)
 

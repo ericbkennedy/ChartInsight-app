@@ -105,7 +105,7 @@ final class HistoricalDataService {
 
     public func fetchIntradayQuote() async {
         if isLoadingData {
-            print("loadingData = true so skipping Intraday fetch")
+            return
         } else if isRecent(lastOfflineError) {
             print("last offline error \(lastOfflineError) was too recent to try again %f",
                   Date().timeIntervalSince(lastOfflineError))
@@ -210,7 +210,6 @@ final class HistoricalDataService {
         requestNewest = Date()
 
         if isLoadingData {
-            print("load in progress, returning")
             return // since another request is in progress let it call the delegate methods when it finishes or fails
         }
         isLoadingData = true

@@ -243,7 +243,10 @@ struct ChartRenderer {
                 }
             }
 
-            let x = pxWidth - magnifierSize
+            var x = pxWidth
+            if stockChartElements.count == 1 { // Only 1 y axis doesn't leave enough room for Metric title so shift left by magniferSize
+                x -= magnifierSize
+            }
             chartText.append(string(Metrics.shared.title(for: key), at: CGPoint(x: x, y: yLabel), with: UIColor.systemGray))
 
             let minBarHeightForLabel: CGFloat = 25 // if fundamental bar is shorter then this, put metric value above the bar

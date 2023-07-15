@@ -183,7 +183,7 @@ class WatchlistViewController: UITableViewController {
 
         newHeight = newSize.height - statusBarHeight - 2 * toolbarHeight - padding - safeAreaInsets.bottom
 
-        if newHeight != height {
+        if newHeight != height || newWidth != width { // iPad multitasking only reduces the width
             width = newWidth
             height = newHeight
             return true
@@ -354,19 +354,17 @@ class WatchlistViewController: UITableViewController {
             var stock = stock
             if isNewComparison || scrollChartView.comparison.stockList.isEmpty {
                 await scrollChartView.updateComparison(newComparison: Comparison())
-                stock.upColor = Stock.chartColors[0] // lightGreen
-                stock.color = .red
+                stock.setColors(upHexColor: .greenAndRed)
             } else {
                 // Skip colors already used by other stocks in this comparison or use gray
-                var otherColors = Stock.chartColors
+                var otherColors = ChartHexColor.allCases
                 for otherStock in scrollChartView.comparison.stockList {
                     // end before lastIndex to always keep gray as an option
-                    for index in 0 ..< otherColors.count - 1 where otherStock.hasUpColor(otherColor: otherColors[index]) {
+                    for index in 0 ..< otherColors.count - 1 where otherStock.hasUpColor(otherHexColor: otherColors[index]) {
                         otherColors.remove(at: index)
                     }
                 }
-                stock.upColor = otherColors[0]
-                stock.color = otherColors[0]
+                stock.setColors(upHexColor: otherColors[0])
             }
 
             let updatedList = await scrollChartView.addToComparison(stock: stock)

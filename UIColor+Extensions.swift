@@ -8,9 +8,22 @@
 
 import Foundation
 
+public enum ChartHexColor: String, CaseIterable {
+    case greenAndRed = "009900" // green is the color for up bars, red will be added for down bars
+    case blue = "0099ff"
+    case purple = "cc99ff"
+    case yellow = "ffcc00"
+    case orange = "ff9900"
+    case gray = "999999"
+
+    func color() -> UIColor {
+        return UIColor.init(hex: self.rawValue)! // all values in the enum are valid UIColors
+    }
+}
+
 extension UIColor {
     /// RGBA tuple of a color's components
-    var rgba: (red: CGFloat, green: CGFloat, blue: CGFloat) {
+    public var rgba: (red: CGFloat, green: CGFloat, blue: CGFloat) {
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0
@@ -20,8 +33,7 @@ extension UIColor {
         return (red, green, blue)
     }
 
-    @objc
-    var hexString: String {
+    public var hexString: String {
         let (red, green, blue) = self.rgba
 
         // Multiply by 255 before UInt64 conversion to avoid round to zero

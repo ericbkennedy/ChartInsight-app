@@ -33,7 +33,6 @@ final class ScrollChartView: UIView, StockActorDelegate {
 
     private var stockActorList: [StockActor]
     private var chartPercentChange: NSDecimalNumber
-    private var isShowingOldestDate: Bool // used to avoid recomputing the chart once the oldest bar is shown
     private var sparklineKeys: [String]
     private var gregorian: Calendar
     private var lastNetworkErrorShown: Date
@@ -53,7 +52,6 @@ final class ScrollChartView: UIView, StockActorDelegate {
         gregorian.locale = .autoupdatingCurrent // required for monthName from .shortNameSymbols
 
         chartPercentChange = NSDecimalNumber.one
-        isShowingOldestDate = false
         sparklineKeys = []
         lastNetworkErrorShown = Date(timeIntervalSinceNow: -120) // ensure first error shows
         super.init(frame: frame)
@@ -135,19 +133,24 @@ final class ScrollChartView: UIView, StockActorDelegate {
 
     /// Add stock to existing comparison and saveToDB. Then set comparisonStockId = insertedComparisonStockId
     public func addToComparison(stock: Stock) async -> [Comparison] {
+        var (_, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
         comparison.stockList.append(stock)
+        // Adding a stock will add another y Axis and thus reduce maxBarOffset
         updateDimensions(axisCount: comparison.stockList.count)
+        if currentOldestShown > maxBarOffset() {
+            currentOldestShown = maxBarOffset()
+        }
 
         // Reduce oldestBarShown to reflect the space for the additional axis for the new stock
         for stockActor in stockActorList {
-            await stockActor.setOldestBarShown(maxBarOffset())
+            await stockActor.setOldestBarShown(currentOldestShown)
         }
 
         let (updatedList, insertedComparisonStockId) = await comparison.saveToDb()
         var updatedStock = stock
         updatedStock.comparisonStockId = insertedComparisonStockId
         comparison.stockList[comparison.stockList.count - 1] = updatedStock
-        let stockActor = StockActor(stock: updatedStock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset(),
+        let stockActor = StockActor(stock: updatedStock, gregorian: gregorian, delegate: self, oldestBarShown: currentOldestShown,
                                     barUnit: barUnit, xFactor: xFactor)
         stockActorList.append(stockActor)
         return updatedList
@@ -214,7 +217,6 @@ final class ScrollChartView: UIView, StockActorDelegate {
             let chartText = renderer.renderCharts(comparison: comparison, stockChartElements: stockChartElements)
 
             UIGraphicsPushContext(context) // required for textData.text.draw(at: withAttributes:)
-            context.setBlendMode(.plusLighter)
             for textData in chartText {
                 let textAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: textData.size),
                                       NSAttributedString.Key.foregroundColor: textData.color]
@@ -306,23 +308,34 @@ final class ScrollChartView: UIView, StockActorDelegate {
         setNeedsDisplay()
     }
 
-    /// Check if a stock has less price data available so the caller can limit all stocks to that shorter date range
-    /// Returns a tuple (maxSupportedPeriods, oldestBarShown)
-    public func maxSupportedPeriodsForComparison(newBarUnit: CGFloat) async -> (Int, Int) {
-        var maxSupportedPeriods = 0
-        var oldestBarShown = 0
+    /// Check if a stockActor has less price data available and update that actor's oldestBarShown to fit the periodLimit
+    /// Returns a tuple (periodLimit, limitOldestBarShown)
+    public func limitComparisonPeriod(barUnit: CGFloat, xFactor: CGFloat) async -> (Int, Int) {
+        var supportedPeriods = [Int]()
+        var oldestBarsShown = [Int]()
+        var stockOldestBarShown = [Int: Int]() // key = comparisonStockId, value = oldestBarShown
 
         for stockActor in stockActorList {
-            if oldestBarShown == 0 {
-                oldestBarShown = await stockActor.oldestBarShown
-            }
-            let periodCountAtNewScale = await stockActor.maxPeriodSupported(newBarUnit: newBarUnit)
-
-            if maxSupportedPeriods == 0 || maxSupportedPeriods > periodCountAtNewScale {
-                maxSupportedPeriods = periodCountAtNewScale
-            }
+            let (periodCount, oldestShown) = await stockActor.maxPeriodSupported(newBarUnit: barUnit, newXFactor: xFactor)
+            supportedPeriods.append(periodCount)
+            oldestBarsShown.append(oldestShown)
+            stockOldestBarShown[stockActor.comparisonStockId] = oldestShown
         }
-        return (maxSupportedPeriods, oldestBarShown)
+
+        let periodLimit = supportedPeriods.min() ?? 0
+        let limitOldestBarShown = oldestBarsShown.min() ?? 0
+
+        var stocksOverLimit = [Int]()
+
+        for (comparisonStockId, oldestShown) in stockOldestBarShown where oldestShown > periodLimit {
+            stocksOverLimit.append(comparisonStockId)
+        }
+
+        // Reduce oldestBarShown for only stocksOverLimit
+        for stockActor in stockActorList where stocksOverLimit.contains(stockActor.comparisonStockId) {
+            await stockActor.setOldestBarShown(limitOldestBarShown)
+        }
+        return (periodLimit, limitOldestBarShown)
     }
 
     /// Complete pinch/zoom transformation by rerendering the chart with the newScale
@@ -361,12 +374,12 @@ final class ScrollChartView: UIView, StockActorDelegate {
         scaleShift = 0.0
 
         Task {
-            // Check if a stock has less price data available and limit all stocks to that shorter date rangev
-            let (maxSupportedPeriods, currentOldestShown) = await maxSupportedPeriodsForComparison(newBarUnit: barUnit)
+            // Check if a stock has less price data available and limit all stocks to that shorter date range
+            let (periodLimit, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: newXfactor)
 
             if newXfactor == xFactor {
                 return // prevent strange pan when zoom hits max or min
-            } else if currentOldestShown + shiftBars > maxSupportedPeriods { // already at maxSupportedPeriods
+            } else if currentOldestShown + shiftBars > periodLimit { // already at periodLimit
                 shiftBars = 0
             }
 
@@ -374,8 +387,6 @@ final class ScrollChartView: UIView, StockActorDelegate {
             chartPercentChange = NSDecimalNumber.one
 
             for stockActor in stockActorList {
-                await stockActor.updatePeriodData(barUnit: barUnit, xFactor: xFactor, maxPeriods: maxSupportedPeriods)
-
                 let percentChange = await stockActor.shiftRedraw(shiftBars, screenBarWidth: maxBarOffset())
                 if percentChange.compare(chartPercentChange) == .orderedDescending {
                     chartPercentChange = percentChange
@@ -393,33 +404,10 @@ final class ScrollChartView: UIView, StockActorDelegate {
     public func updateMaxPercentChange(barsShifted: Int) {
 
         var percentChange = NSDecimalNumber.one
-        let minBarsShown = 20
-        var maxSupportedPeriods = 0, currentOldestShown = 0
         Task {
-            for stockActor in stockActorList {
-                let stockOldestBarShown = await stockActor.oldestBarShown
-                let stockNewestBarShown = await stockActor.newestBarShown
+            let (periodLimit, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
 
-                let stockMaxSupportedPeriods = await stockActor.maxPeriodSupported(newBarUnit: barUnit)
-                if maxSupportedPeriods == 0 || maxSupportedPeriods > stockMaxSupportedPeriods {
-                    maxSupportedPeriods = stockMaxSupportedPeriods // limit by stock with fewest periods available
-                }
-                if currentOldestShown == 0 {
-                    currentOldestShown = stockOldestBarShown
-                }
-
-                if barsShifted >= 0 { // users panning to older dates
-                    if currentOldestShown + barsShifted >= maxSupportedPeriods { // already at max
-                        isShowingOldestDate = true
-                        break
-                    } else if barsShifted < stockMaxSupportedPeriods - stockNewestBarShown {
-                        isShowingOldestDate = false
-                    }
-                } else if barsShifted < 0 && stockOldestBarShown - barsShifted > minBarsShown {
-                    isShowingOldestDate = false
-                }
-            }
-            if isShowingOldestDate {
+            if barsShifted >= 0 && currentOldestShown + barsShifted > periodLimit { // already at max
                 await renderCharts()
                 return
             }
@@ -493,12 +481,7 @@ final class ScrollChartView: UIView, StockActorDelegate {
 
             if stocksReady == stockActorList.count {
                 // Check if a stock has less price data available and limit all stocks to that shorter date range
-                let (maxSupportedPeriods, _) = await maxSupportedPeriodsForComparison(newBarUnit: barUnit)
-                if maxSupportedPeriods > 0 { // Avoid resizing after reload by StockChangeService
-                    for stockActor in stockActorList where await stockActor.oldestBarShown > maxSupportedPeriods {
-                        await stockActor.setOldestBarShown(maxSupportedPeriods)
-                    }
-                }
+                _ = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
                 await renderCharts()
                 progressIndicator?.stopAnimating()
             }
