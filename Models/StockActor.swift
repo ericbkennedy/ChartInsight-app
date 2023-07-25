@@ -16,17 +16,17 @@ import Foundation
 import UIKit
 
 protocol StockActorDelegate: AnyObject {
-    func showProgressIndicator()
-    func stopProgressIndicator()
-    func requestFailed(message: String)
-    func requestFinished(newPercentChange: NSDecimalNumber)
+    @MainActor func showProgressIndicator()
+    @MainActor func stopProgressIndicator()
+    @MainActor func requestFailed(message: String)
+    @MainActor func requestFinished(newPercentChange: NSDecimalNumber)
 }
 
 actor StockActor: ServiceDelegate {
     public let comparisonStockId: Int
     private var stock: Stock
     private let gregorian: Calendar
-    public weak var delegate: ScrollChartView?
+    public weak var delegate: StockActorDelegate?
 
     public var newestBarShown: Int
     public var oldestBarShown: Int
@@ -56,7 +56,7 @@ actor StockActor: ServiceDelegate {
     private var volumeBase: Double
     private var volumeHeight: Double
 
-    init(stock: Stock, gregorian: Calendar, delegate: ScrollChartView, oldestBarShown: Int, barUnit: CGFloat, xFactor: CGFloat) {
+    init(stock: Stock, gregorian: Calendar, delegate: StockActorDelegate, oldestBarShown: Int, barUnit: CGFloat, xFactor: CGFloat) {
         self.comparisonStockId = stock.comparisonStockId
         self.stock = stock
         self.gregorian = gregorian
@@ -75,22 +75,22 @@ actor StockActor: ServiceDelegate {
         historicalDataService = HistoricalDataService(for: stock, calendar: gregorian)
     }
 
-    func update(updatedStock: Stock) {
+    public func update(updatedStock: Stock) {
         guard stock.comparisonStockId == updatedStock.comparisonStockId else { return }
         stock = updatedStock
         chartElements.stock = updatedStock // required for updated chart options
     }
 
-    func setNewestBarShown(_ calculatedNewestBarShown: Int) {
+    public func setNewestBarShown(_ calculatedNewestBarShown: Int) {
         newestBarShown = max(0, calculatedNewestBarShown)
     }
 
-    func setOldestBarShown(_ calculatedOldestBarShown: Int) {
+    public func setOldestBarShown(_ calculatedOldestBarShown: Int) {
         oldestBarShown = max(0, calculatedOldestBarShown)
     }
 
     /// Request historical stock data price from DB and then remote server
-    func fetchPriceAndFundamentals() {
+    public func fetchPriceAndFundamentals() {
         historicalDataService.delegate = self
         historicalDataService.requestNewest = Date()
         historicalDataService.setRequestOldestWith(startString: stock.startDateString)
@@ -107,7 +107,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// FundamentalService calls StockActor with the columns parsed out of the API
-    func serviceLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async {
+    public func serviceLoadedFundamentals(columns: [String: [NSDecimalNumber]], alignments: [FundamentalAlignment]) async {
         chartElements.fundamentalColumns = columns
         chartElements.fundamentalAlignments = alignments
         if ready { // Only notify delegate after historicalDataService has completed and ready == true
@@ -118,7 +118,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Returns (BarData, yHigh, yLow) for bar under user's finger during long press
-    func bar(at index: Int) -> (BarData, CGFloat, CGFloat)? {
+    public func bar(at index: Int) -> (BarData, CGFloat, CGFloat)? {
         guard index >= 0 && index < periodData.count else { return nil }
         let bar = periodData[index]
         let yHigh = calcY(bar.high)
@@ -137,7 +137,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Will invalidate the NSURLSession used to fetch price data and clear references to trigger dealloc
-    func invalidateAndCancel() {
+    public func invalidateAndCancel() {
         // FundamentalService uses the sharedSession so don't invalidate it
         fundamentalService?.delegate = nil
         fundamentalService = nil // will trigger deinit on FundamentalService
@@ -147,7 +147,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Determine if moving averages are in the technicalList and if so compute them
-    func calculateMovingAverages() {
+    private func calculateMovingAverages() {
         sma50 = stock.technicalList.contains("sma50")
         sma200 = stock.technicalList.contains("sma200")
         bb20 = stock.technicalList.contains("bollingerBand")
@@ -182,14 +182,14 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Called after shiftRedraw shifts self.oldestBarShown and newestBarShown during scrolling
-    func updateHighLow() {
+    private func updateHighLow() {
         if periodData.count == 0 {
             return
         }
 
         if oldestBarShown <= 0 {
             print("Resetting oldestBarShown \(oldestBarShown) to MIN(50, \(periodData.count))")
-            oldestBarShown = min(50, periodData.count)
+            oldestBarShown = min(50, periodData.count - 1)
             newestBarShown = 0 // ensures newestBarShown < oldestBarShown in for loop
         } else if oldestBarShown >= periodData.count {
             oldestBarShown = periodData.count - 1
@@ -238,7 +238,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// User panned ScrollChartView by barsShifted
-    func shiftRedraw(_ barsShifted: Int, screenBarWidth: Int) async -> NSDecimalNumber {
+    public func shiftRedraw(_ barsShifted: Int, screenBarWidth: Int) async -> NSDecimalNumber {
         if oldestBarShown + barsShifted >= periodData.count {
             // no older bars available so return to caller
             return percentChange
@@ -305,7 +305,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// HistoricalDataService calls StockActor with intraday price data
-    func serviceLoadedIntradayBar(_ intradayBar: BarData) async {
+    public func serviceLoadedIntradayBar(_ intradayBar: BarData) async {
         if let apiNewest = historicalDataService?.date(from: intradayBar) {
             let dateDiff = apiNewest.timeIntervalSince(newest)
 
@@ -359,7 +359,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// HistoricalDataService calls StockActor with the array of historical price data
-    func serviceLoadedHistoricalData(_ loadedData: [BarData]) async {
+    public func serviceLoadedHistoricalData(_ loadedData: [BarData]) async {
         guard loadedData.count > 0 else { return }
         let newestBar = loadedData[0]
 
@@ -375,8 +375,9 @@ actor StockActor: ServiceDelegate {
             } else if newest.compare(apiNewest) == .orderedAscending { // case 2: Newer dates
                 newest = apiNewest
                 chartElements.lastPrice = NSDecimalNumber(value: newestBar.close)
+                let newestDailyDateIntPriorToInsert = dailyData[0].dateIntFromBar()
                 for (index, barData) in loadedData.enumerated() {
-                    if barData.dateIntFromBar() > dailyData[0].dateIntFromBar() {
+                    if barData.dateIntFromBar() > newestDailyDateIntPriorToInsert {
                         dailyData.insert(barData, at: index)
                     } else {
                         break // all newer dates have been added
@@ -402,7 +403,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Calculate chartElements from periodData (which may point to dailyData or be a grouped version of it)
-    func computeChart() {
+    public func computeChart() {
         ready = false
         var xRaw: CGFloat = xFactor / 2
         var oldestClose: Double = 0, oldestValidBar: Int = 0
@@ -435,7 +436,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Completes computing ChartElements after computeChart sets oldestValidBar, oldestClose and xRaw
-    func computeChartElements(from oldestValidBar: Int, oldestClose: Double, xRaw: CGFloat) {
+    private func computeChartElements(from oldestValidBar: Int, oldestClose: Double, xRaw: CGFloat) {
         var oldestClose = oldestClose
         var xRaw = xRaw
         let volumeFactor = maxVolume/volumeHeight
@@ -566,7 +567,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Computes fundamental bar pixel alignment after computeChart sets oldestValidBar and xRaw
-    func computeFundamentalBarPixelAlignments(from oldestValidBar: Int, xRaw: CGFloat) {
+    private func computeFundamentalBarPixelAlignments(from oldestValidBar: Int, xRaw: CGFloat) {
         if chartElements.fundamentalAlignments.isEmpty == false {
 
             var oldestReport = chartElements.fundamentalAlignments.count - 1
@@ -617,7 +618,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Create a copy of the values mutated on a background thread by computeChart for use by ChartRenderer on the mainThread
-    func copyChartElements() -> ChartElements {
+    public func copyChartElements() -> ChartElements {
         return chartElements
     }
 }

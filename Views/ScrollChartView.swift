@@ -131,9 +131,12 @@ final class ScrollChartView: UIView, StockActorDelegate {
         return updatedList
     }
 
-    /// Add stock to existing comparison and saveToDB. Then set comparisonStockId = insertedComparisonStockId
+    /// Add stock to comparison (which can be a new empty one) and saveToDB. Then set comparisonStockId = insertedComparisonStockId
     public func addToComparison(stock: Stock) async -> [Comparison] {
-        var (_, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
+        var currentOldestShown = maxBarOffset() // fill scrollChartView with bars unless a stock has fewer available
+        if comparison.stockList.isEmpty == false {
+            (_, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
+        }
         comparison.stockList.append(stock)
         // Adding a stock will add another y Axis and thus reduce maxBarOffset
         updateDimensions(axisCount: comparison.stockList.count)

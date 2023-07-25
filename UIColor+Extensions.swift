@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 public enum ChartHexColor: String, CaseIterable {
     case greenAndRed = "009900" // green is the color for up bars, red will be added for down bars
