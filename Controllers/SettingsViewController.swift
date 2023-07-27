@@ -149,8 +149,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
 
         composeVC.setMessageBody(messageBody, isHTML: false)
 
-        // Present the view controller modally.
-        navigationController?.present(composeVC, animated: true)
+        show(composeVC, sender: self)
     }
 
     /// Mail compose modal must be dismissed explicitly by the delegate

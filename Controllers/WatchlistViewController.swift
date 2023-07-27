@@ -498,7 +498,7 @@ class WatchlistViewController: UITableViewController {
         popOverNav.modalPresentationStyle = .popover
         popOverNav.popoverPresentationController?.sourceView = view
         popOverNav.popoverPresentationController?.barButtonItem = button
-        present(popOverNav, animated: true)
+        show(popOverNav, sender: self)
     }
 
     /// remove the topmost iPhone UIViewController or iPad UIPopoverController

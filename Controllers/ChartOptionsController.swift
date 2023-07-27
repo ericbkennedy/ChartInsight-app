@@ -334,6 +334,6 @@ class ChartOptionsController: UITableViewController {
             otherMetrics.append(availableMetrics)
         }
         addFundamentalController.metrics = otherMetrics
-        navigationController?.pushViewController(addFundamentalController, animated: true)
+        show(addFundamentalController, sender: self)
     }
 }
