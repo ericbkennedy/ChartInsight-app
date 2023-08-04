@@ -19,6 +19,12 @@
 		80278A762A4CE3240051CFBE /* ScrollChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A752A4CE3240051CFBE /* ScrollChartView.swift */; };
 		80278A792A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */; };
 		802E48D52A46278B00D02E8F /* WatchlistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802E48D42A46278B00D02E8F /* WatchlistViewController.swift */; };
+		8096A45A2A7C633400F5FA88 /* ScrollChartViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8096A4592A7C633400F5FA88 /* ScrollChartViewModel.swift */; };
+		8096A45B2A7C633400F5FA88 /* ScrollChartViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8096A4592A7C633400F5FA88 /* ScrollChartViewModel.swift */; };
+		8096A45C2A7C640000F5FA88 /* WatchlistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802E48D42A46278B00D02E8F /* WatchlistViewController.swift */; };
+		8096A45D2A7C646200F5FA88 /* ScrollChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A752A4CE3240051CFBE /* ScrollChartView.swift */; };
+		8096A4642A7C6DAA00F5FA88 /* ChartRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */; };
+		8096A4662A7C6DFD00F5FA88 /* Mocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8096A4652A7C6DFD00F5FA88 /* Mocks.swift */; };
 		8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */; };
 		8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB112A422FB4003E11E0 /* SettingsViewController.swift */; };
 		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
@@ -48,7 +54,6 @@
 		80B966AE2A706BC7003DB7C8 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 80B966AD2A706BC7003DB7C8 /* UIKit.framework */; };
 		80B966B02A706BE5003DB7C8 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 80B966AF2A706BE5003DB7C8 /* Foundation.framework */; };
 		80B966B52A706E99003DB7C8 /* UIColor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */; };
-		80B966B92A707123003DB7C8 /* MockDBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B966B82A707123003DB7C8 /* MockDBActor.swift */; };
 		80D3DB792A55C2B000E063B9 /* StockChangeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D3DB782A55C2B000E063B9 /* StockChangeService.swift */; };
 		80D3DB7A2A55C2B000E063B9 /* StockChangeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D3DB782A55C2B000E063B9 /* StockChangeService.swift */; };
 		80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */; };
@@ -56,6 +61,9 @@
 		80E586EE2A433E6100A380AA /* ProgressIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E586ED2A433E6100A380AA /* ProgressIndicator.swift */; };
 		80E587332A435BB700A380AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E587322A435BB700A380AA /* AppDelegate.swift */; };
 		80E587362A435DE800A380AA /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E587352A435DE800A380AA /* SceneDelegate.swift */; };
+		80EA06632A7C8217009FED8E /* WatchlistViewControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80EA06622A7C8217009FED8E /* WatchlistViewControllerTests.swift */; };
+		80EA06652A7C839B009FED8E /* DBActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B858A82A4B849900139EBA /* DBActor.swift */; };
+		80EA06672A7C8B8B009FED8E /* UIViewController+TestHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80EA06662A7C8B8B009FED8E /* UIViewController+TestHelper.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +92,8 @@
 		80278A752A4CE3240051CFBE /* ScrollChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollChartView.swift; sourceTree = "<group>"; };
 		80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderer.swift; sourceTree = "<group>"; };
 		802E48D42A46278B00D02E8F /* WatchlistViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistViewController.swift; sourceTree = "<group>"; };
+		8096A4592A7C633400F5FA88 /* ScrollChartViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollChartViewModel.swift; sourceTree = "<group>"; };
+		8096A4652A7C6DFD00F5FA88 /* Mocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mocks.swift; sourceTree = "<group>"; };
 		8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extensions.swift"; sourceTree = "<group>"; };
 		8097DB112A422FB4003E11E0 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
@@ -104,7 +114,6 @@
 		80B966AD2A706BC7003DB7C8 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk/System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		80B966AF2A706BE5003DB7C8 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		80B966B12A706C9A003DB7C8 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk/usr/lib/libsqlite3.tbd; sourceTree = DEVELOPER_DIR; };
-		80B966B82A707123003DB7C8 /* MockDBActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDBActor.swift; sourceTree = "<group>"; };
 		80D3DB782A55C2B000E063B9 /* StockChangeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockChangeService.swift; sourceTree = "<group>"; };
 		80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsight-Bridging-Header.h"; sourceTree = "<group>"; };
 		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -113,6 +122,10 @@
 		80E586ED2A433E6100A380AA /* ProgressIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressIndicator.swift; sourceTree = "<group>"; };
 		80E587322A435BB700A380AA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		80E587352A435DE800A380AA /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		80EA06612A7C77A5009FED8E /* TestPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestPlan.xctestplan; sourceTree = "<group>"; };
+		80EA06622A7C8217009FED8E /* WatchlistViewControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistViewControllerTests.swift; sourceTree = "<group>"; };
+		80EA06642A7C831E009FED8E /* ChartInsightTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsightTests-Bridging-Header.h"; sourceTree = "<group>"; };
+		80EA06662A7C8B8B009FED8E /* UIViewController+TestHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "UIViewController+TestHelper.swift"; path = "Helpers/UIViewController+TestHelper.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -170,6 +183,7 @@
 				80E587352A435DE800A380AA /* SceneDelegate.swift */,
 				80B858A62A4B849900139EBA /* Models */,
 				809576F02A2A8EB300766030 /* Views */,
+				8096A4582A7C631500F5FA88 /* ViewModels */,
 				0B1BD527183C33B800EE97D1 /* Controllers */,
 				0B16DB4329BC1C2B00FCA714 /* Data */,
 				0B42BC2D1C420C8100139C33 /* LaunchScreen.storyboard */,
@@ -216,6 +230,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		8096A4582A7C631500F5FA88 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				8096A4592A7C633400F5FA88 /* ScrollChartViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
 		80B858A62A4B849900139EBA /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -237,10 +259,14 @@
 		80D5B9E92A294F2100314733 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */,
-				80B966A92A70630B003DB7C8 /* StockActorTests.swift */,
+				80EA06612A7C77A5009FED8E /* TestPlan.xctestplan */,
 				80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */,
-				80B966B82A707123003DB7C8 /* MockDBActor.swift */,
+				80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */,
+				8096A4652A7C6DFD00F5FA88 /* Mocks.swift */,
+				80B966A92A70630B003DB7C8 /* StockActorTests.swift */,
+				80EA06662A7C8B8B009FED8E /* UIViewController+TestHelper.swift */,
+				80EA06622A7C8217009FED8E /* WatchlistViewControllerTests.swift */,
+				80EA06642A7C831E009FED8E /* ChartInsightTests-Bridging-Header.h */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -385,6 +411,7 @@
 				80B858BF2A4B849900139EBA /* HistoricalDataService.swift in Sources */,
 				80B858B32A4B849900139EBA /* DBActor.swift in Sources */,
 				80AA23252A4902EB004F95F0 /* ChartOptionsController.swift in Sources */,
+				8096A45A2A7C633400F5FA88 /* ScrollChartViewModel.swift in Sources */,
 				80278A762A4CE3240051CFBE /* ScrollChartView.swift in Sources */,
 				80D3DB792A55C2B000E063B9 /* StockChangeService.swift in Sources */,
 				80ACF8C92A4F361B001A1D7B /* Metrics.swift in Sources */,
@@ -405,20 +432,27 @@
 			buildActionMask = 2147483647;
 			files = (
 				80B966B52A706E99003DB7C8 /* UIColor+Extensions.swift in Sources */,
-				80B966B92A707123003DB7C8 /* MockDBActor.swift in Sources */,
+				8096A45B2A7C633400F5FA88 /* ScrollChartViewModel.swift in Sources */,
 				80D3DB7A2A55C2B000E063B9 /* StockChangeService.swift in Sources */,
 				80B966AA2A70630B003DB7C8 /* StockActorTests.swift in Sources */,
+				80EA06652A7C839B009FED8E /* DBActor.swift in Sources */,
 				80B858B62A4B849900139EBA /* FundamentalService.swift in Sources */,
 				80B858C02A4B849900139EBA /* HistoricalDataService.swift in Sources */,
 				80B858BC2A4B849900139EBA /* BarData.swift in Sources */,
+				8096A45D2A7C646200F5FA88 /* ScrollChartView.swift in Sources */,
 				80B858C22A4B849900139EBA /* ChartElements.swift in Sources */,
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
 				80B858C52A4BEC0200139EBA /* StockActor.swift in Sources */,
 				80B858B82A4B849900139EBA /* Comparison.swift in Sources */,
 				80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */,
+				8096A45C2A7C640000F5FA88 /* WatchlistViewController.swift in Sources */,
 				80ACF8CA2A4F361B001A1D7B /* Metrics.swift in Sources */,
+				80EA06672A7C8B8B009FED8E /* UIViewController+TestHelper.swift in Sources */,
+				80EA06632A7C8217009FED8E /* WatchlistViewControllerTests.swift in Sources */,
 				80B858BE2A4B849900139EBA /* BigNumberFormatter.swift in Sources */,
+				8096A4642A7C6DAA00F5FA88 /* ChartRenderer.swift in Sources */,
 				80B858BA2A4B849900139EBA /* Stock.swift in Sources */,
+				8096A4662A7C6DFD00F5FA88 /* Mocks.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -608,6 +642,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Tests/ChartInsightTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -644,6 +679,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Tests/ChartInsightTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

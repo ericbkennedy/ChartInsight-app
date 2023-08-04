@@ -12,6 +12,7 @@
 //
 
 import Foundation
+import UIKit
 
 class WatchlistViewController: UITableViewController {
     var progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: 320, height: 4))

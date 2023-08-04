@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "73B7B5A3-51C3-42C0-89AA-F1A928B5263B",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:ChartInsight.xcodeproj",
+      "identifier" : "0BB7F51C183C31B90040F1C6",
+      "name" : "ChartInsight"
+    },
+    "uiTestingScreenshotsLifetime" : "keepNever"
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ChartInsight.xcodeproj",
+        "identifier" : "80D5B9E72A294F2100314733",
+        "name" : "ChartInsightTests"
+      }
+    }
+  ],
+  "version" : 1
+}
