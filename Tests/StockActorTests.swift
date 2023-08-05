@@ -25,6 +25,7 @@ final class StockActorTests: XCTestCase {
 
     private var stock = Stock()
     private var stockActor: StockActor!
+    private var scrollChartViewModel = ScrollChartViewModel(contentsScale: 3.0)
     private let dayBarUnit = 1.0
     private let defaultXFactor = 7.5
 
@@ -33,7 +34,12 @@ final class StockActorTests: XCTestCase {
         stock = Stock.testAAPL()
         let calendar = Calendar(identifier: .gregorian)
 
-        stockActor = StockActor(stock: stock, gregorian: calendar, delegate: self, oldestBarShown: 13, barUnit: dayBarUnit, xFactor: defaultXFactor)
+        stockActor = StockActor(stock: stock,
+                                gregorian: calendar,
+                                delegate: scrollChartViewModel,
+                                oldestBarShown: 13,
+                                barUnit: dayBarUnit,
+                                xFactor: defaultXFactor)
     }
 
     override func tearDownWithError() throws {
@@ -54,30 +60,11 @@ final class StockActorTests: XCTestCase {
         XCTAssert(periodCount == 3656)
 
         // Now simulate loading additional dates via the HistoricalDataService
-        barDataArray = await DBActor.shared.loadBarData(for: 1, startDateInt: 20090102, beforeDateInt: 20230726)
+        barDataArray = await DBActor.shared.loadBarData(for: 1, startDateInt: 20090102, beforeDateInt: 20230723)
         await stockActor.serviceLoadedHistoricalData(barDataArray)
 
         (periodCount, _) = await stockActor.maxPeriodSupported(newBarUnit: dayBarUnit, newXFactor: defaultXFactor)
 
-        XCTAssert(periodCount == 3662)
-    }
-
-}
-
-extension StockActorTests: StockActorDelegate {
-    @MainActor func showProgressIndicator() {
-        print("showProgressIndicator")
-    }
-
-    @MainActor func stopProgressIndicator() {
-        print("stopProgressIndicator")
-    }
-
-    @MainActor func requestFailed(message: String) {
-        print("requestFailed with \(message)")
-    }
-
-    @MainActor func requestFinished(newPercentChange: NSDecimalNumber) {
-        print("requestFinished with \(newPercentChange)")
+        XCTAssert(periodCount == 3661)
     }
 }

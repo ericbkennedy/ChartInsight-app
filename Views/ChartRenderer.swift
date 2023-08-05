@@ -120,7 +120,7 @@ struct ChartRenderer {
 
             avoidLabel = chartElements.lastPrice
             let minSpace: CGFloat = 20 // Skip any label within this distance of the avoidLabel value
-            let x = pxWidth + (CGFloat(index) + 0.15) * 30 * contentsScale
+            let x = pxWidth + (CGFloat(index) + 0.15) * axisWidth * contentsScale
 
             if minSpace < abs(chartElements.yFactor * chartElements.maxHigh.subtracting(chartElements.lastPrice).doubleValue) {
                 // lastPrice is lower than maxHigh

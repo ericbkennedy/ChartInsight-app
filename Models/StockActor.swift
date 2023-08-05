@@ -16,10 +16,10 @@ import Foundation
 import UIKit
 
 protocol StockActorDelegate: AnyObject {
-    @MainActor func showProgressIndicator()
-    @MainActor func stopProgressIndicator()
+    @MainActor func requestStarted()
+    @MainActor func requestCanceled()
     @MainActor func requestFailed(message: String)
-    @MainActor func requestFinished(newPercentChange: NSDecimalNumber)
+    @MainActor func requestFinished(newPercentChange: NSDecimalNumber) async
 }
 
 actor StockActor: ServiceDelegate {
@@ -257,7 +257,7 @@ actor StockActor: ServiceDelegate {
                 await fetcher.fetchIntradayQuote()
             } else if fetcher.shouldFetchNextClose() {
                 busy = true
-                await delegate?.showProgressIndicator()
+                await delegate?.requestStarted()
                 fetcher.fetchNewerThanDate(currentNewest: newest)
             }
         }
@@ -295,7 +295,7 @@ actor StockActor: ServiceDelegate {
     /// HistoricalDataService has an active download that must be allowed to finish or fail before accepting an additional request
     public func serviceCanceled() async {
         busy = false
-        await delegate?.stopProgressIndicator()
+        await delegate?.requestCanceled()
     }
 
     /// HistoricalDataService failed downloading historical data or intraday data
@@ -471,7 +471,7 @@ actor StockActor: ServiceDelegate {
             lastMonth = periodData[index].month
 
             if stock.chartType == .ohlc || stock.chartType == .hlc {
-                if oldestClose > periodData[index].close { // green bar
+                if periodData[index].open > periodData[index].close { // red bar, see AMZN 8/4/23
                     if stock.chartType == .ohlc { // include open
                         chartElements.redPoints.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: calcY(periodData[index].open)),
                                                                     CGPoint(x: barCenter, y: calcY(periodData[index].open))])
@@ -480,7 +480,7 @@ actor StockActor: ServiceDelegate {
                                                                 CGPoint(x: barCenter, y: calcY(periodData[index].low)),
                                                                 CGPoint(x: barCenter, y: calcY(periodData[index].close)),
                                                                 CGPoint(x: barCenter + xFactor/2, y: calcY(periodData[index].close))])
-                } else { // red bar
+                } else { // green bar
                     if stock.chartType == .ohlc { // include open
                         chartElements.points.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: calcY(periodData[index].open)),
                                                                  CGPoint(x: barCenter, y: calcY(periodData[index].open))])
