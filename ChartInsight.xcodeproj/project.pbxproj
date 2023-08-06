@@ -97,6 +97,7 @@
 		8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extensions.swift"; sourceTree = "<group>"; };
 		8097DB112A422FB4003E11E0 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
+		80A101252A7EB03A00C5AECC /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		80A48AA32A49F686001E5E04 /* ChartStyleControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartStyleControl.swift; sourceTree = "<group>"; };
 		80AA23242A4902EB004F95F0 /* ChartOptionsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartOptionsController.swift; sourceTree = "<group>"; };
 		80ACF8C82A4F361B001A1D7B /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
@@ -177,6 +178,7 @@
 		0BB7F514183C31B90040F1C6 = {
 			isa = PBXGroup;
 			children = (
+				80A101252A7EB03A00C5AECC /* README.md */,
 				0B42BC381C420CB600139C33 /* Images.xcassets */,
 				80D5B9E12A292F9700314733 /* ChartInsight-Bridging-Header.h */,
 				80E587322A435BB700A380AA /* AppDelegate.swift */,

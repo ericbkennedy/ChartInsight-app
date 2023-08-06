@@ -8,13 +8,12 @@
 
 import Foundation
 
-let sections = ["Income Statement", "Cash Flow", "Balance Sheet"]
+final class AddFundamentalController: UITableViewController {
 
-class AddFundamentalController: UITableViewController {
-
-    var delegate: ChartOptionsController?
-    var metrics: [[[String]]] = [] // set by ChartOptionsController
-    let cellID = "metricCell"
+    public weak var delegate: ChartOptionsController?
+    public var metrics: [[[String]]] = [] // set by ChartOptionsController
+    private let sections = ["Income Statement", "Cash Flow", "Balance Sheet"]
+    private let cellID = "metricCell"
 
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)

@@ -34,7 +34,7 @@ class WatchlistViewController: UITableViewController {
     private var pinchCount: CGFloat = 0
     private var pinchMidpointSum: CGFloat = 0
 
-    private var popOverNav = UINavigationController() // nav within popover
+    private var popOverNav: UINavigationController? // nav within popover
     private var doubleTapRecognizer = UITapGestureRecognizer()
     private var longPressRecognizer = UILongPressGestureRecognizer()
     private var panGestureRecognizer = UIPanGestureRecognizer()
@@ -203,8 +203,8 @@ class WatchlistViewController: UITableViewController {
                               * delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit))
         scrollChartViewModel.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
         scrollChartView.bounds = CGRect(x: 0, y: 0, width: width, height: height) // isNewFrameSize calculated height
-        scrollChartView.resize()
-        scrollChartViewModel.resize()
+        let (pxWidth, pxHeight) = scrollChartView.resize()
+        scrollChartViewModel.resize(pxWidth: pxWidth, pxHeight: pxHeight)
 
         // ProgressIndicator doesn't resize by changing the frame property so create a new instance
         progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: width - tableViewWidthVisible, height: 4))
@@ -499,15 +499,18 @@ class WatchlistViewController: UITableViewController {
     private func popoverPush(viewController: UIViewController, from button: UIBarButtonItem) {
         popOverNav = UINavigationController(rootViewController: viewController)
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
-        popOverNav.overrideUserInterfaceStyle = isDarkMode ? .dark : .light
-        popOverNav.modalPresentationStyle = .popover
-        popOverNav.popoverPresentationController?.sourceView = view
-        popOverNav.popoverPresentationController?.barButtonItem = button
-        show(popOverNav, sender: self)
+        if let popOver = popOverNav {
+            popOver.overrideUserInterfaceStyle = isDarkMode ? .dark : .light
+            popOver.modalPresentationStyle = .popover
+            popOver.popoverPresentationController?.sourceView = view
+            popOver.popoverPresentationController?.barButtonItem = button
+            show(popOver, sender: self)
+        }
     }
 
     /// remove the topmost iPhone UIViewController or iPad UIPopoverController
     @objc func dismissPopover() {
-        popOverNav.dismiss(animated: true)
+        popOverNav?.dismiss(animated: true)
+        popOverNav = nil // ARC will release the UINavigationController and its child view controllers
     }
 }

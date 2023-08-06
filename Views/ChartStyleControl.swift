@@ -16,7 +16,7 @@ enum ChartStyleControlType {
 }
 
 final class ChartStyleControl: UIControl {
-    public var delegate: ChartOptionsController?
+    public weak var delegate: ChartOptionsController?
     public var type: ChartStyleControlType
     public var currentChartType: ChartType = .hlc
     public var buttons: [UIButton] = []

@@ -23,25 +23,13 @@ final class ScrollChartView: UIView {
     private var maxWidth: CGFloat
     private var scaleShift: CGFloat
     private var scaledWidth: CGFloat
-    private var sparklineHeight: CGFloat
     private var svHeight: CGFloat
     private var layerRef: CGLayer?
     private var chartRenderer: ChartRenderer?
 
-    private var chartPercentChange: NSDecimalNumber
-    private var sparklineKeys: [String]
-    private var lastNetworkErrorShown: Date
-
     init(viewModel: ScrollChartViewModel) {
-        scaleShift = 0
-
-        (maxWidth, scaleShift, scaledWidth, sparklineHeight, svWidth, svHeight) = (0, 0, 0, 0, 0, 0)
-
+        (maxWidth, scaleShift, scaledWidth, svWidth, svHeight) = (0, 0, 0, 0, 0)
         self.viewModel = viewModel
-
-        chartPercentChange = NSDecimalNumber.one
-        sparklineKeys = []
-        lastNetworkErrorShown = Date(timeIntervalSinceNow: -120) // ensure first error shows
         super.init(frame: .zero)
         bindToViewModel()
     }
@@ -53,43 +41,34 @@ final class ScrollChartView: UIView {
     // MARK: - ViewModel
     /// Set closures on ViewModel to run when the VM gets updated
     private func bindToViewModel() {
-        self.viewModel.didUpdate = { [weak self] in
-            self?.viewModelDidUpdate()
+        viewModel.didBeginRequest = { [weak self] in
+            self?.progressIndicator?.startAnimating()
         }
-        self.viewModel.didError = { [weak self] errorMessage in
-            print(errorMessage)
+        viewModel.didCancel = { [weak self] in
+            self?.progressIndicator?.stopAnimating()
+        }
+        viewModel.didUpdate = { [weak self] chartElements in
+            self?.renderCharts(stockChartElements: chartElements)
+            self?.progressIndicator?.stopAnimating()
+        }
+        viewModel.didError = { [weak self] errorMessage in
             self?.progressIndicator?.stopAnimating()
         }
     }
 
-    @MainActor private func viewModelDidUpdate() {
-        Task {
-            await renderCharts()
-            progressIndicator?.stopAnimating()
-        }
-    }
-
-    /// Adjusts _svWidth chart area to allow one right axis per stock
-    public func updateDimensions(axisCount: Int = 1) {
-        svHeight = bounds.size.height
-        maxWidth = bounds.size.width
-        scaledWidth = maxWidth
-        svWidth = maxWidth - layer.position.x - padding
-        viewModel.pxWidth = layer.contentsScale * svWidth
-        viewModel.pxHeight = layer.contentsScale * svHeight
-    }
-
+    /// Create off-screen image context and ChartRenderer
     private func createLayerContext() {
         UIGraphicsBeginImageContextWithOptions(bounds.size, true, layer.contentsScale)
         if let currentContext = UIGraphicsGetCurrentContext() {
             layerRef = CGLayer(currentContext,
-                               size: CGSize(width: layer.contentsScale * maxWidth, height: viewModel.pxHeight), auxiliaryInfo: nil)
+                               size: CGSize(width: layer.contentsScale * maxWidth,
+                                            height: layer.contentsScale * svHeight), auxiliaryInfo: nil)
             UIGraphicsEndImageContext()
             if let layerRef = layerRef {
                 chartRenderer = ChartRenderer(layerRef: layerRef, contentsScale: layer.contentsScale,
                                               xFactor: viewModel.xFactor,
                                               barUnit: viewModel.barUnit,
-                                              pxWidth: viewModel.pxWidth - viewModel.axisPadding)
+                                              pxWidth: layer.contentsScale * svWidth - viewModel.axisPadding)
             }
         }
     }
@@ -108,13 +87,12 @@ final class ScrollChartView: UIView {
     /// Use ChartRenderer to render the charts in an offscreen CGContext and return a list of the chartText to render via UIGraphicsPushContext
     /// Apple deprecated the CoreGraphics function for rendering text with a specified CGContext so it is necessary
     /// to use UIGraphicsPushContext(context) to render text in the offscreen layerRef.context
-    private func renderCharts() async {
+    private func renderCharts(stockChartElements: [ChartElements]) {
         if var renderer = chartRenderer, let context = layerRef?.context {
             renderer.barUnit = viewModel.barUnit
             renderer.xFactor = viewModel.xFactor
             renderer.pxWidth = viewModel.pxWidth - viewModel.axisPadding
 
-            let stockChartElements = await viewModel.copyChartElements()
             let chartText = renderer.renderCharts(comparison: viewModel.comparison, stockChartElements: stockChartElements)
 
             UIGraphicsPushContext(context) // required for textData.text.draw(at: withAttributes:)
@@ -204,8 +182,12 @@ final class ScrollChartView: UIView {
     }
 
     /// Create rendering context to match scrollChartViews.bounds. Called on initial load and after rotation
-    public func resize() {
-        updateDimensions()
+    @MainActor public func resize() -> (Double, Double) {
+        svHeight = bounds.size.height
+        maxWidth = bounds.size.width
+        scaledWidth = maxWidth
+        svWidth = maxWidth - layer.position.x - padding
         createLayerContext()
+        return (svWidth * layer.contentsScale, svHeight * layer.contentsScale)
     }
 }

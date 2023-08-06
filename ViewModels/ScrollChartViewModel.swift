@@ -18,9 +18,11 @@ final class ScrollChartViewModel: StockActorDelegate {
     public var barUnit: Double // days per bar (1 = daily, 5 = weekly, > 5 = monthly)
     public var xFactor: Double // determines width of each bar
     public var contentsScale: Double
-    public var pxWidth: Double
-    public var pxHeight: Double
-    public var maxBarOffset: Int {
+    // iPad rotation and split view resizing will change pxWidth on the MainActor
+    // so only MainActor should get and set these to avoid a data race
+    @MainActor public var pxWidth: Double
+    @MainActor public var pxHeight: Double
+    @MainActor public var maxBarOffset: Int {
         Int(floor((pxWidth - axisPadding)/(xFactor * barUnit)))
     }
 
@@ -28,7 +30,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     public var didBeginRequest: (@MainActor () -> Void)?
     public var didCancel: (@MainActor () -> Void)?
     public var didError: (@MainActor (String) -> Void)?
-    public var didUpdate: (@MainActor () -> Void)?
+    public var didUpdate: (@MainActor ([ChartElements]) -> Void)?
 
     private(set) var comparison: Comparison // use await updateComparison(comparison:) to change
 
@@ -54,14 +56,17 @@ final class ScrollChartViewModel: StockActorDelegate {
         gregorian.locale = .autoupdatingCurrent // required for monthName from .shortNameSymbols
     }
 
+    /// A StockActor started a network request
     public func requestStarted() {
         didBeginRequest?()
     }
 
+    /// A StockActor canceled the latest request because its HistoricalDataService already has a request in progress
     public func requestCanceled() {
         didCancel?()
     }
 
+    /// A StockActor failed to fetch new price or fundamental data
     public func requestFailed(message: String) {
         didError?(message)
     }
@@ -83,7 +88,7 @@ final class ScrollChartViewModel: StockActorDelegate {
         if stocksReady == stockActorList.count {
             // Check if a stock has less price data available and limit all stocks to that shorter date range
             _ = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
-            didUpdate?()
+            didUpdate?(await copyChartElements())
         }
     }
 
@@ -130,7 +135,7 @@ final class ScrollChartViewModel: StockActorDelegate {
             await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
             await stockActor.recompute(chartPercentChange, forceRecompute: true)
         }
-        await didUpdate?()
+        await didUpdate?(await copyChartElements())
     }
 
     /// Check if a stockActor has less price data available and update that actor's oldestBarShown to fit the periodLimit
@@ -164,7 +169,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     }
 
     /// Remove stock from current comparison and return updated list of all comparisons
-    public func removeFromComparison(stock: Stock) async -> [Comparison] {
+    @MainActor public func removeFromComparison(stock: Stock) async -> [Comparison] {
         if comparison.stockList.count == 1 {
             print("Error: delete the entire comparison instead of calling removeFromComparison")
         }
@@ -180,7 +185,7 @@ final class ScrollChartViewModel: StockActorDelegate {
 
     /// Update the stockActor for the stock provided so the next render will use the updated chart options
     /// Returns the list of all stock comparisons
-    public func updateComparison(stock: Stock) async -> [Comparison] {
+    @MainActor public func updateComparison(stock: Stock) async -> [Comparison] {
         for index in 0 ..< comparison.stockList.count where comparison.stockList[index].comparisonStockId == stock.comparisonStockId {
             comparison.stockList[index] = stock
         }
@@ -194,7 +199,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     }
 
     /// Add stock to comparison (which can be a new empty one) and saveToDB. Then set comparisonStockId = insertedComparisonStockId
-    public func addToComparison(stock: Stock) async -> [Comparison] {
+    @MainActor public func addToComparison(stock: Stock) async -> [Comparison] {
         var currentOldestShown = maxBarOffset // fill scrollChartView with bars unless a stock has fewer available
         if comparison.stockList.isEmpty == false {
             (_, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
@@ -226,7 +231,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     /// Note addToComparison(stock:) should be used to add a single stock to the current comparison
     /// and removeFromComparison(stock:) should be used to delete a single stock from a multi-stock comparison.
     ///  Returns the updated list of all stock comparisons
-    public func updateComparison(newComparison: Comparison) async {
+    @MainActor public func updateComparison(newComparison: Comparison) async {
         axisCount = newComparison.stockList.count // must be set before creating StockActors
 
         if newComparison.id != comparison.id {
@@ -255,7 +260,9 @@ final class ScrollChartViewModel: StockActorDelegate {
     }
 
     /// Update stockActor list with new size
-    public func resize() {
+    @MainActor public func resize(pxWidth: Double, pxHeight: Double) {
+        self.pxWidth = pxWidth
+        self.pxHeight = pxHeight
         guard stockActorList.isEmpty == false else { return }
         Task {
             for stockActor in stockActorList {
@@ -267,32 +274,33 @@ final class ScrollChartViewModel: StockActorDelegate {
     }
 
     /// Determine range of chart
-    public func updateMaxPercentChange(barsShifted: Int) {
+    @MainActor public func updateMaxPercentChange(barsShifted: Int) {
         Task {
             var percentChange = NSDecimalNumber.one
             let (periodLimit, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
 
             if barsShifted >= 0 && currentOldestShown + barsShifted > periodLimit { // already at max
-                await didUpdate?()
+                didUpdate?(await copyChartElements())
                 return
             }
-            chartPercentChange = NSDecimalNumber.one // reduce to minimum chart scale to find new max percentChange
+            var newChartPercentChange = NSDecimalNumber.one // reduce to minimum chart scale to find new max percentChange
             for stockActor in stockActorList {
                 percentChange = await stockActor.shiftRedraw(barsShifted, screenBarWidth: maxBarOffset)
-                if percentChange.compare(chartPercentChange) == .orderedDescending {
-                    chartPercentChange = percentChange
+                if percentChange.compare(newChartPercentChange) == .orderedDescending {
+                    newChartPercentChange = percentChange
                 }
             }
+            chartPercentChange = newChartPercentChange
             for stockActor in stockActorList {
-                await stockActor.recompute(chartPercentChange, forceRecompute: false)
+                await stockActor.recompute(newChartPercentChange, forceRecompute: false)
             }
-            await didUpdate?()
+            didUpdate?(await copyChartElements())
         }
     }
 
     /// Complete pinch/zoom transformation by rerendering the chart with the newScale
     /// Uses scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
-    public func scaleChart(newScale: Double, pxShift: Double) {
+    @MainActor public func scaleChart(newScale: Double, pxShift: Double) {
         var newXfactor = xFactor * newScale
 
         // Keep xFactor (width of bars) and barUnit (number of days per bar) separate
