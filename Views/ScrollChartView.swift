@@ -106,7 +106,7 @@ final class ScrollChartView: UIView {
         }
     }
 
-    /// Draw the offscreen layerContext into the context for this view
+    /// Draw the offscreen layerRef CGLayer into the context for this view
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
 
@@ -167,7 +167,7 @@ final class ScrollChartView: UIView {
         setNeedsDisplay()
     }
 
-    /// Returns scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
+    /// Returns scaleShift set by scaleChartImage(_:withCenter:) so the rendered chart matches the temporary transformation
     public func getPxShiftAndResetLayer() -> Double {
         if let layerRef {
             // clearing the layer context before renderCharts provides a better animation

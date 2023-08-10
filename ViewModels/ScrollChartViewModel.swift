@@ -299,7 +299,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     }
 
     /// Complete pinch/zoom transformation by rerendering the chart with the newScale
-    /// Uses scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
+    /// Uses scaleShift set by scaleChartImage(_:withCenter:) so the rendered chart matches the temporary transformation
     @MainActor public func scaleChart(newScale: Double, pxShift: Double) {
         var newXfactor = xFactor * newScale
 

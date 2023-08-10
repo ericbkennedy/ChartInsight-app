@@ -4,9 +4,9 @@
 //
 //  Uses HistoricalDataService and FundamentalService to fetch price and fundamental data.
 //  After ServiceDelegate methods are called, StockActor computes ChartElements for all of the returned data
-//  and notifies its delegate (ScrollChartView) that it is ready.
-//  ScrollChartView calls copyChartElements() to get a thread-safe copy it can render while
-//  StockActor is free to update its own copy (in tmp) as new data loads.
+//  and calls requestFinished(newPercentChange:) on its delegate (ScrollChartViewModel).
+//  ScrollChartViewModel calls copyChartElements() to get a thread-safe copy for the ChartRenderer
+//  so StockActor is free to update its own private chartElements as new intraday data loads.
 //
 //  Created by Eric Kennedy on 6/27/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.

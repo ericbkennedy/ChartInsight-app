@@ -2,9 +2,9 @@
 //  ChartElements.swift
 //  ChartInsight
 //
-//  StockActor computes the elements for one stock and ScrollChartView renders all chart elements.
+//  StockActor computes the elements for one stock and ChartRenderer renders all chart elements.
 //  The user can trigger recomputation while panning or zooming so it is important to only
-//  provide ScrollChartView with copies of the chart elements after computation.
+//  provide the ChartRenderer with copies of the chart elements after computation.
 //
 //  Created by Eric Kennedy on 6/27/23.
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
@@ -14,96 +14,32 @@ import Foundation
 
 struct ChartElements {
     public var stock: Stock
-    public var monthLabels: [String]
-    public var monthLines: [CGPoint]
+    public var monthLabels: [String] = []
+    public var monthLines: [CGPoint] = []
     // Fundamental reports
-    public var oldestReportInView: Int
-    public var newestReportInView: Int
-    public var fundamentalColumns: [String: [NSDecimalNumber]]
-    public var fundamentalAlignments: [FundamentalAlignment]
-    public var points: [CGPoint]
-    public var redPoints: [CGPoint]
-    public var yFactor: CGFloat
-    public var yFloor: CGFloat
-    public var maxHigh: NSDecimalNumber
-    public var minLow: NSDecimalNumber
-    public var scaledLow: NSDecimalNumber
-    public var lastPrice: NSDecimalNumber
-    public var movingAvg1: [CGPoint]
-    public var movingAvg2: [CGPoint]
-    public var upperBollingerBand: [CGPoint]
-    public var middleBollingerBand: [CGPoint]
-    public var lowerBollingerBand: [CGPoint]
-    public var greenBars: [CGRect]
-    public var filledGreenBars: [CGRect]
-    public var hollowRedBars: [CGRect]
-    public var redBars: [CGRect]
-    public var redVolume: [CGRect]
-    public var blackVolume: [CGRect]
-
-    init(stock: Stock) {
-        self.init(stock: stock,
-                  monthLabels: [],
-                  monthLines: [],
-                  oldestReportInView: 0,
-                  newestReportInView: 0,
-                  fundamentalColumns: [:],
-                  fundamentalAlignments: [],
-                  points: [],
-                  redPoints: [],
-                  yFactor: 0.0,
-                  yFloor: 0.0,
-                  maxHigh: NSDecimalNumber.one,
-                  minLow: NSDecimalNumber.zero,
-                  scaledLow: NSDecimalNumber.zero,
-                  lastPrice: NSDecimalNumber.one,
-                  movingAvg1: [],
-                  movingAvg2: [],
-                  upperBollingerBand: [],
-                  middleBollingerBand: [],
-                  lowerBollingerBand: [],
-                  greenBars: [],
-                  filledGreenBars: [],
-                  hollowRedBars: [],
-                  redBars: [],
-                  redVolume: [],
-                  blackVolume: [])
-    }
-
-    init(stock: Stock, monthLabels: [String], monthLines: [CGPoint], oldestReportInView: Int, newestReportInView: Int,
-         fundamentalColumns: [String: [NSDecimalNumber]], fundamentalAlignments: [FundamentalAlignment],
-         points: [CGPoint], redPoints: [CGPoint], yFactor: CGFloat, yFloor: CGFloat,
-         maxHigh: NSDecimalNumber, minLow: NSDecimalNumber, scaledLow: NSDecimalNumber, lastPrice: NSDecimalNumber,
-         movingAvg1: [CGPoint], movingAvg2: [CGPoint], upperBollingerBand: [CGPoint], middleBollingerBand: [CGPoint],
-         lowerBollingerBand: [CGPoint], greenBars: [CGRect], filledGreenBars: [CGRect], hollowRedBars: [CGRect],
-         redBars: [CGRect], redVolume: [CGRect], blackVolume: [CGRect]) {
-        self.stock = stock
-        self.monthLabels = monthLabels
-        self.monthLines = monthLines
-        self.oldestReportInView = oldestReportInView
-        self.newestReportInView = newestReportInView
-        self.fundamentalColumns = fundamentalColumns
-        self.fundamentalAlignments = fundamentalAlignments
-        self.points = points
-        self.redPoints = redPoints
-        self.yFactor = yFactor
-        self.yFloor = yFloor
-        self.maxHigh = maxHigh
-        self.minLow = minLow
-        self.scaledLow = scaledLow
-        self.lastPrice = lastPrice
-        self.movingAvg1 = movingAvg1
-        self.movingAvg2 = movingAvg2
-        self.upperBollingerBand = upperBollingerBand
-        self.middleBollingerBand = middleBollingerBand
-        self.lowerBollingerBand = lowerBollingerBand
-        self.greenBars = greenBars
-        self.filledGreenBars = filledGreenBars
-        self.hollowRedBars = hollowRedBars
-        self.redBars = redBars
-        self.redVolume = redVolume
-        self.blackVolume = blackVolume
-    }
+    public var oldestReportInView: Int = 0
+    public var newestReportInView: Int = 0
+    public var fundamentalColumns: [String: [NSDecimalNumber]] = [:]
+    public var fundamentalAlignments: [FundamentalAlignment] = []
+    public var points: [CGPoint] = []
+    public var redPoints: [CGPoint] = []
+    public var yFactor: CGFloat = 0.0
+    public var yFloor: CGFloat = 0.0
+    public var maxHigh: NSDecimalNumber = .one
+    public var minLow: NSDecimalNumber = .zero
+    public var scaledLow: NSDecimalNumber = .zero
+    public var lastPrice: NSDecimalNumber = .one
+    public var movingAvg1: [CGPoint] = []
+    public var movingAvg2: [CGPoint] = []
+    public var upperBollingerBand: [CGPoint] = []
+    public var middleBollingerBand: [CGPoint] = []
+    public var lowerBollingerBand: [CGPoint] = []
+    public var greenBars: [CGRect] = []
+    public var filledGreenBars: [CGRect] = []
+    public var hollowRedBars: [CGRect] = []
+    public var redBars: [CGRect] = []
+    public var redVolume: [CGRect] = []
+    public var blackVolume: [CGRect] = []
 
     /// Center a stroked line in the center of a pixel.  Point value can be 0.25, 0.333, 0.5, 0.666, or 0.75
     /// bitmap graphics always use pixel context, so they always have alignTo=0.5
@@ -175,6 +111,6 @@ struct ChartElements {
            report < metricValues.count {
             return metricValues[report]
         }
-        return NSDecimalNumber.notANumber // ScrollChartView will skip it
+        return NSDecimalNumber.notANumber // ChartRenderer will skip it
     }
 }

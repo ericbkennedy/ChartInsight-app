@@ -274,7 +274,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
         }
     }
 
-    /// User panned to change the chart dates. Calculate shift in date bars shown and tell scrollChartView to redraw the chart.
+    /// User panned to change the chart dates. Calculate shift in date bars shown and tell scrollChartViewModel to recompute the chart.
     @objc func handlePan(recognizer: UIPanGestureRecognizer) {
         recognizer.cancelsTouchesInView = true
         var deltaBars: Int = 0
@@ -296,8 +296,8 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
         }
     }
 
-    /// While the user is pinching the chart, have scrollChartView.resizeChartImage() horizontally
-    /// When the gesture ends, have scrollChartView redraw the chart with the new scale.
+    /// While the user is pinching the chart, scrollChartView.scaleChartImage(_:withCenter:) will scale horizontally.
+    /// When the gesture ends, have scrollChartViewModel recompute the ChartElements with the new scale.
     @objc func handlePinch(recognizer: UIPinchGestureRecognizer) {
         recognizer.cancelsTouchesInView = true
         let pinchMidpoint = recognizer.location(in: view).x - scrollChartView.layer.position.x - padding
