@@ -43,9 +43,9 @@ final class AddStockController: UITableViewController {
 final class ChartOptionsController: UITableViewController {
     public var sparklineKeys: [String] = []
     public var stock: Stock
-    private weak var delegate: WatchlistViewController?
+    private weak var delegate: ChartOptionsDelegate?
 
-    public init(stock: Stock, delegate: WatchlistViewController?) {
+    public init(stock: Stock, delegate: ChartOptionsDelegate?) {
         self.stock = stock
         self.delegate = delegate
         super.init(style: .plain)

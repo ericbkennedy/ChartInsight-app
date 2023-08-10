@@ -11,7 +11,7 @@ import Foundation
 class ChartOptionsController: UITableViewController {
     public var sparklineKeys: [String] = []
     public var stock: Stock
-    private weak var delegate: WatchlistViewController?
+    private weak var delegate: ChartOptionsDelegate?
     private enum SectionType: Int {
         case chartType, chartColor, financials, technicals, setDefaults
     }
@@ -32,8 +32,8 @@ class ChartOptionsController: UITableViewController {
     private var listedMetricKeys: [String] = []
     private var listedMetricsEnabled: [Bool] = [] // parallel array to preseve sort
 
-    /// Desiginated initializer set stock and delegate to avoid optional values
-    public init(stock: Stock, delegate: WatchlistViewController) {
+    /// Desiginated initializer sets stock and delegate
+    public init(stock: Stock, delegate: ChartOptionsDelegate?) {
         self.stock = stock
         self.delegate = delegate
         typeSegmentedControl = ChartStyleControl(type: .chartType, frame: segmentFrame, stock: stock)
@@ -45,7 +45,7 @@ class ChartOptionsController: UITableViewController {
 
     ///  Initializer required by parent class for use with storyboards
     required convenience init?(coder aDecoder: NSCoder) {
-        self.init(stock: Stock(), delegate: WatchlistViewController())
+        self.init(stock: Stock(), delegate: nil)
     }
 
     override func viewDidLoad() {

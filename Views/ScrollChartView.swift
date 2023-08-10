@@ -51,7 +51,7 @@ final class ScrollChartView: UIView {
             self?.renderCharts(stockChartElements: chartElements)
             self?.progressIndicator?.stopAnimating()
         }
-        viewModel.didError = { [weak self] errorMessage in
+        viewModel.didError = { [weak self] _ in
             self?.progressIndicator?.stopAnimating()
         }
     }
@@ -64,7 +64,7 @@ final class ScrollChartView: UIView {
                                size: CGSize(width: layer.contentsScale * maxWidth,
                                             height: layer.contentsScale * svHeight), auxiliaryInfo: nil)
             UIGraphicsEndImageContext()
-            if let layerRef = layerRef {
+            if let layerRef {
                 chartRenderer = ChartRenderer(layerRef: layerRef, contentsScale: layer.contentsScale,
                                               xFactor: viewModel.xFactor,
                                               barUnit: viewModel.barUnit,
@@ -76,7 +76,7 @@ final class ScrollChartView: UIView {
     /// Clear prior render before resizing the chart to avoid odd animation
     public func clearChart() {
         progressIndicator?.reset()
-        if let layerRef = layerRef {
+        if let layerRef {
             layerRef.context?.clear(CGRect(x: 0, y: 0,
                                            width: layerRef.size.width,
                                            height: layerRef.size.height))
@@ -112,7 +112,7 @@ final class ScrollChartView: UIView {
 
         ctx.setFillColor(UIColor.systemBackground.cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: layer.contentsScale * maxWidth, height: viewModel.pxHeight + 5))
-        if let layerRef = layerRef {
+        if let layerRef {
              ctx.draw(layerRef, in: CGRect(x: 5 + scaleShift, y: 5, width: scaledWidth, height: svHeight))
         }
 
@@ -169,7 +169,7 @@ final class ScrollChartView: UIView {
 
     /// Returns scaleShift set by resizeChartImage so the rendered chart matches the temporary transformation
     public func getPxShiftAndResetLayer() -> Double {
-        if let layerRef = layerRef {
+        if let layerRef {
             // clearing the layer context before renderCharts provides a better animation
             layerRef.context?.clear(CGRect(x: 0, y: 0,
                                            width: layerRef.size.width,

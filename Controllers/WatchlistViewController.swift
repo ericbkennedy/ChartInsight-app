@@ -14,7 +14,19 @@
 import Foundation
 import UIKit
 
-class WatchlistViewController: UITableViewController {
+protocol ChartOptionsDelegate: AnyObject {
+    func deleteStock(_ stock: Stock)
+    func redraw(stock: Stock) async
+    func reload(stock: Stock) async
+    func dismissPopover()
+}
+
+protocol WebViewDelegate: AnyObject {
+    func load(comparisonToChart: Comparison)
+    func insert(stock: Stock, isNewComparison: Bool)
+}
+
+class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebViewDelegate {
     var progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: 320, height: 4))
     var magnifier = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
 

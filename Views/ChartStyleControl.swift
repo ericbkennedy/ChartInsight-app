@@ -34,7 +34,7 @@ final class ChartStyleControl: UIControl {
 
     @objc func tappedButton(button: UIButton) {
         selectedIndex = button.tag
-        if let delegate = delegate {
+        if let delegate {
             if type == .color {
                 stock = delegate.chartColorChanged(to: selectedIndex)
             } else {
