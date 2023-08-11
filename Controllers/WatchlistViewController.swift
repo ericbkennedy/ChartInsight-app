@@ -27,7 +27,7 @@ protocol WebViewDelegate: AnyObject {
 }
 
 class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebViewDelegate {
-    var progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: 320, height: 4))
+    var progressIndicator: ProgressIndicator?
     var magnifier = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
 
     enum ZPosition: CGFloat {
@@ -164,7 +164,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
     /// Called when app first loads (with listIndex == 0) or when user taps a tableView row
     private func loadComparison(listIndex: Int) {
         scrollChartView.clearChart()
-        progressIndicator.startAnimating()
+        progressIndicator?.startAnimating()
         Task {
             let comparison = list[listIndex]
             await scrollChartViewModel.updateComparison(newComparison: comparison)
@@ -220,9 +220,11 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
 
         // ProgressIndicator doesn't resize by changing the frame property so create a new instance
         progressIndicator = ProgressIndicator(frame: CGRect(x: 0, y: 0, width: width - tableViewWidthVisible, height: 4))
-        progressIndicator.layer.zPosition = ZPosition.progressIndicator.rawValue
-        scrollChartView.addSubview(progressIndicator)
-        scrollChartView.progressIndicator = progressIndicator
+        if let progressIndicator {
+            progressIndicator.layer.zPosition = ZPosition.progressIndicator.rawValue
+            scrollChartView.addSubview(progressIndicator)
+            scrollChartView.progressIndicator = progressIndicator
+        }
     }
 
     /// Device rotated (supported only on iPad) so update width and height properties and resize subviews

@@ -88,6 +88,7 @@
 		0BB7F522183C31B90040F1C6 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		0BB7F524183C31B90040F1C6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		0BB7F539183C31B90040F1C6 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		800A802E2A85B87900A75634 /* app-core-objects.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = "app-core-objects.svg"; sourceTree = "<group>"; };
 		801191872A42734B001C6ADD /* AddFundamentalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundamentalController.swift; sourceTree = "<group>"; };
 		80278A752A4CE3240051CFBE /* ScrollChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollChartView.swift; sourceTree = "<group>"; };
 		80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderer.swift; sourceTree = "<group>"; };
@@ -156,6 +157,7 @@
 		0B16DB4329BC1C2B00FCA714 /* Data */ = {
 			isa = PBXGroup;
 			children = (
+				800A802E2A85B87900A75634 /* app-core-objects.svg */,
 				0B42BC321C420C8100139C33 /* metrics.plist */,
 				0B42BC301C420C8100139C33 /* charts.db */,
 			);

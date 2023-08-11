@@ -6,6 +6,8 @@ This app was originally created in 2012 for the first retina iPad and was rewrit
 
 ## App Structure
 
+![ChartInsight iOS app core objects](./Data/app-core-objects.svg)
+
 WatchlistViewController manages the list of stocks and forwards the result of pinch and pan gestures to the ScrollChartViewModel to scale the chart data. 
 
 Concurrent updates to historical and intraday price data from the HistoricalDataService is handled for each stock by a StockActor for multi core thread safety. StockActors accept GAAP financial data from the FundamentalService and then notify the ScrollChartViewModel via a requestFinished(newPercentChange:) delegate method. 

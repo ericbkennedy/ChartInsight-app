@@ -84,7 +84,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // Hide magnified chart and invalidate any progressIndicator.timer
         watchlistViewController.magnifier.isHidden = true
-        watchlistViewController.progressIndicator.timer?.invalidate()
+        watchlistViewController.progressIndicator?.timer?.invalidate()
     }
 
     func sceneWillEnterForeground(_ scene: UIScene) {
