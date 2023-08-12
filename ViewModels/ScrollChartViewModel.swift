@@ -253,8 +253,6 @@ final class ScrollChartViewModel: StockActorDelegate {
         sparklineKeys = comparison.sparklineKeys()
         sparklineHeight = Double(100 * comparison.sparklineKeys().count)
 
-        didBeginRequest?() // Notifies View to start the progressIndicator
-
         for stockActor in stockActorList {
             await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
             await stockActor.fetchPriceAndFundamentals()

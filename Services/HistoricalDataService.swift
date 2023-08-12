@@ -201,7 +201,7 @@ final class HistoricalDataService {
     }
 
     /// StockActor will call this with currentNewest date (or .distantPast) if self.nextClose is today or in the past
-    public func fetchNewerThanDate(currentNewest: Date) {
+    public func fetchNewerThanDate(currentNewest: Date) async {
 
         if currentNewest.compare(.distantPast) == .orderedDescending {
             requestOldest = getNextTradingDateAfter(date: currentNewest)
@@ -220,36 +220,34 @@ final class HistoricalDataService {
 
         let oldestDateInt = dateInt(from: requestOldest)
 
-        Task {
-            fetchedData = await DBActor.shared.loadBarData(for: stockId, startDateInt: oldestDateInt)
+        fetchedData = await DBActor.shared.loadBarData(for: stockId, startDateInt: oldestDateInt)
 
-            barsFromDB = fetchedData.count
-            if barsFromDB > 0 {
-                lastClose = date(from: fetchedData[0])
-                requestOldest = lastClose
+        barsFromDB = fetchedData.count
+        if barsFromDB > 0 {
+            lastClose = date(from: fetchedData[0])
+            requestOldest = lastClose
 
-                if requestNewest.timeIntervalSince(nextClose) >= dayInSeconds { // need to contact server
-                    requestOldest = nextClose // skip dates loaded from DB
-                    requestNewest = Date()
-                }
-                // send values loaded from DB
-                await historicalDataLoaded(barDataArray: fetchedData)
+            if requestNewest.timeIntervalSince(nextClose) >= dayInSeconds { // need to contact server
+                requestOldest = nextClose // skip dates loaded from DB
+                requestNewest = Date()
             }
+            // send values loaded from DB
+            await historicalDataLoaded(barDataArray: fetchedData)
+        }
 
-            if isRecent(lastOfflineError) {
-                print("lastOfflineError \(lastOfflineError) was too recent to try again")
-                await cancelDownload()
-            } else if Date().compare(nextClose) == .orderedDescending {
-                guard let url = formatRequestURL() else { return }
+        if isRecent(lastOfflineError) {
+            print("lastOfflineError \(lastOfflineError) was too recent to try again")
+            await cancelDownload()
+        } else if Date().compare(nextClose) == .orderedDescending {
+            guard let url = formatRequestURL() else { return }
 
-                do {
-                    try await fetchDailyData(from: url)
-                } catch {
-                    lastOfflineError = Date()
-                    print("Error occurred: \(error.localizedDescription)")
-                    if fetchedData.isEmpty == false { // send what we have
-                        await historicalDataLoaded(barDataArray: fetchedData)
-                    }
+            do {
+                try await fetchDailyData(from: url)
+            } catch {
+                lastOfflineError = Date()
+                print("Error occurred: \(error.localizedDescription)")
+                if fetchedData.isEmpty == false { // send what we have
+                    await historicalDataLoaded(barDataArray: fetchedData)
                 }
             }
         }

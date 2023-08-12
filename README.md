@@ -4,8 +4,6 @@
 
 This app was originally created in 2012 for the first retina iPad and was rewritten from Objective-C to Swift. While most financial apps require cumbersome drop-downs to adjust date ranges, this app supports intuitive zooming and panning. Easily zoom between daily, weekly and monthly charts. The financial data for the app is parsed from XML filings from the Security and Exchange Commission and is provided as-is with no warranty.
 
-## App Structure
-
 ![ChartInsight iOS app core objects](./Data/app-core-objects.svg)
 
 WatchlistViewController manages the list of stocks and forwards the result of pinch and pan gestures to the ScrollChartViewModel to scale the chart data. 

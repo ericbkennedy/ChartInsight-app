@@ -27,28 +27,21 @@ public struct FundamentalAlignment {
 final class FundamentalService {
     public weak var delegate: StockActor?
     private let ticker: String
+    private var url: URL?
 
     init(for stock: Stock, delegate: StockActor) {
         ticker = stock.ticker
         self.delegate = delegate
-
-        if let url = formatRequestURL(keys: stock.fundamentalList) {
-            Task { [weak self] in
-                do {
-                    try await self?.fetch(from: url)
-                } catch {
-                    print("Error \(error)")
-                }
-            }
-        }
+        formatRequestURL(keys: stock.fundamentalList)
     }
 
-    private func formatRequestURL(keys: String) -> URL? {
+    private func formatRequestURL(keys: String) {
         let urlString = "https://chartinsight.com/api/fundamentalTSV/\(ticker)/\(keys)?&token=\(apiKey)"
-        return URL(string: urlString)
+        url = URL(string: urlString)
     }
 
-    private func fetch(from url: URL) async throws {
+    public func fetch() async throws {
+        guard let url else { return }
 
         let datePartsCount = 4
         var metricKeys = [String]() // in the order received from API

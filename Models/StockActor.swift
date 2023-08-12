@@ -90,7 +90,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// Request historical stock data price from DB and then remote server
-    public func fetchPriceAndFundamentals() {
+    public func fetchPriceAndFundamentals() async {
         historicalDataService.delegate = self
         historicalDataService.requestNewest = Date()
         historicalDataService.setRequestOldestWith(startString: stock.startDateString)
@@ -98,12 +98,15 @@ actor StockActor: ServiceDelegate {
         if newest.compare(historicalDataService.requestOldest) == .orderedAscending {
             newest = historicalDataService.requestOldest
         }
+        await delegate?.requestStarted()
 
-        historicalDataService.fetchNewerThanDate(currentNewest: Date.distantPast)
-
+        // Uses 'async let' to start simultaneous downloads of historical data and fundamental data
+        async let historicalTask: Void = historicalDataService.fetchNewerThanDate(currentNewest: Date.distantPast)
         if stock.fundamentalList.count > 4 {
             fundamentalService = FundamentalService(for: stock, delegate: self)
+            try? await fundamentalService?.fetch()
         }
+        await historicalTask
     }
 
     /// FundamentalService calls StockActor with the columns parsed out of the API
@@ -258,7 +261,7 @@ actor StockActor: ServiceDelegate {
             } else if fetcher.shouldFetchNextClose() {
                 busy = true
                 await delegate?.requestStarted()
-                fetcher.fetchNewerThanDate(currentNewest: newest)
+                await fetcher.fetchNewerThanDate(currentNewest: newest)
             }
         }
         return percentChangeAfterUpdateHighLow()

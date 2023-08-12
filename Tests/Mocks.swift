@@ -25,6 +25,40 @@ extension Stock {
         stock.fundamentalList = "" // empty fundamentals to skip FundamentalService
         return stock
     }
+
+    /// Returns the stock with the least history for faster integration tests
+    static func testStock() -> Stock {
+        var stock = Stock()
+        stock.id = 3855
+        stock.name = "Cibus"
+        stock.ticker = "CBUS"
+        stock.startDateString = "20230601" // actual start date
+        stock.fundamentalList = "" // empty fundamentals to skip FundamentalService
+        return stock
+    }
+}
+
+class MockStockDelegate: StockActorDelegate, DBActorDelegate {
+    func update(list newList: [Comparison]) {
+    }
+
+    var didRequestStart = false, didRequestCancel = false, didRequestFail = false, didRequestFinish = false
+
+    func requestStarted() {
+        didRequestStart = true
+    }
+
+    func requestCanceled() {
+        didRequestCancel = true
+    }
+
+    func requestFailed(message: String) {
+        didRequestFail = true
+    }
+
+    func requestFinished(newPercentChange: NSDecimalNumber) async {
+        didRequestFinish = true
+    }
 }
 
 final class ProgressIndicator: UIView {

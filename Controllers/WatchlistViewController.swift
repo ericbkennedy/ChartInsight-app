@@ -26,7 +26,7 @@ protocol WebViewDelegate: AnyObject {
     func insert(stock: Stock, isNewComparison: Bool)
 }
 
-class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebViewDelegate {
+class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebViewDelegate, DBActorDelegate {
     var progressIndicator: ProgressIndicator?
     var magnifier = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
 
@@ -164,7 +164,6 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
     /// Called when app first loads (with listIndex == 0) or when user taps a tableView row
     private func loadComparison(listIndex: Int) {
         scrollChartView.clearChart()
-        progressIndicator?.startAnimating()
         Task {
             let comparison = list[listIndex]
             await scrollChartViewModel.updateComparison(newComparison: comparison)

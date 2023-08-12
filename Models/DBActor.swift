@@ -10,6 +10,10 @@
 
 import Foundation
 
+protocol DBActorDelegate: AnyObject {
+    func update(list newList: [Comparison])
+}
+
 @globalActor actor DBActor {
     static let shared = DBActor()
 
@@ -22,7 +26,7 @@ import Foundation
     }
 
     /// Ensure DB is in app's Documents directory. Then load stock comparison list and send to the delegate.
-    public func moveIfNeeded(delegate: WatchlistViewController) async {
+    public func moveIfNeeded(delegate: DBActorDelegate) async {
         guard let path = Bundle.main.path(forResource: "charts.db", ofType: nil) else {
             print("charts.db is missing from Bundle")
             return
@@ -48,7 +52,7 @@ import Foundation
     }
 
     /// Update DB with the provided array of stock changes (splits, IPOs, ticker changes and delistings)
-    public func update(stockChanges: [StockChangeService.StockChange], delegate: WatchlistViewController) async {
+    public func update(stockChanges: [StockChangeService.StockChange], delegate: DBActorDelegate) async {
         var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
         guard SQLITE_OK == sqlite3_open(dbPath(), &db) else { return }
         var userRowsChanged = 0 // if stockChanges require deleting user data, send new comparisonList to delegate
