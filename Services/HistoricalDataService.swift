@@ -278,6 +278,7 @@ final class HistoricalDataService {
         }
 
         await historicalDataLoaded(barDataArray: fetchedData)
+        isLoadingData = false // allows StockActor to request intraday data if needed
 
         // save to DB after updating UI with historicalDataLoaded()
         await DBActor.shared.save(fetchedData, stockId: stockId)
@@ -295,8 +296,6 @@ final class HistoricalDataService {
         if let lastBar = fetchedData.last {
             oldestDate = date(from: lastBar)
         }
-
-        isLoadingData = false // allows StockActor to request intraday data if needed
         await self.delegate?.serviceLoadedHistoricalData(barDataArray)
     }
 

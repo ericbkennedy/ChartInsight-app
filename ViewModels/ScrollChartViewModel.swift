@@ -15,7 +15,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     public var axisPadding: Double { // print(contentsScale, axisCount)
         axisWidth * contentsScale * Double(axisCount)
     }
-    public var barUnit: Double // days per bar (1 = daily, 5 = weekly, > 5 = monthly)
+    public var barUnit: BarUnit // days per bar
     public var xFactor: Double // determines width of each bar
     public var contentsScale: Double
     // iPad rotation and split view resizing will change pxWidth on the MainActor
@@ -23,7 +23,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     @MainActor public var pxWidth: Double
     @MainActor public var pxHeight: Double
     @MainActor public var maxBarOffset: Int {
-        Int(floor((pxWidth - axisPadding)/(xFactor * barUnit)))
+        Int(floor((pxWidth - axisPadding)/(xFactor * barUnit.rawValue)))
     }
 
     // Closures to bind View to ViewModel
@@ -42,7 +42,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     private var sparklineHeight: Double
 
     public init(contentsScale: CGFloat) {
-        barUnit = 1.0 // daily
+        barUnit = .daily
         xFactor = 7.5
         axisCount = 1
         self.contentsScale = contentsScale
@@ -87,7 +87,7 @@ final class ScrollChartViewModel: StockActorDelegate {
 
         if stocksReady == stockActorList.count {
             // Check if a stock has less price data available and limit all stocks to that shorter date range
-            _ = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
+            _ = await limitComparisonPeriod()
             didUpdate?(await copyChartElements())
         }
     }
@@ -140,7 +140,7 @@ final class ScrollChartViewModel: StockActorDelegate {
 
     /// Check if a stockActor has less price data available and update that actor's oldestBarShown to fit the periodLimit
     /// Returns a tuple (periodLimit, limitOldestBarShown)
-    public func limitComparisonPeriod(barUnit: Double, xFactor: Double) async -> (Int, Int) {
+    public func limitComparisonPeriod() async -> (Int, Int) {
         var supportedPeriods = [Int]()
         var oldestBarsShown = [Int]()
         var stockOldestBarShown = [Int: Int]() // key = comparisonStockId, value = oldestBarShown
@@ -202,7 +202,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     @MainActor public func addToComparison(stock: Stock) async -> [Comparison] {
         var currentOldestShown = maxBarOffset // fill scrollChartView with bars unless a stock has fewer available
         if comparison.stockList.isEmpty == false {
-            (_, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
+            (_, currentOldestShown) = await limitComparisonPeriod()
         }
         comparison.stockList.append(stock)
 
@@ -277,7 +277,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     @MainActor public func updateMaxPercentChange(barsShifted: Int) {
         Task {
             var percentChange = NSDecimalNumber.one
-            let (periodLimit, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: xFactor)
+            let (periodLimit, currentOldestShown) = await limitComparisonPeriod()
 
             if barsShifted >= 0 && currentOldestShown + barsShifted > periodLimit { // already at max
                 didUpdate?(await copyChartElements())
@@ -299,38 +299,41 @@ final class ScrollChartViewModel: StockActorDelegate {
     }
 
     /// Complete pinch/zoom transformation by rerendering the chart with the newScale
-    /// Uses scaleShift set by scaleChartImage(_:withCenter:) so the rendered chart matches the temporary transformation
+    /// Caller must provide pxShift returned by scrollChartView.getPxShiftAndResetLayer() so the rendered chart matches the temporary transformation
     @MainActor public func scaleChart(newScale: Double, pxShift: Double) {
         var newXfactor = xFactor * newScale
 
         // Keep xFactor (width of bars) and barUnit (number of days per bar) separate
 
         if newXfactor < 1.0 {
-            barUnit = 19.0 // switch to monthly
+            barUnit = .monthly // switch to monthly
 
             if newXfactor < 0.25 {
                 newXfactor = 0.25 // minimum size for monthly charting
             }
         } else if newXfactor < 3 {
-            barUnit = 4.5 // switch to weekly
-        } else if barUnit == 19.0 && newXfactor * barUnit > 20.0 {
-            barUnit = 4.5 // switch to weekly
-        } else if barUnit == 4.5 && newXfactor * barUnit > 10.0 {
-            barUnit = 1.0 // switch to daily
+            barUnit = .weekly // switch to weekly
+        } else if barUnit == .monthly && newXfactor * barUnit.rawValue > 20.0 {
+            barUnit = .weekly // switch to weekly
+        } else if barUnit == .weekly && newXfactor * barUnit.rawValue > 10.0 {
+            barUnit = .daily // switch to daily
         } else if newXfactor > 50 { // too small, so make no change
             newXfactor = 50
         }
 
-        Task { [newXfactor] in
-            var shiftBars = Int(floor(pxShift/(barUnit * newXfactor)))
+        if xFactor == newXfactor {
+            return  // Avoid strange pan when zoom hits min or max
+        }
+
+        xFactor = newXfactor
+
+        Task {
+            var shiftBars = Int(floor(pxShift/(barUnit.rawValue * xFactor)))
             // Check if a stock has less price data available and limit all stocks to that shorter date range
-            let (periodLimit, currentOldestShown) = await limitComparisonPeriod(barUnit: barUnit, xFactor: newXfactor)
-            if newXfactor == xFactor {
-                return // prevent strange pan when zoom hits max or min
-            } else if currentOldestShown + shiftBars > periodLimit { // already at periodLimit
+            let (periodLimit, currentOldestShown) = await limitComparisonPeriod()
+            if currentOldestShown + shiftBars > periodLimit { // already at periodLimit
                 shiftBars = 0
             }
-            xFactor = newXfactor
             updateMaxPercentChange(barsShifted: shiftBars)
         }
     }

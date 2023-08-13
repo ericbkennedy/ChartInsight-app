@@ -23,9 +23,12 @@
 		8096A45D2A7C646200F5FA88 /* ScrollChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A752A4CE3240051CFBE /* ScrollChartView.swift */; };
 		8096A4642A7C6DAA00F5FA88 /* ChartRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */; };
 		8096A4662A7C6DFD00F5FA88 /* Mocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8096A4652A7C6DFD00F5FA88 /* Mocks.swift */; };
+		80975B7E2A892A1F00C8AAB8 /* ScrollChartViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D6D1E42A86EE9700F26527 /* ScrollChartViewModelTests.swift */; };
 		8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */; };
 		8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB112A422FB4003E11E0 /* SettingsViewController.swift */; };
 		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
+		80A1164C2A89552200E2D3A5 /* BarUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A1164B2A89552200E2D3A5 /* BarUnit.swift */; };
+		80A1164D2A89552200E2D3A5 /* BarUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A1164B2A89552200E2D3A5 /* BarUnit.swift */; };
 		80A48AA42A49F686001E5E04 /* ChartStyleControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A48AA32A49F686001E5E04 /* ChartStyleControl.swift */; };
 		80AA23252A4902EB004F95F0 /* ChartOptionsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80AA23242A4902EB004F95F0 /* ChartOptionsController.swift */; };
 		80ACF8C92A4F361B001A1D7B /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80ACF8C82A4F361B001A1D7B /* Metrics.swift */; };
@@ -99,6 +102,7 @@
 		8097DB112A422FB4003E11E0 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
 		80A101252A7EB03A00C5AECC /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		80A1164B2A89552200E2D3A5 /* BarUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarUnit.swift; sourceTree = "<group>"; };
 		80A48AA32A49F686001E5E04 /* ChartStyleControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartStyleControl.swift; sourceTree = "<group>"; };
 		80AA23242A4902EB004F95F0 /* ChartOptionsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartOptionsController.swift; sourceTree = "<group>"; };
 		80ACF8C82A4F361B001A1D7B /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
@@ -121,6 +125,7 @@
 		80D5B9E82A294F2100314733 /* ChartInsightTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChartInsightTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartInsightTests.swift; sourceTree = "<group>"; };
 		80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigNumberFormatterTests.swift; sourceTree = "<group>"; };
+		80D6D1E42A86EE9700F26527 /* ScrollChartViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollChartViewModelTests.swift; sourceTree = "<group>"; };
 		80E586ED2A433E6100A380AA /* ProgressIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressIndicator.swift; sourceTree = "<group>"; };
 		80E587322A435BB700A380AA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		80E587352A435DE800A380AA /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -247,6 +252,7 @@
 			isa = PBXGroup;
 			children = (
 				80B858AD2A4B849900139EBA /* BarData.swift */,
+				80A1164B2A89552200E2D3A5 /* BarUnit.swift */,
 				80B858AE2A4B849900139EBA /* BigNumberFormatter.swift */,
 				80B858B02A4B849900139EBA /* ChartElements.swift */,
 				80B858AA2A4B849900139EBA /* Comparison.swift */,
@@ -265,6 +271,7 @@
 				80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */,
 				80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */,
 				8096A4652A7C6DFD00F5FA88 /* Mocks.swift */,
+				80D6D1E42A86EE9700F26527 /* ScrollChartViewModelTests.swift */,
 				80B966A92A70630B003DB7C8 /* StockActorTests.swift */,
 				80EA06662A7C8B8B009FED8E /* UIViewController+TestHelper.swift */,
 				80EA06622A7C8217009FED8E /* WatchlistViewControllerTests.swift */,
@@ -412,6 +419,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				80E587332A435BB700A380AA /* AppDelegate.swift in Sources */,
+				80A1164C2A89552200E2D3A5 /* BarUnit.swift in Sources */,
 				80B858BB2A4B849900139EBA /* BarData.swift in Sources */,
 				80B858B72A4B849900139EBA /* Comparison.swift in Sources */,
 				80B858B52A4B849900139EBA /* FundamentalService.swift in Sources */,
@@ -448,9 +456,11 @@
 				80EA066A2A7DAE4E009FED8E /* ScrollChartViewModel.swift in Sources */,
 				80B966AA2A70630B003DB7C8 /* StockActorTests.swift in Sources */,
 				80EA06652A7C839B009FED8E /* DBActor.swift in Sources */,
+				80A1164D2A89552200E2D3A5 /* BarUnit.swift in Sources */,
 				80B858B62A4B849900139EBA /* FundamentalService.swift in Sources */,
 				80B858C02A4B849900139EBA /* HistoricalDataService.swift in Sources */,
 				80B858BC2A4B849900139EBA /* BarData.swift in Sources */,
+				80975B7E2A892A1F00C8AAB8 /* ScrollChartViewModelTests.swift in Sources */,
 				8096A45D2A7C646200F5FA88 /* ScrollChartView.swift in Sources */,
 				80B858C22A4B849900139EBA /* ChartElements.swift in Sources */,
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
