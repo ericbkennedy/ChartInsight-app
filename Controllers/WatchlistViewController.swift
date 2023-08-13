@@ -211,7 +211,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
 
         let delta = scrollChartView.bounds.size.width - newSize.width
         let shiftBars = Int(scrollChartView.layer.contentsScale
-                              * delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit))
+                            * delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit.rawValue))
         scrollChartViewModel.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
         scrollChartView.bounds = CGRect(x: 0, y: 0, width: width, height: height) // isNewFrameSize calculated height
         let (pxWidth, pxHeight) = scrollChartView.resize()
@@ -290,7 +290,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
 
         currentShift = recognizer.translation(in: view).x
         delta = (currentShift - lastShift) * UIScreen.main.scale
-        deltaBars = Int(delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit))
+        deltaBars = Int(delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit.rawValue))
         if deltaBars != 0 {
             scrollChartViewModel.updateMaxPercentChange(barsShifted: deltaBars)
             lastShift = currentShift
@@ -503,7 +503,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
                                                  y: scrollChartView.layer.position.y)
 
         let shiftBars = Int(scrollChartView.layer.contentsScale
-                               * delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit))
+                            * delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit.rawValue))
 
         scrollChartViewModel.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
     }

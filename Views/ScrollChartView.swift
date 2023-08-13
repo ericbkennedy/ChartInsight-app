@@ -135,7 +135,7 @@ final class ScrollChartView: UIView {
 
             let centerX = xPress * layer.contentsScale
             let centerY = yPress * layer.contentsScale
-            let barOffset = Int(round(centerX / (viewModel.xFactor * viewModel.barUnit)))
+            let barOffset = Int(round(centerX / (viewModel.xFactor * viewModel.barUnit.rawValue)))
 
             if let (barData, monthName) = await viewModel.matchedBarAtIndex(barOffset: barOffset, centerY: centerY) {
                 return renderer.magnifyBar(x: xPress, y: yPress, bar: barData, monthName: monthName)

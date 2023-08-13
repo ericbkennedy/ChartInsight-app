@@ -31,7 +31,7 @@ actor StockActor: ServiceDelegate {
     public var newestBarShown: Int
     public var oldestBarShown: Int
     private var xFactor: CGFloat // yFactor and yFloor are on chartElements
-    private var barUnit: CGFloat
+    private var barUnit: BarUnit
 
     var ready = false // true after price data has been loaded and processed by computeChart into chartElements
     private var chartElements: ChartElements // caller must request a copy with copyChartElements()
@@ -56,14 +56,14 @@ actor StockActor: ServiceDelegate {
     private var volumeBase: Double
     private var volumeHeight: Double
 
-    init(stock: Stock, gregorian: Calendar, delegate: StockActorDelegate, oldestBarShown: Int, barUnit: CGFloat, xFactor: CGFloat) {
+    init(stock: Stock, gregorian: Calendar, delegate: StockActorDelegate, oldestBarShown: Int, barUnit: BarUnit, xFactor: CGFloat) {
         self.comparisonStockId = stock.comparisonStockId
         self.stock = stock
         self.gregorian = gregorian
         self.delegate = delegate
         self.oldestBarShown = oldestBarShown
         self.barUnit = barUnit
-        self.xFactor = xFactor * barUnit
+        self.xFactor = xFactor * barUnit.rawValue
         newestBarShown = 0
         chartElements = ChartElements(stock: stock)
         periodData = []
@@ -330,12 +330,13 @@ actor StockActor: ServiceDelegate {
 
     /// Return tuple with number of bars at newBarUnit scale and currentOldestShown to check if one stock in a comparison
     /// will limit the date range that can be charted in the comparison
-    public func maxPeriodSupported(newBarUnit: CGFloat, newXFactor: CGFloat) -> (Int, Int) {
-        xFactor = newXFactor * newBarUnit // caller tracks them separately to determine minimize bar width
+    public func maxPeriodSupported(newBarUnit: BarUnit, newXFactor: CGFloat) -> (Int, Int) {
+        xFactor = newXFactor * newBarUnit.rawValue // caller tracks them separately to determine minimize bar width
         if newBarUnit != barUnit {
             // Calculate new values for newestBarShown and oldestBarShown which may be reduced by maxPeriod
-            newestBarShown = Int(floor(CGFloat(newestBarShown) * barUnit / newBarUnit))
-            oldestBarShown = Int(floor(CGFloat(oldestBarShown) * barUnit / newBarUnit))
+            let barValueChange: Double = barUnit.rawValue / newBarUnit.rawValue
+            newestBarShown = Int(floor(CGFloat(newestBarShown) * barValueChange))
+            oldestBarShown = Int(floor(CGFloat(oldestBarShown) * barValueChange))
             barUnit = newBarUnit
             updatePeriodDataByDayWeekOrMonth()
         }
@@ -349,9 +350,9 @@ actor StockActor: ServiceDelegate {
 
     /// User zoomed in or out so rescale dailyData by the updated barUnit
     private func updatePeriodDataByDayWeekOrMonth() {
-        if barUnit == 1.0 {
+        if barUnit == .daily {
             periodData = dailyData
-        } else if barUnit > 5 { // monthly
+        } else if barUnit == .monthly { // monthly
             periodData = BarData.groupByMonth(dailyData)
         } else {
             periodData = BarData.groupByWeek(dailyData, calendar: gregorian, startDate: newest)
@@ -459,9 +460,9 @@ actor StockActor: ServiceDelegate {
                     } else {
                         label += shortYearString
                     }
-                } else if barUnit > 5 { // only year markets
+                } else if barUnit == .monthly { // only year markets
                     label = ""
-                } else if barUnit > 1 || xFactor < 2 { // shorten months
+                } else if barUnit != .daily || xFactor < 2 { // shorten months
                     label = String(label.prefix(1))
                 }
 

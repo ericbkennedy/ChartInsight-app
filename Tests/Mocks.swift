@@ -21,8 +21,8 @@ extension Stock {
         stock.id = 1
         stock.name = "Apple"
         stock.ticker = "AAPL"
-        stock.startDateString = "20230601" // reduce date range for faster tests
-        stock.fundamentalList = "" // empty fundamentals to skip FundamentalService
+        stock.startDateString = "20090102"
+        stock.fundamentalList = "CIRevenuePerShare,EarningsPerShareBasic,"
         return stock
     }
 

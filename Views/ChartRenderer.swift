@@ -23,7 +23,7 @@ struct ChartRenderer {
     public var layerRef: CGLayer
     public var contentsScale: CGFloat
     public var xFactor: CGFloat
-    public var barUnit: CGFloat
+    public var barUnit: BarUnit
     public var pxWidth: CGFloat
     private let magnifierSize: CGFloat = 100.0 // both width and height
     private let numberFormatter = BigNumberFormatter()
@@ -293,7 +293,7 @@ struct ChartRenderer {
 
                         context.fill(CGRect(x: fundamentalAlignments[r].x, y: y, width: -qWidth, height: -barHeight))
 
-                        if barUnit < 5.0 && stockChartElements.count == 1, // only show value of fundamental on bar for single stock charts
+                        if barUnit != .monthly && stockChartElements.count == 1, // only show value of fundamental on bar for single stock charts
                            let label = numberFormatter.string(number: reportValue, maxDigits: Float(2 * xFactor)) {
                             labelPosition.x = fundamentalAlignments[r].x - 11.5 * CGFloat(label.count) - 10
                             chartText.append(string(label, at: CGPoint(x: labelPosition.x, y: labelPosition.y), with: metricColor))
@@ -347,7 +347,7 @@ struct ChartRenderer {
         numberFormatter.maximumFractionDigits = bar.high > 100 ? 0 : 2
 
         var label = monthName
-        if barUnit < 19 {
+        if barUnit != .monthly {
             label += "\(bar.day)"
         } else {
             label += "'" + String(bar.year).suffix(2)
