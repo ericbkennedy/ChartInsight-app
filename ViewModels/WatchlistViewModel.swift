@@ -26,7 +26,7 @@ protocol ChartOptionsDelegate: AnyObject {
     // Closures to bind View to ViewModel
     public var didBeginRequest: (@MainActor (Comparison) -> Void)?
     public var didDismiss: (@MainActor () -> Void)?
-    public var didUpdate: (@MainActor (Int) -> Void)?
+    public var didUpdate: (@MainActor (_ selectedIndex: Int) -> Void)?
 
     public var listCount: Int { list.count }
     private var list: [Comparison] = []

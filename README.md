@@ -6,11 +6,23 @@ This app was originally created in 2012 for the first retina iPad and was rewrit
 
 ![ChartInsight iOS app core objects](./Data/app-core-objects.svg)
 
-WatchlistViewController manages the list of stocks and forwards the result of pinch and pan gestures to the ScrollChartViewModel to scale the chart data. 
+View to ViewModel binding is implemented with closures. WatchlistViewModel and ScrollChartViewModel each have a didUpdate() closure property set by the corresponding view so it is notified of updates.
+
+```
+WatchlistViewModel didUpdate: (@MainActor (_ selectedIndex: Int) -> Void)?
+
+ScrollChartViewModel didUpdate: (@MainActor ([ChartElements]) -> Void)? 
+```
+
+WatchlistViewModel manages the list of stock comparisons and updates WatchlistViewController with a didUpdate() closure that is used to select a row in WatchlistViewController.tableView.
+
+WatchlistViewController forwards the result of pinch and pan gestures to the ScrollChartViewModel to scale the chart data. 
+
+ScrollChartViewModel computes the ChartElements and uses the didUpdate() closure to pass a copy of ChartElements to the ScrollChartView. ScrollChartView's renderCharts(stockChartElements:) method provides them to the ChartRenderer for rendering.
+
+WatchlistViewModel is also the delegate for ViewControllers in the app that add or change a stock comparison: AddStockController, ChartOptionsController, SettingsViewController, and WebViewController. 
 
 Concurrent updates to historical and intraday price data from the HistoricalDataService is handled for each stock by a StockActor for multi core thread safety. StockActors accept GAAP financial data from the FundamentalService and then notify the ScrollChartViewModel via a requestFinished(newPercentChange:) delegate method. 
-
-View to ViewModel binding is implemented with closures. ScrollChartViewModel has a didUpdate: (@MainActor ([ChartElements]) -> Void)? property which ScrollChartView sets to receive notifications when ChartElements are available for rendering. It provides those ChartElements to the ChartRenderer for rendering on the MainActor.
 
 The native app functionality is integrated with a WKWebView of chartinsight.com to allow viewing additional metrics, insider buying and 13-F holdings.
 
