@@ -39,7 +39,7 @@ extension Stock {
 }
 
 class MockStockDelegate: StockActorDelegate, DBActorDelegate {
-    func update(list newList: [Comparison]) {
+    func update(list newList: [Comparison], reloadComparison: Bool) {
     }
 
     var didRequestStart = false, didRequestCancel = false, didRequestFail = false, didRequestFinish = false
@@ -67,11 +67,6 @@ final class ProgressIndicator: UIView {
     func reset() { }
     func startAnimating() { }
     func stopAnimating() { }
-}
-
-final class AddStockController: UITableViewController {
-    public var delegate: WatchlistViewController?
-    public var isNewComparison: Bool = false
 }
 
 final class ChartOptionsController: UITableViewController {

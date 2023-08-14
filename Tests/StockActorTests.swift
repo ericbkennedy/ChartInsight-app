@@ -187,8 +187,7 @@ final class StockActorTests: XCTestCase {
         XCTAssert(candleChartElements.oldestReportInView > 0)
         XCTAssert(candleChartElements.newestReportInView >= 0)
 
-        // fundamentalMetric string has trailing comma for easy appending so filter to non-empty metric keys
-        let fundamentalMetrics = stock.fundamentalList.components(separatedBy: ",").filter { !$0.isEmpty }
+        let fundamentalMetrics = stock.fundamentalList.split(separator: ",")
 
         XCTAssert(candleChartElements.fundamentalColumns.count == fundamentalMetrics.count)
         XCTAssert(candleChartElements.fundamentalAlignments.count >= 55) // report count as of August 2023

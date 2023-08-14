@@ -14,7 +14,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     var window: UIWindow?
     let tabBarController = UITabBarController()
-    var watchlistViewController = WatchlistViewController()
+    var scrollChartViewModel: ScrollChartViewModel!
+    var watchlistViewModel: WatchlistViewModel!
+    var watchlistViewController: WatchlistViewController!
     var webViewController = WebViewController()
     var settingsViewController = SettingsViewController(style: .plain)
 
@@ -27,26 +29,30 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
 
+        scrollChartViewModel = ScrollChartViewModel(contentsScale: window.screen.scale)
+        watchlistViewModel = WatchlistViewModel(scrollChartViewModel: scrollChartViewModel)
+        watchlistViewController = WatchlistViewController(watchlistViewModel: watchlistViewModel)
+
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
 
         window.overrideUserInterfaceStyle = isDarkMode ? .dark : .light
         window.backgroundColor = UIColor.systemBackground
 
         Task {
-            await DBActor.shared.moveIfNeeded(delegate: watchlistViewController)
+            await DBActor.shared.moveIfNeeded(delegate: watchlistViewModel)
             if let stockChanges = await StockChangeService().fetchChanges() { // will be nil if no changes since last fetch
-                await DBActor.shared.update(stockChanges: stockChanges, delegate: watchlistViewController)
+                await DBActor.shared.update(stockChanges: stockChanges, delegate: watchlistViewModel)
             }
         }
 
-        settingsViewController.delegate = watchlistViewController // will refresh comparison list after deletion
+        settingsViewController.delegate = watchlistViewModel // will refresh comparison list after deletion
         watchlistNavigationController = UINavigationController(rootViewController: watchlistViewController)
         watchlistNavigationController?.title = "Watchlist"
 
         webNavigationController = UINavigationController(rootViewController: webViewController)
         webNavigationController?.tabBarItem.image = UIImage(systemName: "sparkle.magnifyingglass")
         webNavigationController?.title = "ChartInsight.com"
-        webViewController.delegate = watchlistViewController // Users can add stocks found on chartinsight.com
+        webViewController.delegate = watchlistViewModel // Users can add stocks found on chartinsight.com
         watchlistNavigationController?.tabBarItem.image = UIImage(systemName: "chart.xyaxis.line")
 
         settingsNavigationController = UINavigationController(rootViewController: settingsViewController)

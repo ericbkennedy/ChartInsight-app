@@ -14,19 +14,7 @@
 import Foundation
 import UIKit
 
-protocol ChartOptionsDelegate: AnyObject {
-    func deleteStock(_ stock: Stock)
-    func redraw(stock: Stock) async
-    func reload(stock: Stock) async
-    func dismissPopover()
-}
-
-protocol WebViewDelegate: AnyObject {
-    func load(comparisonToChart: Comparison)
-    func insert(stock: Stock, isNewComparison: Bool)
-}
-
-class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebViewDelegate, DBActorDelegate {
+class WatchlistViewController: UITableViewController {
     var progressIndicator: ProgressIndicator?
     var magnifier = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
 
@@ -57,14 +45,38 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
     private var shareMenuButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"))
     private var navStockButtonToolbar = UIToolbar() // will be navigationItem.titleView
 
-    private var scrollChartViewModel = ScrollChartViewModel(contentsScale: UIScreen.main.scale)
+    private var scrollChartViewModel: ScrollChartViewModel!
+    private var watchlistViewModel: WatchlistViewModel!
     private var scrollChartView: ScrollChartView!
 
-    private var list: [Comparison] = []
+    init(watchlistViewModel: WatchlistViewModel) {
+        self.watchlistViewModel = watchlistViewModel
+        scrollChartViewModel = watchlistViewModel.scrollChartViewModel
+        scrollChartView = ScrollChartView(viewModel: scrollChartViewModel)
+        super.init(style: .plain)
+
+        self.watchlistViewModel.didBeginRequest = { [weak self] comparison in
+            self?.scrollChartView.clearChart()
+            self?.updateNavStockButtonToolbar(for: comparison)
+        }
+
+        self.watchlistViewModel.didDismiss = { [weak self] in
+            self?.dismissPopover()
+        }
+
+        self.watchlistViewModel.didUpdate = { [weak self] selectedIndex in
+            self?.tableView.reloadData() // will require reselecting the row below
+            self?.tableView.selectRow(at: IndexPath(row: selectedIndex, section: 0),
+                                animated: false, scrollPosition: .middle)
+        }
+    }
+
+    required convenience init?(coder: NSCoder) {
+        self.init(watchlistViewModel: WatchlistViewModel(scrollChartViewModel: ScrollChartViewModel(contentsScale: 2.0)))
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        scrollChartView = ScrollChartView(viewModel: scrollChartViewModel)
 
         tableView.dataSource = self
         tableView.delegate = self
@@ -118,29 +130,24 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
         navStockButtonToolbar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
         navStockButtonToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
 
-        updateNavStockButtonToolbar()
         navigationItem.titleView = navStockButtonToolbar
         view.layer.setNeedsDisplay()
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.list.count
+        return watchlistViewModel.listCount
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
         var config = cell.defaultContentConfiguration()
-        if indexPath.row < list.count {
-            config.text = list[indexPath.row].title
-        }
+        config.text = watchlistViewModel.title(for: indexPath.row)
         cell.contentConfiguration = config
         return cell
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if list.count > indexPath.row {
-            loadComparison(listIndex: indexPath.row)
-        }
+        watchlistViewModel.didSelectRow(at: indexPath.row)
     }
 
     override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
@@ -150,25 +157,6 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
     /// "+" add button in tableView header (wrapped in a UIToolbar)
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         return addStockToolbar
-    }
-
-    /// Called by WebViewController when user wants to switch from the WebView to an existing comparison in the list
-    public func load(comparisonToChart: Comparison) {
-        for (index, comparison) in list.enumerated() where comparison.id == comparisonToChart.id {
-            tableView.selectRow(at: IndexPath(row: index, section: 0), animated: false, scrollPosition: .middle)
-            loadComparison(listIndex: index)
-            break
-        }
-    }
-
-    /// Called when app first loads (with listIndex == 0) or when user taps a tableView row
-    private func loadComparison(listIndex: Int) {
-        scrollChartView.clearChart()
-        Task {
-            let comparison = list[listIndex]
-            await scrollChartViewModel.updateComparison(newComparison: comparison)
-            updateNavStockButtonToolbar()
-        }
     }
 
     /// Find the keyWindow and get the safeAreaInsets for the notch and other unsafe areas
@@ -315,92 +303,16 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
         }
     }
 
-    /// Called by ChartOptionsController when chart color or type changes
-    public func redraw(stock: Stock) async {
-        list = await scrollChartViewModel.updateComparison(stock: stock)
-        tableView.reloadData() // avoid update(list:) as that clears the chart for a second
-        if let barButtonItems = navStockButtonToolbar.items {
-            for button in barButtonItems where button.tag == stock.id {
-                button.tintColor = stock.upColor
-            }
-            await scrollChartViewModel.chartOptionsChanged()
-        }
-    }
-
-    /// Called by ChartOptionsController when the user adds new fundamental metrics
-    public func reload(stock: Stock) async {
-        let updatedList = await scrollChartViewModel.updateComparison(stock: stock)
-        update(list: updatedList)
-    }
-
-    /// Called after user taps the Trash icon in ChartOptionsController to delete a stock in a comparison
-    public func deleteStock(_ stock: Stock) {
-        let stockCountBeforeDeletion = scrollChartViewModel.comparison.stockList.count
-
-        Task {
-            var updatedList: [Comparison]
-            if stockCountBeforeDeletion <= 1 { // all stocks in comparison were deleted
-                updatedList = await scrollChartViewModel.comparison.deleteFromDb()
-
-            } else {  // comparison still has at least one stock left
-                updatedList = await scrollChartViewModel.removeFromComparison(stock: stock)
-            }
-            update(list: updatedList)
-            updateNavStockButtonToolbar()
-            dismissPopover()
-        }
-    }
-
-    /// Callback after async comparisonList reload and by StockChangeService if user rows were updated
-    public func update(list newList: [Comparison]) {
-        var selectedIndex = 0
-        if !newList.isEmpty && scrollChartViewModel.comparison.id > 0 {
-            for (index, comparison) in newList.enumerated() where comparison.id == scrollChartViewModel.comparison.id {
-                selectedIndex = index
-            }
-        }
-        self.list = newList
-        tableView.reloadData()
-        if self.list.count > selectedIndex {
-            loadComparison(listIndex: selectedIndex)
-        }
-    }
-
-    /// Called by AddStockController when a new stock is added
-    public func insert(stock: Stock, isNewComparison: Bool) {
-        Task {
-            var stock = stock
-            if isNewComparison || scrollChartViewModel.comparison.stockList.isEmpty {
-                await scrollChartViewModel.updateComparison(newComparison: Comparison())
-                stock.setColors(upHexColor: .greenAndRed)
-            } else {
-                // Skip colors already used by other stocks in this comparison or use gray
-                var otherColors = ChartHexColor.allCases
-                for otherStock in scrollChartViewModel.comparison.stockList {
-                    // end before lastIndex to always keep gray as an option
-                    for index in 0 ..< otherColors.count - 1 where otherStock.hasUpColor(otherHexColor: otherColors[index]) {
-                        otherColors.remove(at: index)
-                    }
-                }
-                stock.setColors(upHexColor: otherColors[0])
-            }
-
-            let updatedList = await scrollChartViewModel.addToComparison(stock: stock)
-            update(list: updatedList)
-            dismissPopover()
-        }
-    }
-
     /// Add toggleListButton and buttons for each stock in this comparison
-    private func updateNavStockButtonToolbar() {
+    private func updateNavStockButtonToolbar(for comparison: Comparison) {
         var buttons: [UIBarButtonItem] = [toggleListButton]
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
 
-        if scrollChartViewModel.comparison.stockList.isEmpty == false {
+        if comparison.stockList.isEmpty == false {
             var menuActions = [UIAction]()
-            for stock in scrollChartViewModel.comparison.stockList {
+            for stock in comparison.stockList {
                 var buttonTitle = stock.ticker
-                if scrollChartViewModel.comparison.stockList.count == 1 || UIDevice.current.userInterfaceIdiom == .pad {
+                if comparison.stockList.count == 1 || UIDevice.current.userInterfaceIdiom == .pad {
                     // Add first word from stock name if not equal to ticker
                     let nonLetters = CharacterSet.letters.inverted
                     if let firstWord = stock.name.components(separatedBy: nonLetters).first,
@@ -435,7 +347,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
 
             let maxComparisonCount = UIDevice.current.userInterfaceIdiom == .pad ? 6 : 3
 
-            if scrollChartViewModel.comparison.stockList.count < maxComparisonCount {
+            if comparison.stockList.count < maxComparisonCount {
                 let compareButton = UIBarButtonItem(title: "+ compare",
                                                     style: .plain,
                                                     target: self,
@@ -462,7 +374,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
     /// User clicked the "+" add button in the header of the tableView to create a new stock comparison
     @objc func addStock(button: UIBarButtonItem) {
         let addStockController = AddStockController(style: .plain)
-        addStockController.delegate = self
+        addStockController.delegate = watchlistViewModel
         addStockController.isNewComparison = true
         popoverPush(viewController: addStockController, from: button)
     }
@@ -470,7 +382,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
     /// User clicked the "compare" button in the navStockButtonToolbar to add a stock to the current comparison
     @objc func compareStock(button: UIBarButtonItem) {
         let addStockController = AddStockController(style: .plain)
-        addStockController.delegate = self
+        addStockController.delegate = watchlistViewModel
         addStockController.isNewComparison = false
         popoverPush(viewController: addStockController, from: button)
     }
@@ -480,7 +392,7 @@ class WatchlistViewController: UITableViewController, ChartOptionsDelegate, WebV
         let stockId = button.tag
 
         for stock in scrollChartViewModel.comparison.stockList where stock.id == stockId {
-            let chartOptionsController = ChartOptionsController(stock: stock, delegate: self)
+            let chartOptionsController = ChartOptionsController(stock: stock, delegate: watchlistViewModel)
             chartOptionsController.sparklineKeys = scrollChartViewModel.comparison.sparklineKeys()
             popoverPush(viewController: chartOptionsController, from: button)
             break

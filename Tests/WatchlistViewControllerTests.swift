@@ -8,13 +8,19 @@
 
 import XCTest
 
-final class WatchlistViewControllerTests: XCTestCase {
+@MainActor final class WatchlistViewControllerTests: XCTestCase {
 
-    var watchlistVC = WatchlistViewController()
+    var scrollChartViewModel: ScrollChartViewModel!
+    var watchlistViewModel: WatchlistViewModel!
+    var watchlistViewController: WatchlistViewController!
 
-    /// Ensure db is available and have it provide the stock list to the watchlistVC
+    /// Initialize fresh viewModels
     override func setUpWithError() throws {
-        watchlistVC.triggerLifecycleIfNeeded()
+        scrollChartViewModel = ScrollChartViewModel(contentsScale: 2.0)
+        watchlistViewModel = WatchlistViewModel(scrollChartViewModel: scrollChartViewModel)
+        watchlistViewController = WatchlistViewController(watchlistViewModel: watchlistViewModel)
+
+        watchlistViewController.triggerLifecycleIfNeeded()
     }
 
     override func tearDownWithError() throws {
@@ -23,12 +29,12 @@ final class WatchlistViewControllerTests: XCTestCase {
 
     /// DBActor.shared.moveIfNeeded provides the comparisonList to the MainActor so this test needs to use it
     @MainActor func testUpdateWithList() async throws {
-        XCTAssert(0 == watchlistVC.tableView(watchlistVC.tableView, numberOfRowsInSection: 0))
+        XCTAssert(0 == watchlistViewController.tableView(watchlistViewController.tableView, numberOfRowsInSection: 0))
 
-        await DBActor.shared.moveIfNeeded(delegate: watchlistVC)
+        await DBActor.shared.moveIfNeeded(delegate: watchlistViewModel)
 
         // MainActor should have received rows from the DBActor
-        XCTAssert(0 < watchlistVC.tableView(watchlistVC.tableView, numberOfRowsInSection: 0))
+        XCTAssert(0 < watchlistViewController.tableView(watchlistViewController.tableView, numberOfRowsInSection: 0))
     }
 
 }

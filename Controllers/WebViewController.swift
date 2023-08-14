@@ -10,7 +10,7 @@ import Foundation
 import WebKit
 
 final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
-    public weak var delegate: WebViewDelegate?
+    public weak var delegate: ChartOptionsDelegate?
     public var urlString: String = ""
     private var webView: WKWebView!
     private var progressView = UIProgressView(progressViewStyle: .default)

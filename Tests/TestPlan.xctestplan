@@ -24,6 +24,13 @@
         "identifier" : "80D5B9E72A294F2100314733",
         "name" : "ChartInsightTests"
       }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:ChartInsight.xcodeproj",
+        "identifier" : "808A32DE2A899B4E0016CC78",
+        "name" : "UITests"
+      }
     }
   ],
   "version" : 1

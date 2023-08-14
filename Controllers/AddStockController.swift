@@ -10,7 +10,7 @@ import Foundation
 
 final class AddStockController: UITableViewController, UISearchBarDelegate {
 
-    public var delegate: WatchlistViewController?
+    public weak var delegate: ChartOptionsDelegate?
     public var isNewComparison: Bool = false
     private var list: [Stock] = []
     private var searchBar = UISearchBar()

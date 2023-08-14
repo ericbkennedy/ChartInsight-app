@@ -14,7 +14,7 @@ public enum SectionType: Int, CaseIterable {
 }
 
 class SettingsViewController: UITableViewController, MFMailComposeViewControllerDelegate {
-    public var delegate: WatchlistViewController?
+    public var delegate: DBActorDelegate?
     private var list: [Comparison] = []
     private let cellID = "settingsCell"
 
@@ -113,7 +113,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
                 Task {
                     list = await comparison.deleteFromDb()
                     await MainActor.run {
-                        delegate?.update(list: list)
+                        delegate?.update(list: list, reloadComparison: true)
                         tableView.deleteRows(at: [indexPath], with: .fade)
                         tableView.reloadData()
                     }

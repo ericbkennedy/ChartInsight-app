@@ -11,7 +11,7 @@
 import Foundation
 
 protocol DBActorDelegate: AnyObject {
-    func update(list newList: [Comparison])
+    @MainActor func update(list newList: [Comparison], reloadComparison: Bool)
 }
 
 @globalActor actor DBActor {
@@ -43,7 +43,7 @@ protocol DBActorDelegate: AnyObject {
 
             let list = comparisonList()
             await MainActor.run {
-                delegate.update(list: list)
+                delegate.update(list: list, reloadComparison: true)
             }
 
         } catch let error as NSError {
@@ -125,7 +125,7 @@ protocol DBActorDelegate: AnyObject {
             // fetch updated comparisonList and send it to the delegate
             let list = comparisonList(dbConnection: db)
             await MainActor.run {
-                delegate.update(list: list)
+                delegate.update(list: list, reloadComparison: true)
             }
         } else {
             sqlite3_close(db)
