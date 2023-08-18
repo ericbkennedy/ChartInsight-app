@@ -21,15 +21,15 @@
     {
       "target" : {
         "containerPath" : "container:ChartInsight.xcodeproj",
-        "identifier" : "80D5B9E72A294F2100314733",
-        "name" : "ChartInsightTests"
+        "identifier" : "808A32DE2A899B4E0016CC78",
+        "name" : "UITests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:ChartInsight.xcodeproj",
-        "identifier" : "808A32DE2A899B4E0016CC78",
-        "name" : "UITests"
+        "identifier" : "80D5B9E72A294F2100314733",
+        "name" : "ChartInsightTests"
       }
     }
   ],

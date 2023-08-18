@@ -21,7 +21,6 @@ class ChartOptionsController: UITableViewController {
     private var normalCellId = "normalCell"
     private var chartStyleControlCellId = "chartStyleControlCell"
     private var defaultsActionText = "Use These Settings For New Charts" // will be updated after tap
-    private var doneButton = UIBarButtonItem(systemItem: .done)
     private var sections = ["", "Color", "Financials", "Technicals", "Defaults"]
     private var fundamentalDescription = "EarningsPerShareBasic,CIRevenuePerShare,CINetCashFromOpsPerShare"
     private var addFundamentalRowIndex = -1 // Hide Add Fundamental row unless current list is less than max
@@ -66,10 +65,13 @@ class ChartOptionsController: UITableViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: chartStyleControlCellId)
         tableView.backgroundColor = UIColor.secondarySystemGroupedBackground
         tableView.separatorStyle = .none
+        tableView.accessibilityIdentifier = AccessibilityId.ChartOptions.tableView
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissPopover))
+        navigationItem.leftBarButtonItem?.accessibilityIdentifier = AccessibilityId.ChartOptions.doneButton
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(deleteStock))
         navigationItem.rightBarButtonItem?.tintColor = UIColor.red
+        navigationItem.rightBarButtonItem?.accessibilityIdentifier = AccessibilityId.ChartOptions.deleteButton
     }
 
     /// User clicked Trash icon
@@ -113,10 +115,10 @@ class ChartOptionsController: UITableViewController {
             var config = cell.defaultContentConfiguration()
             if indexPath.section == SectionType.financials.rawValue {
                 if indexPath.row == addFundamentalRowIndex {
-                    config.text = "        + Add Financial Metric"
+                    config.text = AccessibilityId.ChartOptions.addFundamentalRow
                     cell.accessoryView = nil
                 } else if stock.hasFundamentals == false {
-                    config.text = "Unavailable for \(stock.ticker)"
+                    config.text = "\(AccessibilityId.ChartOptions.unavilableMessage) \(stock.ticker)"
                 } else if indexPath.row < listedMetricKeys.count {
                     cell.selectionStyle = .none
                     config.text = Metrics.shared.title(for: listedMetricKeys[indexPath.row])

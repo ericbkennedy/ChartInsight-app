@@ -39,8 +39,8 @@ class WatchlistViewController: UITableViewController {
     private var longPressRecognizer = UILongPressGestureRecognizer()
     private var panGestureRecognizer = UIPanGestureRecognizer()
     private var pinchGestureRecognizer = UIPinchGestureRecognizer()
-    private var addStockToolbar = UIToolbar() // in tableView header
-    private var addStockButton = UIBarButtonItem(systemItem: .add)
+    private var comparisonListToolbar = UIToolbar() // in tableView header
+    private var newComparisonButton = UIBarButtonItem(systemItem: .add)
     private var toggleListButton = UIBarButtonItem(image: UIImage(named: "toggleList"))
     private var shareMenuButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"))
     private var navStockButtonToolbar = UIToolbar() // will be navigationItem.titleView
@@ -83,6 +83,7 @@ class WatchlistViewController: UITableViewController {
         tableView.separatorStyle = .none
         tableView.sectionHeaderTopPadding = 1 // aligns upper border with ScrollChartView divider
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
+        tableView.accessibilityIdentifier = AccessibilityId.Watchlist.tableView
 
         tableViewWidthVisible = UIDevice.current.userInterfaceIdiom == .phone ? 66 : 100
         rowHeight = UIDevice.current.userInterfaceIdiom == .phone ? 40 : 44
@@ -113,9 +114,11 @@ class WatchlistViewController: UITableViewController {
 
         toggleListButton.target = self
         toggleListButton.action = #selector(toggleList)
-        addStockButton.target = self
-        addStockButton.action = #selector(addStock)
-        addStockToolbar.items = [addStockButton]
+        toggleListButton.accessibilityIdentifier = AccessibilityId.Watchlist.toggleListButton
+        newComparisonButton.target = self
+        newComparisonButton.action = #selector(newComparison)
+        newComparisonButton.accessibilityIdentifier = AccessibilityId.Watchlist.newComparisonButton
+        comparisonListToolbar.items = [newComparisonButton]
     }
 
     /// Update subviews now that frame size is available
@@ -129,6 +132,7 @@ class WatchlistViewController: UITableViewController {
         // Remove toolbar background and top border
         navStockButtonToolbar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
         navStockButtonToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
+        navStockButtonToolbar.accessibilityIdentifier = AccessibilityId.Watchlist.navStockButtonToolbar
 
         navigationItem.titleView = navStockButtonToolbar
         view.layer.setNeedsDisplay()
@@ -156,7 +160,7 @@ class WatchlistViewController: UITableViewController {
 
     /// "+" add button in tableView header (wrapped in a UIToolbar)
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        return addStockToolbar
+        return comparisonListToolbar
     }
 
     /// Find the keyWindow and get the safeAreaInsets for the notch and other unsafe areas
@@ -327,6 +331,7 @@ class WatchlistViewController: UITableViewController {
                                                    target: self,
                                                    action: #selector(editStock))
                 tickerButton.tag = stock.id
+                tickerButton.accessibilityIdentifier = stock.ticker
                 tickerButton.tintColor = stock.upColor
                 buttons.append(tickerButton)
 
@@ -344,6 +349,7 @@ class WatchlistViewController: UITableViewController {
                                     }))
             }
             shareMenuButton.menu = UIMenu(title: "", children: menuActions)
+            shareMenuButton.accessibilityIdentifier = AccessibilityId.Watchlist.shareMenuButton
 
             let maxComparisonCount = UIDevice.current.userInterfaceIdiom == .pad ? 6 : 3
 
@@ -352,6 +358,7 @@ class WatchlistViewController: UITableViewController {
                                                     style: .plain,
                                                     target: self,
                                                     action: #selector(compareStock))
+                compareButton.accessibilityIdentifier = AccessibilityId.Watchlist.addToComparisonButton
                 // Reduce font size of "+ compare" text
                 compareButton.setTitleTextAttributes([NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10)],
                                                      for: .normal)
@@ -372,7 +379,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// User clicked the "+" add button in the header of the tableView to create a new stock comparison
-    @objc func addStock(button: UIBarButtonItem) {
+    @objc func newComparison(button: UIBarButtonItem) {
         let addStockController = AddStockController(style: .plain)
         addStockController.delegate = watchlistViewModel
         addStockController.isNewComparison = true

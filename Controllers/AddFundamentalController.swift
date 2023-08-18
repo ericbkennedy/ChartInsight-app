@@ -29,6 +29,7 @@ final class AddFundamentalController: UITableViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
+        tableView.accessibilityIdentifier = AccessibilityId.AddFundamental.tableView
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {

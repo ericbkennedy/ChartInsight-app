@@ -233,7 +233,7 @@ protocol DBActorDelegate: AnyObject {
          if list.count == 0 { // Add placeholder
              var stock = Stock()
              stock.ticker = ""
-             stock.name = "No matches with supported fundamentals"
+             stock.name = AccessibilityId.AddStock.noMatches
              list.append(stock)
          }
          return list

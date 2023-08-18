@@ -30,6 +30,7 @@ final class AddStockController: UITableViewController, UISearchBarDelegate {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
+        tableView.accessibilityIdentifier = AccessibilityId.AddStock.tableView
 
         searchBar = UISearchBar(frame: .zero)
         searchBar.delegate = self
@@ -38,6 +39,7 @@ final class AddStockController: UITableViewController, UISearchBarDelegate {
         tableView.tableHeaderView = searchBar
         searchBar.sizeToFit()
         searchBar.returnKeyType = .done
+        searchBar.placeholder = AccessibilityId.AddStock.searchBar
         navigationItem.title = "Enter stock ticker or company name"
     }
 

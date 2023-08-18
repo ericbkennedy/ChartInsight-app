@@ -35,6 +35,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
+        tableView.accessibilityIdentifier = AccessibilityId.Settings.tableView
 
         let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneEditing))
         navigationItem.rightBarButtonItem = doneButton
@@ -76,7 +77,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
             onOffSwitch.addTarget(self, action: #selector(toggleNightDay), for: .touchUpInside)
             cell.accessoryView = onOffSwitch
         } else if indexPath.section == SectionType.contactSupport.rawValue {
-            config.text = "Contact Support"
+            config.text = AccessibilityId.Settings.contactSupport
             cell.accessoryType = .detailDisclosureButton
         } else if indexPath.row < list.count {
             let comparison = list[indexPath.row]
@@ -124,7 +125,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
 
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         if section == SectionType.stockList.rawValue {
-            return "Watchlist stocks"
+            return AccessibilityId.Settings.watchlistSection
         } else if section == SectionType.contactSupport.rawValue {
             return "Help"
         }
