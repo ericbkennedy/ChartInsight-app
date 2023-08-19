@@ -29,7 +29,7 @@ final class FundamentalService {
     private let ticker: String
     private var url: URL?
 
-    init(for stock: Stock, delegate: StockActor) {
+    init(for stock: ComparisonStock, delegate: StockActor) {
         ticker = stock.ticker
         self.delegate = delegate
         formatRequestURL(keys: stock.fundamentalList)

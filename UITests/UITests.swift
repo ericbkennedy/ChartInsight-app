@@ -60,6 +60,8 @@ final class UITests: XCTestCase {
         XCTAssertEqual(searchResultsTableView.cells.count, 1, "Search is not working properly")
         searchResultsTableView.cells.firstMatch.tap()   // select first match
 
+        XCTAssertTrue(comparisonTableView.waitForExistence(timeout: 5))
+
         XCTAssert(comparisonTableView.cells.count == countBeforeAdding + 1, "Expected \(comparisonTableView.cells.count) == \(countBeforeAdding) + 1")
 
         try deleteLastComparison()
@@ -131,13 +133,22 @@ final class UITests: XCTestCase {
         watchlistTabItem.tap()
     }
 
-    /// Add an ETF to the first row in the watchlist. Verify it is added to the toolbar then remove it to restore original state.
+    /// Add an ETF to the first row in the watchlist where it isn't part of the comparison
+    /// Verify it is added to the toolbar then remove it to restore original state.
     func testAddETFtoComparisonThenRemove() throws {
+        XCTAssertTrue(comparisonTableView.waitForExistence(timeout: 5))
+
+        let ticker = "QQQ"
+        // Get all rows without this ticker
+        let notYetCompared = comparisonTableView.cells.excluding(substring: ticker)
+
+        XCTAssert(notYetCompared.count > 0, "Expected a row without \(ticker), got \(notYetCompared.count)")
+        notYetCompared.first!.tap()
+
         XCTAssertTrue(navStockButtonToolbar.waitForExistence(timeout: 20))
         let buttonsInToolbarBeforeAdding = navStockButtonToolbar.buttons.count
 
         addToComparisonButton.tap()
-        let ticker = "QQQ"
         searchBar.tap()
         searchBar.typeText(ticker)
         XCTAssertEqual(searchResultsTableView.cells.count, 1, "Search is not working properly")
@@ -174,5 +185,11 @@ final class UITests: XCTestCase {
         XCTAssertTrue(searchResultsTableView.cells.staticTexts[AccessibilityId.AddStock.noMatches].exists)
         searchResultsTableView.cells.staticTexts[AccessibilityId.AddStock.noMatches].tap()
         XCTAssertEqual(searchResultsTableView.cells.count, 0, "Should clear search")
+    }
+}
+ // _ isIncluded: (Element) throws -> Bool
+extension XCUIElementQuery {
+    func excluding(substring: String) -> [XCUIElement] {
+        return self.staticTexts.allElementsBoundByIndex.filter { $0.label.contains(substring) == false }
     }
 }

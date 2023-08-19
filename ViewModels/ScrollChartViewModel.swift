@@ -6,6 +6,7 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import Foundation
 
 public let axisWidth: Double = 30
@@ -32,8 +33,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     public var didError: (@MainActor (String) -> Void)?
     public var didUpdate: (@MainActor ([ChartElements]) -> Void)?
 
-    private(set) var comparison: Comparison // use await updateComparison(comparison:) to change
-
+    private(set) var comparison: Comparison? // use await updateComparison(comparison:) to change
     private var chartPercentChange: NSDecimalNumber
     private var sparklineKeys: [String]
     private var stockActorList: [StockActor]
@@ -49,7 +49,6 @@ final class ScrollChartViewModel: StockActorDelegate {
         (pxWidth, pxHeight, scaledWidth, sparklineHeight) = (0, 0, 0, 0)
 
         chartPercentChange = .one
-        comparison = Comparison()
         sparklineKeys = []
         stockActorList = []
         gregorian = Calendar(identifier: .gregorian)
@@ -129,6 +128,7 @@ final class ScrollChartViewModel: StockActorDelegate {
 
     /// Redraw charts without loading any data if a stock color, chart type or technical changes
     public func chartOptionsChanged() async {
+        guard let comparison else { return }
         sparklineKeys = comparison.sparklineKeys()
         sparklineHeight = Double(100 * comparison.sparklineKeys().count)
         for stockActor in stockActorList {
@@ -143,7 +143,7 @@ final class ScrollChartViewModel: StockActorDelegate {
     public func limitComparisonPeriod() async -> (Int, Int) {
         var supportedPeriods = [Int]()
         var oldestBarsShown = [Int]()
-        var stockOldestBarShown = [Int: Int]() // key = comparisonStockId, value = oldestBarShown
+        var stockOldestBarShown = [NSManagedObjectID: Int]() // key = comparisonStockId, value = oldestBarShown
 
         for stockActor in stockActorList {
             let (periodCount, oldestShown) = await stockActor.maxPeriodSupported(newBarUnit: barUnit, newXFactor: xFactor)
@@ -155,7 +155,7 @@ final class ScrollChartViewModel: StockActorDelegate {
         let periodLimit = supportedPeriods.min() ?? 0
         let limitOldestBarShown = oldestBarsShown.min() ?? 0
 
-        var stocksOverLimit = [Int]()
+        var stocksOverLimit = [NSManagedObjectID]()
 
         for (comparisonStockId, oldestShown) in stockOldestBarShown where oldestShown > periodLimit {
             stocksOverLimit.append(comparisonStockId)
@@ -169,11 +169,12 @@ final class ScrollChartViewModel: StockActorDelegate {
     }
 
     /// Remove stock from current comparison and return updated list of all comparisons
-    @MainActor public func removeFromComparison(stock: Stock) async -> [Comparison] {
-        if comparison.stockList.count == 1 {
+    @MainActor public func removeFromComparison(stock: ComparisonStock) async -> [Comparison] {
+        guard let comparison else { return [] }
+        if comparison.stockSet?.count == 1 {
             print("Error: delete the entire comparison instead of calling removeFromComparison")
         }
-        for (index, stockActor) in stockActorList.enumerated() where stockActor.comparisonStockId == stock.comparisonStockId {
+        for (index, stockActor) in stockActorList.enumerated() where stockActor.comparisonStockId == stock.objectID {
             await stockActor.invalidateAndCancel()
             _ = stockActorList.remove(at: index)
             break
@@ -185,28 +186,33 @@ final class ScrollChartViewModel: StockActorDelegate {
 
     /// Update the stockActor for the stock provided so the next render will use the updated chart options
     /// Returns the list of all stock comparisons
-    @MainActor public func updateComparison(stock: Stock) async -> [Comparison] {
-        for index in 0 ..< comparison.stockList.count where comparison.stockList[index].comparisonStockId == stock.comparisonStockId {
-            comparison.stockList[index] = stock
-        }
-
-        for stockActor in stockActorList where stockActor.comparisonStockId == stock.comparisonStockId {
+    @MainActor public func updateComparison(stock: ComparisonStock) async -> [Comparison] {
+        for stockActor in stockActorList where stockActor.comparisonStockId == stock.objectID {
             await stockActor.update(updatedStock: stock)
         }
-
-        let (updatedList, _) = await comparison.saveToDb()
-        return updatedList
+        CoreDataStack.shared.save()
+        return Comparison.fetchAll()
     }
 
     /// Add stock to comparison (which can be a new empty one) and saveToDB. Then set comparisonStockId = insertedComparisonStockId
-    @MainActor public func addToComparison(stock: Stock) async -> [Comparison] {
-        var currentOldestShown = maxBarOffset // fill scrollChartView with bars unless a stock has fewer available
-        if comparison.stockList.isEmpty == false {
-            (_, currentOldestShown) = await limitComparisonPeriod()
+    @MainActor public func addToComparison(stock: ComparisonStock) async {
+        guard let comparison, let stockSet = comparison.stockSet else { return }
+        for case let existingStock as ComparisonStock in stockSet where existingStock.ticker == stock.ticker {
+            print("\(stock.ticker) is already in this comparison")
+            didCancel?()
+            return
         }
-        comparison.stockList.append(stock)
+        var currentOldestShown = maxBarOffset // fill scrollChartView with bars unless a stock has fewer available
+        if stockSet.count > 0 {
+            (_, currentOldestShown) = await limitComparisonPeriod()
+            comparison.title += " "
+        }
+        comparison.title += stock.ticker
+        stock.comparison = comparison
+        comparison.addToStockSet(stock)
+        CoreDataStack.shared.save()
 
-        axisCount = comparison.stockList.count // additional stock will reduce maxBarOffset
+        axisCount = stockSet.count // additional stock will reduce maxBarOffset
         if currentOldestShown > maxBarOffset {
             currentOldestShown = maxBarOffset
         }
@@ -216,15 +222,9 @@ final class ScrollChartViewModel: StockActorDelegate {
             await stockActor.setOldestBarShown(currentOldestShown)
         }
 
-        let (updatedList, insertedComparisonStockId) = await comparison.saveToDb()
-        var updatedStock = stock
-        updatedStock.comparisonStockId = insertedComparisonStockId
-        comparison.stockList[comparison.stockList.count - 1] = updatedStock
-        let stockActor = StockActor(stock: updatedStock, gregorian: gregorian, delegate: self, oldestBarShown: currentOldestShown,
+        let stockActor = StockActor(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: currentOldestShown,
                                     barUnit: barUnit, xFactor: xFactor)
         stockActorList.append(stockActor)
-
-        return updatedList
     }
 
     /// Invalidate and cancel any requests for the last comparison and create stockActors for the new one.
@@ -232,17 +232,17 @@ final class ScrollChartViewModel: StockActorDelegate {
     /// and removeFromComparison(stock:) should be used to delete a single stock from a multi-stock comparison.
     ///  Returns the updated list of all stock comparisons
     @MainActor public func updateComparison(newComparison: Comparison) async {
-        axisCount = newComparison.stockList.count // must be set before creating StockActors
+        axisCount = newComparison.stockSet?.count ?? 1 // must be set before creating StockActors
 
-        if newComparison.id != comparison.id {
+        if let newStockSet = newComparison.stockSet, newComparison.id != comparison?.id {
             // Changes to existing comparisons are handled by removeFromComparison(stock:) and addToComparison(stock:)
             // Changing comparisons requires invalidating prior stockActor network sessions
             for stockActor in stockActorList {
                 await stockActor.invalidateAndCancel() // cancel all requests
             }
             stockActorList.removeAll()
-            chartPercentChange = NSDecimalNumber.one // will be increased to percentChange for newComparison.stockList
-            for stock in newComparison.stockList {
+            chartPercentChange = NSDecimalNumber.one // will be increased to percentChange for newComparison.stockSet
+            for case let stock as ComparisonStock in newStockSet {
                 let stockActor = StockActor(stock: stock, gregorian: gregorian, delegate: self, oldestBarShown: maxBarOffset,
                                             barUnit: barUnit, xFactor: xFactor)
                 stockActorList.append(stockActor)
@@ -250,9 +250,9 @@ final class ScrollChartViewModel: StockActorDelegate {
         }
 
         comparison = newComparison
-        sparklineKeys = comparison.sparklineKeys()
-        sparklineHeight = Double(100 * comparison.sparklineKeys().count)
-
+        sparklineKeys = newComparison.sparklineKeys()
+        sparklineHeight = Double(100 * newComparison.sparklineKeys().count)
+        CoreDataStack.shared.save()
         for stockActor in stockActorList {
             await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: UIScreen.main.scale)
             await stockActor.fetchPriceAndFundamentals()

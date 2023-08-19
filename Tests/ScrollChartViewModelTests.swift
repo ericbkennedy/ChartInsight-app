@@ -6,13 +6,18 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import XCTest
 
+@testable import ChartInsight
+
 final class ScrollChartViewModelTests: XCTestCase {
-    private var scrollChartViewModel = ScrollChartViewModel(contentsScale: UIScreen.main.scale)
+    var container: NSPersistentContainer = CoreDataStack.shared.container
+    var scrollChartViewModel: ScrollChartViewModel!
     private let pxWidth = 320.0, pxHeight = 568.0
 
     @MainActor override func setUpWithError() throws {
+        scrollChartViewModel = ScrollChartViewModel(contentsScale: 2.0)
         scrollChartViewModel.resize(pxWidth: pxWidth, pxHeight: pxHeight)
     }
 
@@ -21,12 +26,13 @@ final class ScrollChartViewModelTests: XCTestCase {
 
     /// Creates and returns a comparison with a non-zero id so ScrollChartViewModel assumes it has already been saved and fetches data
     func testEphemeralComparison() -> Comparison {
-        let comparison = Comparison()
-        comparison.stockList.append(Stock.testAAPL())
-
-        // scrollChartViewModel.updateComparison(newComparison:) will only fetch data if comparison.id > 0
-        // since comparison.id == 0 (for new comparisons) tells DBActor to save it and update the id.
-        comparison.id = 999
+        let comparison = Comparison(context: container.viewContext)
+        comparison.title = "AAPL"
+        let comparisonStock = ComparisonStock(context: container.viewContext)
+        comparisonStock.stockId = Int64(1)
+        comparisonStock.ticker = "AAPL"
+        comparison.addToStockSet(comparisonStock)
+        comparisonStock.comparison = comparison
         return comparison
     }
 
@@ -87,9 +93,10 @@ final class ScrollChartViewModelTests: XCTestCase {
     /// Create a new comparison, ensure it loads data, then delete it
     @MainActor func testSaveAndDeleteNewComparison() async throws {
 
+        let initialComparisonList = Comparison.fetchAll()
+
         // Start with an empty comparison
-        let comparison = Comparison()
-        XCTAssert(comparison.id == 0)
+        let comparison = Comparison(context: container.viewContext)
 
         let expectation = XCTestExpectation(description: "Expect didUpdate(_) closure to be called")
 
@@ -102,17 +109,18 @@ final class ScrollChartViewModelTests: XCTestCase {
         await scrollChartViewModel.updateComparison(newComparison: comparison)
 
         // addToComparison(stock:) will also cause the comparison to be saved and the comparison.id updated
-        let updatedComparisonList = await scrollChartViewModel.addToComparison(stock: Stock.testStock())
+        await scrollChartViewModel.addToComparison(stock: ComparisonStock.testStock(context: container.viewContext))
 
-        XCTAssert(comparison.id > 0)
+        let updatedComparisonList = Comparison.fetchAll()
 
-        let newestComparisonInDb = try XCTUnwrap(updatedComparisonList.last)
-
-        XCTAssert(comparison.id == newestComparisonInDb.id)
+        XCTAssert(updatedComparisonList.count == 1 + initialComparisonList.count,
+                  "Expected \(updatedComparisonList.count) == 1 + \(initialComparisonList.count)")
 
         // Delete this test comparison
-        let comparisonListAfterDelete = await scrollChartViewModel.comparison.deleteFromDb()
+        container.viewContext.delete(comparison)
 
-        XCTAssert(updatedComparisonList.count > comparisonListAfterDelete.count)
+        let comparisonListAfterDelete = Comparison.fetchAll()
+
+        XCTAssert(comparisonListAfterDelete.count == initialComparisonList.count)
     }
 }

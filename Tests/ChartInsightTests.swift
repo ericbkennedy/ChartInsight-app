@@ -8,6 +8,8 @@
 
 import XCTest
 
+@testable import ChartInsight
+
 final class ChartInsightTests: XCTestCase {
 
     override func setUpWithError() throws {

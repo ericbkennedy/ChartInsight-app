@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21754" systemVersion="22F82" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Comparison" representedClassName="Comparison" syncable="YES">
+        <attribute name="created" attributeType="Date" defaultDateTimeInterval="714188040" usesScalarValueType="NO"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="stockSet" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="ComparisonStock" inverseName="comparison" inverseEntity="ComparisonStock"/>
+    </entity>
+    <entity name="ComparisonStock" representedClassName="ComparisonStock" syncable="YES">
+        <attribute name="chartType" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="fundamentalList" attributeType="String" defaultValueString=""/>
+        <attribute name="hasFundamentals" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="hexColor" attributeType="String" defaultValueString="009900"/>
+        <attribute name="name" attributeType="String" maxValueString="63" defaultValueString=""/>
+        <attribute name="startDateString" attributeType="String" defaultValueString="20090102"/>
+        <attribute name="stockId" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="technicalList" attributeType="String" defaultValueString=""/>
+        <attribute name="ticker" attributeType="String" maxValueString="63" defaultValueString=""/>
+        <relationship name="comparison" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Comparison" inverseName="stockSet" inverseEntity="Comparison"/>
+    </entity>
+</model>

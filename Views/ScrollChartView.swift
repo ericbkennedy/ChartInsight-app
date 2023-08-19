@@ -34,8 +34,9 @@ final class ScrollChartView: UIView {
         bindToViewModel()
     }
 
+    ///  Initializer required by parent class for use with storyboards which this app doesn't use
     required convenience init?(coder: NSCoder) {
-        self.init(viewModel: ScrollChartViewModel(contentsScale: UIScreen.main.scale)) // Required by UIKit but Storyboard isn't used
+        self.init(viewModel: ScrollChartViewModel(contentsScale: 2.0))
     }
 
     // MARK: - ViewModel
@@ -88,12 +89,13 @@ final class ScrollChartView: UIView {
     /// Apple deprecated the CoreGraphics function for rendering text with a specified CGContext so it is necessary
     /// to use UIGraphicsPushContext(context) to render text in the offscreen layerRef.context
     private func renderCharts(stockChartElements: [ChartElements]) {
+        guard let currentComparison = viewModel.comparison else { return }
         if var renderer = chartRenderer, let context = layerRef?.context {
             renderer.barUnit = viewModel.barUnit
             renderer.xFactor = viewModel.xFactor
             renderer.pxWidth = viewModel.pxWidth - viewModel.axisPadding
 
-            let chartText = renderer.renderCharts(comparison: viewModel.comparison, stockChartElements: stockChartElements)
+            let chartText = renderer.renderCharts(comparison: currentComparison, stockChartElements: stockChartElements)
 
             UIGraphicsPushContext(context) // required for textData.text.draw(at: withAttributes:)
             for textData in chartText {

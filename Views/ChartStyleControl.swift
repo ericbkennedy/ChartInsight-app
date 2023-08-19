@@ -29,7 +29,7 @@ final class ChartStyleControl: UIControl {
             }
         }
     }
-    private var stock: Stock
+    private var stock: ComparisonStock
     private let stackView = UIStackView(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
 
     @objc func tappedButton(button: UIButton) {
@@ -43,7 +43,7 @@ final class ChartStyleControl: UIControl {
         }
     }
 
-    public init(type: ChartStyleControlType, frame: CGRect, stock: Stock) {
+    public init(type: ChartStyleControlType, frame: CGRect, stock: ComparisonStock) {
         self.type = type
         self.stock = stock
         super.init(frame: frame)
@@ -60,8 +60,9 @@ final class ChartStyleControl: UIControl {
         backgroundColor = UIColor.systemBackground
     }
 
-    required convenience init?(coder aDecoder: NSCoder) {
-        self.init(type: .color, frame: .zero, stock: Stock())
+    ///  Initializer required by parent class for use with storyboards which this app doesn't use
+    required convenience init?(coder: NSCoder) {
+        self.init(type: .color, frame: .zero, stock: ComparisonStock(context: CoreDataStack.shared.viewContext))
     }
 
     /// Add segments to StackView by rendering images and creating a button for each image.
@@ -75,7 +76,7 @@ final class ChartStyleControl: UIControl {
                 if let miniChart = image(chartType: chartType, colorHex: .greenAndRed, showLabel: true) {
                     images.append(miniChart)
                 }
-                if stock.chartType == chartType {
+                if stock.chartType == chartType.rawValue {
                     selectedIndex = index
                 }
             }
@@ -127,7 +128,7 @@ final class ChartStyleControl: UIControl {
             ctx.cgContext.setLineWidth(1)
             ctx.cgContext.setStrokeColor(upCGColor)
 
-            if chartType == .close {
+            if chartType.rawValue == ChartType.close.rawValue {
                 ctx.cgContext.setLineJoin(.round)
                 ctx.cgContext.move(to: CGPoint(x: 2.5, y: 3))
                 ctx.cgContext.addLine(to: CGPoint(x: 5, y: 22))
@@ -149,7 +150,7 @@ final class ChartStyleControl: UIControl {
                 ctx.cgContext.addLine(to: CGPoint(x: 30.5, y: 17))
                 ctx.cgContext.drawPath(using: .stroke)
 
-                if chartType == .candle {
+                if chartType.rawValue == ChartType.candle.rawValue {
                     ctx.cgContext.setFillColor(upCGColor)
                     ctx.cgContext.fill([CGRect(x: 11, y: 6, width: 5, height: 15),
                                         CGRect(x: 28, y: 3, width: 5, height: 12)])
@@ -165,7 +166,7 @@ final class ChartStyleControl: UIControl {
                     ctx.cgContext.addLine(to: CGPoint(x: 34, y: 5))
                     ctx.cgContext.drawPath(using: .stroke)
 
-                    if chartType == .ohlc { // Add open
+                    if chartType.rawValue == ChartType.ohlc.rawValue { // Add open
                         ctx.cgContext.move(to: CGPoint(x: 9.5, y: 21))
                         ctx.cgContext.addLine(to: CGPoint(x: 13.5, y: 21))
                         ctx.cgContext.drawPath(using: .stroke)

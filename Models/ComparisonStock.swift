@@ -10,6 +10,7 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import Foundation
 import UIKit
 
@@ -17,11 +18,26 @@ public enum ChartType: Int, CaseIterable {
     case ohlc, hlc, candle, close
 }
 
-struct Stock {
+public struct Stock {
     public var  id: Int = 0
-    public var  chartType: ChartType = .close
-    public var  comparisonStockId: Int = 0
     public var  hasFundamentals: Bool = true
+    public var  ticker: String = ""
+    public var  name: String = ""
+    public var  startDateString: String = "" // full text search returns a string value
+}
+
+@objc(ComparisonStock)
+public class ComparisonStock: NSManagedObject {
+    @NSManaged public var stockId: Int64
+    @NSManaged public var chartType: Int64
+    @NSManaged public var ticker: String
+    @NSManaged public var name: String
+    @NSManaged public var hasFundamentals: Bool
+    @NSManaged public var fundamentalList: String
+    @NSManaged public var technicalList: String
+    @NSManaged public var startDateString: String
+    @NSManaged public var hexColor: String
+    @NSManaged public var comparison: Comparison?
     public var  color: UIColor = .red {
         willSet(newColor) {
             let (red, green, blue) = newColor.rgba
@@ -37,19 +53,16 @@ struct Stock {
             upColorHalfAlpha = UIColor.init(red: red, green: green, blue: blue, alpha: 0.5)
             colorInverse = UIColor.init(red: 1 - red, green: 1 - green, blue: 1 - blue, alpha: 1.0)
             colorInverseHalfAlpha = UIColor.init(red: 1 - red, green: 1 - green, blue: 1 - blue, alpha: 0.5)
+            hexColor = newColor.hexString
         }
     }
     public var  upColorHalfAlpha: UIColor = .init(red: 0, green: 0.6, blue: 0, alpha: 0.5)
-    public var  ticker: String = ""
-    public var  name: String = ""
-    public var  fundamentalList: String = ""
-    public var  technicalList: String = ""
-    public var  startDateString: String = "" // full text search returns a string value
-    public var  startDate: Date?             // converted from startDateString
 
-    public init() {
+    /// Initialize ComparisonStock using user default settings (if set) or app defaults
+    public override func awakeFromInsert() {
+        super.awakeFromInsert()
         if let defaultChartType = ChartType(rawValue: UserDefaults.standard.integer(forKey: "chartTypeDefault")) {
-            chartType = defaultChartType
+            chartType = Int64(defaultChartType.rawValue)
         }
 
         if let technicalDefaults = UserDefaults.standard.string(forKey: "technicalDefaults") {
@@ -65,11 +78,31 @@ struct Stock {
         }
     }
 
+    /// Set the stock chart colors from the saved hex value
+    public override func awakeFromFetch() {
+        if let colorFromHex = ChartHexColor(rawValue: hexColor) {
+            setColors(upHexColor: colorFromHex)
+        }
+    }
+
+    /// Use the values in the provided stock for this comparisonStock. Returns self to allow chaining methods.
+    public func setValues(with stock: Stock) -> ComparisonStock {
+        stockId = Int64(stock.id)
+        name = stock.name
+        ticker = stock.ticker
+        startDateString = stock.startDateString
+        hasFundamentals = stock.hasFundamentals
+        if hasFundamentals == false {
+            fundamentalList = ""
+        }
+        return self
+    }
+
     /// Set the up color using provided ChartHexColor value and if that value is .greenAndRed then down color is .red
-    public mutating func setColors(upHexColor: ChartHexColor) {
+    public func setColors(upHexColor: ChartHexColor) {
 
         upColor = upHexColor.color()
-        if upHexColor == .greenAndRed && chartType != .close {
+        if upHexColor == .greenAndRed && chartType != ChartType.close.rawValue {
             color = .red // upColor is green so other bars should be red
         } else {
             color = upColor
@@ -84,27 +117,34 @@ struct Stock {
         return false
     }
 
-    public mutating func addToFundamentals(_ metric: String) {
+    public func addToFundamentals(_ metric: String) {
         if fundamentalList.contains(metric) == false {
             fundamentalList = fundamentalList.appending("\(metric),")
         }
     }
 
-    public mutating func removeFromFundamentals(_ metric: String) {
+    public func removeFromFundamentals(_ metric: String) {
         if fundamentalList.contains(metric) {
             fundamentalList = fundamentalList.replacingOccurrences(of: "\(metric),", with: "")
         }
     }
 
-    public mutating func addToTechnicals(_ metric: String) {
+    public func addToTechnicals(_ metric: String) {
         if technicalList.contains(metric) == false {
             technicalList = technicalList.appending("\(metric),")
         }
     }
 
-    public mutating func removeFromTechnicals(_ metric: String) {
+    public func removeFromTechnicals(_ metric: String) {
         if technicalList.contains(metric) {
             technicalList = technicalList.replacingOccurrences(of: "\(metric),", with: "")
         }
+    }
+}
+
+// MARK: CoreData managed properties
+extension ComparisonStock: Identifiable {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<ComparisonStock> {
+        return NSFetchRequest<ComparisonStock>(entityName: "ComparisonStock")
     }
 }

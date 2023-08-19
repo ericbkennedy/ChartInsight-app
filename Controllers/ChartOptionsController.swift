@@ -10,7 +10,7 @@ import Foundation
 
 class ChartOptionsController: UITableViewController {
     public var sparklineKeys: [String] = []
-    public var stock: Stock
+    public var stock: ComparisonStock
     private weak var delegate: ChartOptionsDelegate?
     private enum SectionType: Int {
         case chartType, chartColor, financials, technicals, setDefaults
@@ -32,7 +32,7 @@ class ChartOptionsController: UITableViewController {
     private var listedMetricsEnabled: [Bool] = [] // parallel array to preseve sort
 
     /// Desiginated initializer sets stock and delegate
-    public init(stock: Stock, delegate: ChartOptionsDelegate?) {
+    public init(stock: ComparisonStock, delegate: ChartOptionsDelegate?) {
         self.stock = stock
         self.delegate = delegate
         typeSegmentedControl = ChartStyleControl(type: .chartType, frame: segmentFrame, stock: stock)
@@ -42,9 +42,9 @@ class ChartOptionsController: UITableViewController {
         colorSegmentedControl.delegate = self
     }
 
-    ///  Initializer required by parent class for use with storyboards
-    required convenience init?(coder aDecoder: NSCoder) {
-        self.init(stock: Stock(), delegate: nil)
+    ///  Initializer required by parent class for use with storyboards which this app doesn't use
+    required convenience init?(coder: NSCoder) {
+        self.init(stock: ComparisonStock(), delegate: nil)
     }
 
     override func viewDidLoad() {
@@ -285,7 +285,7 @@ class ChartOptionsController: UITableViewController {
 
     /// User clicked on Update defaults row
     @objc func updateDefaults() {
-        UserDefaults.standard.setValue(stock.chartType.rawValue, forKey: "chartTypeDefault")
+        UserDefaults.standard.setValue(stock.chartType, forKey: "chartTypeDefault")
         UserDefaults.standard.setValue(stock.technicalList, forKey: "technicalDefaults")
         UserDefaults.standard.setValue(stock.fundamentalList, forKey: "fundamentalDefaults")
         defaultsActionText = "Default Chart Settings Saved"
@@ -294,9 +294,9 @@ class ChartOptionsController: UITableViewController {
 
     /// User clicked on chartStyleControl to change the chart type
     /// Returns the updated stock so caller can update its copy
-    func chartTypeChanged(to chartTypeIndex: Int) -> Stock {
+    func chartTypeChanged(to chartTypeIndex: Int) -> ComparisonStock {
         if let newChartType = ChartType(rawValue: chartTypeIndex) {
-            stock.chartType = newChartType
+            stock.chartType = Int64(chartTypeIndex)
             colorSegmentedControl.createSegments(for: newChartType)
             tableView.reloadData()
             Task {
@@ -308,7 +308,7 @@ class ChartOptionsController: UITableViewController {
 
     /// User clicked on chartStyleControl to change the chart color
     /// Returns the updated stock so caller can update its copy
-    public func chartColorChanged(to colorIndex: Int) -> Stock {
+    public func chartColorChanged(to colorIndex: Int) -> ComparisonStock {
         stock.setColors(upHexColor: ChartHexColor.allCases[colorIndex])
         tableView.reloadData()
         Task {

@@ -71,8 +71,10 @@ class WatchlistViewController: UITableViewController {
         }
     }
 
+    ///  Initializer required by parent class for use with storyboards which this app doesn't use
     required convenience init?(coder: NSCoder) {
-        self.init(watchlistViewModel: WatchlistViewModel(scrollChartViewModel: ScrollChartViewModel(contentsScale: 2.0)))
+        self.init(watchlistViewModel: WatchlistViewModel(container: CoreDataStack.shared.container,
+                                                         scrollChartViewModel: ScrollChartViewModel(contentsScale: 2.0)))
     }
 
     override func viewDidLoad() {
@@ -127,13 +129,15 @@ class WatchlistViewController: UITableViewController {
         if isNewFrameSize(newSize: view.frame.size) {
             resizeSubviews(newSize: view.frame.size)
         }
-        navStockButtonToolbar.frame = CGRect(x: 0, y: 0, width: width, height: toolbarHeight)
 
         // Remove toolbar background and top border
         navStockButtonToolbar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
         navStockButtonToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
         navStockButtonToolbar.accessibilityIdentifier = AccessibilityId.Watchlist.navStockButtonToolbar
 
+        if scrollChartViewModel.comparison == nil { // App just launched & views are loaded, now select a row
+            watchlistViewModel.didSelectRow(at: 0)
+        }
         navigationItem.titleView = navStockButtonToolbar
         view.layer.setNeedsDisplay()
     }
@@ -312,11 +316,11 @@ class WatchlistViewController: UITableViewController {
         var buttons: [UIBarButtonItem] = [toggleListButton]
         buttons.append(UIBarButtonItem(systemItem: .flexibleSpace))
 
-        if comparison.stockList.isEmpty == false {
+        if let currentStockSet = comparison.stockSet, currentStockSet.count > 0 {
             var menuActions = [UIAction]()
-            for stock in comparison.stockList {
+            for case let stock as ComparisonStock in currentStockSet {
                 var buttonTitle = stock.ticker
-                if comparison.stockList.count == 1 || UIDevice.current.userInterfaceIdiom == .pad {
+                if currentStockSet.count == 1 || UIDevice.current.userInterfaceIdiom == .pad {
                     // Add first word from stock name if not equal to ticker
                     let nonLetters = CharacterSet.letters.inverted
                     if let firstWord = stock.name.components(separatedBy: nonLetters).first,
@@ -330,30 +334,32 @@ class WatchlistViewController: UITableViewController {
                                                    style: .plain,
                                                    target: self,
                                                    action: #selector(editStock))
-                tickerButton.tag = stock.id
+                tickerButton.tag = Int(stock.stockId)
                 tickerButton.accessibilityIdentifier = stock.ticker
                 tickerButton.tintColor = stock.upColor
                 buttons.append(tickerButton)
 
-                menuActions.append(UIAction(title: "\(stock.ticker) website",
-                                            handler: { _ in
-                                                self.openWebView("https://chartinsight.com/redirectToIR/\(stock.ticker)")
-                                    }))
-                menuActions.append(UIAction(title: "\(stock.ticker) SeekingAlpha",
-                                            handler: { _ in
-                                                self.openWebView("https://seekingalpha.com/symbol/\(stock.ticker)")
-                                    }))
-                menuActions.append(UIAction(title: "chartinsight.com/\(stock.ticker)",
-                                            handler: { _ in
-                                                self.openWebView("https://chartinsight.com/\(stock.ticker)")
-                                    }))
+                if stock.hasFundamentals {
+                    menuActions.append(UIAction(title: "\(stock.ticker) website",
+                                                handler: { _ in
+                        self.openWebView("https://chartinsight.com/redirectToIR/\(stock.ticker)")
+                    }))
+                    menuActions.append(UIAction(title: "\(stock.ticker) SeekingAlpha",
+                                                handler: { _ in
+                        self.openWebView("https://seekingalpha.com/symbol/\(stock.ticker)")
+                    }))
+                    menuActions.append(UIAction(title: "chartinsight.com/\(stock.ticker)",
+                                                handler: { _ in
+                        self.openWebView("https://chartinsight.com/\(stock.ticker)")
+                    }))
+                }
             }
             shareMenuButton.menu = UIMenu(title: "", children: menuActions)
             shareMenuButton.accessibilityIdentifier = AccessibilityId.Watchlist.shareMenuButton
 
             let maxComparisonCount = UIDevice.current.userInterfaceIdiom == .pad ? 6 : 3
 
-            if comparison.stockList.count < maxComparisonCount {
+            if currentStockSet.count < maxComparisonCount {
                 let compareButton = UIBarButtonItem(title: "+ compare",
                                                     style: .plain,
                                                     target: self,
@@ -396,11 +402,13 @@ class WatchlistViewController: UITableViewController {
 
     /// User clicked a ticker in navStockButtonToolbar to edit settings for the stock with stock.id == button.tag
     @objc func editStock(button: UIBarButtonItem) {
+        guard let currentComparison = scrollChartViewModel.comparison,
+        let currentStockSet = currentComparison.stockSet else { return }
         let stockId = button.tag
 
-        for stock in scrollChartViewModel.comparison.stockList where stock.id == stockId {
+        for case let stock as ComparisonStock in currentStockSet where stock.stockId == stockId {
             let chartOptionsController = ChartOptionsController(stock: stock, delegate: watchlistViewModel)
-            chartOptionsController.sparklineKeys = scrollChartViewModel.comparison.sparklineKeys()
+            chartOptionsController.sparklineKeys = currentComparison.sparklineKeys()
             popoverPush(viewController: chartOptionsController, from: button)
             break
         }

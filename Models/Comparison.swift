@@ -8,19 +8,27 @@
 
 import Foundation
 
-final class Comparison {
+import CoreData
 
-    public var id: Int = 0
-    public var stockList: [Stock] = []
-    public var title: String = ""
+@objc(Comparison)
+public final class Comparison: NSManagedObject {
+
+    @NSManaged public var title: String
+    @NSManaged public var created: Date
+    @NSManaged public var stockSet: NSOrderedSet?
     public var minMetricValues: [String: NSDecimalNumber] = [:]
     public var maxMetricValues: [String: NSDecimalNumber] = [:]
 
+    public override func awakeFromInsert() {
+        created = Date()
+    }
+
     /// Union of all metric keys for stocks in this comparison set
     public func sparklineKeys() -> [String] {
+        guard let stockSet else { return [] }
         var fundamentalKeys = ""
 
-        for stock in stockList {
+        for case let stock as ComparisonStock in stockSet {
             fundamentalKeys = fundamentalKeys.appending(stock.fundamentalList)
         }
 
@@ -97,31 +105,93 @@ final class Comparison {
         return String(format: "%@/Documents/charts.db", NSHomeDirectory())
     }
 
-    /// Insert or update this stock comparison.
-    /// Returns updated list of all stock comparisons
-    public func saveToDb() async -> ([Comparison], Int) {
-        let (updatedList, insertedComparisonStockId) = await DBActor.shared.save(comparison: self)
-        return (updatedList, insertedComparisonStockId)
-    }
-
-    /// Deletes comparison row and all comparisonStock rows.
-    /// Returns updated list of all stock comparisons
-    public func deleteFromDb() async -> [Comparison] {
-        let updatedList = await DBActor.shared.delete(comparison: self)
-        return updatedList
-    }
-
     /// Delete a single stock from this comparison
     /// Returns updated list of all stock comparisons
-    public func delete(stock: Stock) async -> [Comparison] {
-        let updatedList: [Comparison]
-        if stockList.count > 0 {
-            stockList.removeAll(where: {$0.comparisonStockId == stock.comparisonStockId})
-            updatedList = await DBActor.shared.delete(stock: stock)
-        } else {
-            updatedList = await deleteFromDb()
+    public func delete(stock: ComparisonStock) async -> [Comparison] {
+        var updatedList = [Comparison]()
+        if let stockSet, let managedObjectContext {
+            do {
+                if stockSet.count > 0 {
+                    for case let comparisonStock as ComparisonStock in stockSet where comparisonStock.stockId == stock.stockId {
+                        removeFromStockSet(comparisonStock)
+                    }
+                    title = title.replacingOccurrences(of: stock.ticker, with: "").trimmingCharacters(in: .whitespaces)
+                    try managedObjectContext.save()
+                } else {
+                    managedObjectContext.delete(self)
+                }
+                updatedList = Comparison.fetchAll()
+            } catch {
+                print("Error while removing comparisonStock from comparison: \(error)")
+            }
         }
         return updatedList
     }
+}
 
+// MARK: CoreData methods
+extension Comparison: Identifiable {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<Comparison> {
+        return NSFetchRequest<Comparison>(entityName: "Comparison")
+    }
+
+    public class func fetchAll() -> [Comparison] {
+        var list = [Comparison]()
+        let request = Comparison.fetchRequest()
+        let sort = NSSortDescriptor(key: "created", ascending: true)
+        request.sortDescriptors = [sort]
+        if let results = try? CoreDataStack.shared.container.viewContext.fetch(request), results.isEmpty == false {
+            list.append(contentsOf: results)
+        }
+        return list
+    }
+
+    /// Called by DB Actor if stock changes affected history rows indicating a watchlist stock had a stock change
+    internal class func fetchAllAfterStockChanges(_ stockChanges: [StockChangeService.StockChange]) -> [Comparison] {
+        for change in stockChanges {
+            switch change.action {
+            case .tickerChange, .nameChange:
+                print("TODO: Update the comparisonStock object and comparison.title for \(change.ticker)")
+            case .delisted:
+                print("TODO: Remove delisted \(change.ticker) from comparisonStock and comparison.title")
+            case .added, .split:
+                break // Won't affect comparisonStock entries
+            }
+        }
+        return Comparison.fetchAll()
+    }
+
+    public class func findExisting(ticker: String) -> Comparison? {
+        let list = Comparison.fetchAll()
+
+        for comparison in list {
+            if let stockSet = comparison.stockSet {
+                for case let comparisonStock as ComparisonStock in stockSet where comparisonStock.ticker == ticker {
+                    return comparison
+                }
+            }
+        }
+        return nil
+    }
+
+    public class func addSampleData(context: NSManagedObjectContext) {
+        let stocks = [1: "AAPL", 2: "MSFT", 3: "AMZN"]
+
+        for (stockId, ticker) in stocks {
+            let comparison = Comparison(context: context)
+            comparison.title = ticker
+            let comparisonStock = ComparisonStock(context: context)
+            comparisonStock.stockId = Int64(stockId)
+            comparisonStock.ticker = ticker
+            comparison.addToStockSet(comparisonStock)
+            comparisonStock.comparison = comparison
+        }
+        CoreDataStack.shared.save()
+    }
+
+    @objc(addStockSetObject:)
+    @NSManaged public func addToStockSet(_ value: ComparisonStock)
+
+    @objc(removeStockSetObject:)
+    @NSManaged public func removeFromStockSet(_ value: ComparisonStock)
 }

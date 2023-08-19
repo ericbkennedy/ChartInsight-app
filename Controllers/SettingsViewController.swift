@@ -6,6 +6,7 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import Foundation
 import MessageUI
 
@@ -15,6 +16,7 @@ public enum SectionType: Int, CaseIterable {
 
 class SettingsViewController: UITableViewController, MFMailComposeViewControllerDelegate {
     public var delegate: DBActorDelegate?
+    public var container: NSPersistentContainer!
     private var list: [Comparison] = []
     private let cellID = "settingsCell"
 
@@ -43,12 +45,9 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        Task {
-            list = await DBActor.shared.comparisonList() // reload list on each apperence so it reflects added stock
-            await MainActor.run {
-                tableView.reloadData()
-            }
-        }
+        list = Comparison.fetchAll()
+        // reload list on each apperence so it reflects added stock
+        tableView.reloadData()
     }
 
     @objc func doneEditing() {
@@ -111,14 +110,11 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         if indexPath.section == SectionType.stockList.rawValue && editingStyle == .delete {
             if indexPath.row < list.count {
                 let comparison = list[indexPath.row]
-                Task {
-                    list = await comparison.deleteFromDb()
-                    await MainActor.run {
-                        delegate?.update(list: list, reloadComparison: true)
-                        tableView.deleteRows(at: [indexPath], with: .fade)
-                        tableView.reloadData()
-                    }
-                }
+                container.viewContext.delete(comparison)
+                list = Comparison.fetchAll()
+                delegate?.update(list: list, reloadComparison: true)
+                tableView.deleteRows(at: [indexPath], with: .fade)
+                tableView.reloadData()
             }
         }
     }

@@ -9,19 +9,21 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import Foundation
 
 protocol ChartOptionsDelegate: AnyObject {
-    func deleteStock(_ stock: Stock)
+    func deleteStock(_ stock: ComparisonStock)
     func load(comparisonToChart: Comparison)
     func insert(stock: Stock, isNewComparison: Bool)
-    func redraw(stock: Stock) async
-    func reload(stock: Stock) async
+    func redraw(stock: ComparisonStock) async
+    func reload(stock: ComparisonStock) async
     func dismissPopover()
 }
 
 @MainActor final class WatchlistViewModel {
     private (set) var scrollChartViewModel: ScrollChartViewModel!
+    private (set) var container: NSPersistentContainer!
 
     // Closures to bind View to ViewModel
     public var didBeginRequest: (@MainActor (Comparison) -> Void)?
@@ -31,8 +33,15 @@ protocol ChartOptionsDelegate: AnyObject {
     public var listCount: Int { list.count }
     private var list: [Comparison] = []
 
-    init(scrollChartViewModel: ScrollChartViewModel) {
+    init(container: NSPersistentContainer, scrollChartViewModel: ScrollChartViewModel) {
+        self.container = container
         self.scrollChartViewModel = scrollChartViewModel
+        list = Comparison.fetchAll()
+        if list.isEmpty {
+            Comparison.addSampleData(context: container.viewContext)
+            list = Comparison.fetchAll()
+        }
+        // Wait to call update(list:reloadComparison:) until views have finished loading and have nonzero dimensions
     }
 
     public func didSelectRow(at index: Int) {
@@ -60,8 +69,8 @@ extension WatchlistViewModel: DBActorDelegate {
     /// Callback after async comparisonList reload and by StockChangeService if user rows were updated
     public func update(list newList: [Comparison], reloadComparison: Bool) {
         var selectedIndex = 0
-        if !newList.isEmpty && scrollChartViewModel.comparison.id > 0 {
-            for (index, comparison) in newList.enumerated() where comparison.id == scrollChartViewModel.comparison.id {
+        if let currentComparison = scrollChartViewModel.comparison, !newList.isEmpty {
+            for (index, comparison) in newList.enumerated() where comparison.id == currentComparison.id {
                 selectedIndex = index
             }
         }
@@ -77,14 +86,15 @@ extension WatchlistViewModel: DBActorDelegate {
 
 extension WatchlistViewModel: ChartOptionsDelegate {
     /// Called after user taps the Trash icon in ChartOptionsController to delete a stock in a comparison
-    public func deleteStock(_ stock: Stock) {
-        let stockCountBeforeDeletion = scrollChartViewModel.comparison.stockList.count
+    public func deleteStock(_ stock: ComparisonStock) {
+        guard let currentComparison = scrollChartViewModel.comparison else { return }
+        let stockCountBeforeDeletion = currentComparison.stockSet?.count ?? 0
 
         Task {
             var updatedList: [Comparison]
             if stockCountBeforeDeletion <= 1 { // all stocks in comparison were deleted
-                updatedList = await scrollChartViewModel.comparison.deleteFromDb()
-
+                container.viewContext.delete(currentComparison)
+                updatedList = Comparison.fetchAll()
             } else {  // comparison still has at least one stock left
                 updatedList = await scrollChartViewModel.removeFromComparison(stock: stock)
             }
@@ -108,41 +118,48 @@ extension WatchlistViewModel: ChartOptionsDelegate {
 
     /// Called by AddStockController or WebViewController when a new stock is added
     public func insert(stock: Stock, isNewComparison: Bool) {
+        guard var currentComparison = scrollChartViewModel.comparison,
+            let currentStockSet = currentComparison.stockSet else { return }
         Task {
-            var stock = stock
-            if isNewComparison || scrollChartViewModel.comparison.stockList.isEmpty {
-                await scrollChartViewModel.updateComparison(newComparison: Comparison())
-                stock.setColors(upHexColor: .greenAndRed)
+            let comparisonStock = ComparisonStock(context: container.viewContext).setValues(with: stock)
+
+            if isNewComparison || currentStockSet.count == 0 {
+                // Create an empty comparison and tell scrollChartViewModel to use it instead of any prior comparison
+                currentComparison = Comparison(context: container.viewContext)
+                await scrollChartViewModel.updateComparison(newComparison: currentComparison)
+                comparisonStock.setColors(upHexColor: .greenAndRed)
             } else {
                 // Skip colors already used by other stocks in this comparison or use gray
                 var otherColors = ChartHexColor.allCases
-                for otherStock in scrollChartViewModel.comparison.stockList {
+                for case let otherStock as ComparisonStock in currentStockSet {
                     // end before lastIndex to always keep gray as an option
                     for index in 0 ..< otherColors.count - 1 where otherStock.hasUpColor(otherHexColor: otherColors[index]) {
                         otherColors.remove(at: index)
                     }
                 }
-                stock.setColors(upHexColor: otherColors[0])
+                comparisonStock.setColors(upHexColor: otherColors[0])
             }
-
-            let updatedList = await scrollChartViewModel.addToComparison(stock: stock)
+            await scrollChartViewModel.addToComparison(stock: comparisonStock)
+            CoreDataStack.shared.save()
+            let updatedList = Comparison.fetchAll()
             update(list: updatedList, reloadComparison: true)
             didDismiss?()
         }
     }
 
     /// Called by ChartOptionsController when chart color or type changes
-    public func redraw(stock: Stock) async {
+    public func redraw(stock: ComparisonStock) async {
+        guard let currentComparison = scrollChartViewModel.comparison else { return }
+        CoreDataStack.shared.save()
         let updatedList = await scrollChartViewModel.updateComparison(stock: stock)
         // Update list without reloading the comparison as that clears the chart for a second
         update(list: updatedList, reloadComparison: false)
-        didBeginRequest?(scrollChartViewModel.comparison)
+        didBeginRequest?(currentComparison)
         await scrollChartViewModel.chartOptionsChanged()
     }
 
     /// Called by ChartOptionsController when the user adds new fundamental metrics
-    public func reload(stock: Stock) async {
-        let updatedList = await scrollChartViewModel.updateComparison(stock: stock)
-        update(list: updatedList, reloadComparison: true)
+    public func reload(stock: ComparisonStock) async {
+        CoreDataStack.shared.save()
     }
 }
