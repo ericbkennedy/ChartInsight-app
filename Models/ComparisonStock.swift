@@ -18,14 +18,6 @@ public enum ChartType: Int, CaseIterable {
     case ohlc, hlc, candle, close
 }
 
-public struct Stock {
-    public var  id: Int = 0
-    public var  hasFundamentals: Bool = true
-    public var  ticker: String = ""
-    public var  name: String = ""
-    public var  startDateString: String = "" // full text search returns a string value
-}
-
 @objc(ComparisonStock)
 public class ComparisonStock: NSManagedObject {
     @NSManaged public var stockId: Int64

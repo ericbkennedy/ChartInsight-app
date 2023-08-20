@@ -59,6 +59,7 @@
 		80EA06632A7C8217009FED8E /* WatchlistViewControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80EA06622A7C8217009FED8E /* WatchlistViewControllerTests.swift */; };
 		80EA06672A7C8B8B009FED8E /* UIViewController+TestHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80EA06662A7C8B8B009FED8E /* UIViewController+TestHelper.swift */; };
 		80EA06692A7D7168009FED8E /* ScrollChartViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8096A4592A7C633400F5FA88 /* ScrollChartViewModel.swift */; };
+		80FB17172A91BDD5003F8069 /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80FB17162A91BDD5003F8069 /* Stock.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -139,6 +140,7 @@
 		80EA06622A7C8217009FED8E /* WatchlistViewControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistViewControllerTests.swift; sourceTree = "<group>"; };
 		80EA06642A7C831E009FED8E /* ChartInsightTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ChartInsightTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		80EA06662A7C8B8B009FED8E /* UIViewController+TestHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "UIViewController+TestHelper.swift"; path = "Helpers/UIViewController+TestHelper.swift"; sourceTree = "<group>"; };
+		80FB17162A91BDD5003F8069 /* Stock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -286,6 +288,7 @@
 				80B858AC2A4B849900139EBA /* ComparisonStock.swift */,
 				80B858A82A4B849900139EBA /* DBActor.swift */,
 				80ACF8C82A4F361B001A1D7B /* Metrics.swift */,
+				80FB17162A91BDD5003F8069 /* Stock.swift */,
 				80B858C32A4BEC0200139EBA /* StockActor.swift */,
 			);
 			path = Models;
@@ -505,6 +508,7 @@
 				80B858C42A4BEC0200139EBA /* StockActor.swift in Sources */,
 				801191882A42734B001C6ADD /* AddFundamentalController.swift in Sources */,
 				80E586EE2A433E6100A380AA /* ProgressIndicator.swift in Sources */,
+				80FB17172A91BDD5003F8069 /* Stock.swift in Sources */,
 				80E587362A435DE800A380AA /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
