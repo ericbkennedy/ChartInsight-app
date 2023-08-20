@@ -9,12 +9,15 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import XCTest
+
+@testable import ChartInsight
 
 extension DBActor {
     /// Test helper filters out newer bars for consistent counts
     public func loadBarData(for stockId: Int, startDateInt: Int, beforeDateInt: Int) -> [BarData] {
-        return self.loadBarData(for: stockId, startDateInt: startDateInt)
+        return self.loadBarData(for: Int64(stockId), startDateInt: startDateInt)
             .filter({
                 $0.dateIntFromBar() < beforeDateInt
             })
@@ -23,7 +26,7 @@ extension DBActor {
 
 final class StockActorTests: XCTestCase {
 
-    private var stock = Stock.testStock()
+    private var container: NSPersistentContainer!
     private var stockActor: StockActor!
     private var mockStockDelegate = MockStockDelegate()
     private let calendar = Calendar(identifier: .gregorian)
@@ -35,8 +38,8 @@ final class StockActorTests: XCTestCase {
     private let defaultXFactor = 7.5
 
     /// DBActor will delete the history after a stock split. This creates a fake stock split to clear cached price data.
-    private func deleteHistory(for stock: Stock) async {
-        let stockChange = StockChangeService.StockChange(stockId: stock.id,
+    private func deleteHistory(for stock: ComparisonStock) async {
+        let stockChange = StockChangeService.StockChange(stockId: Int(stock.stockId),
                                                          ticker: stock.ticker,
                                                          action: .split,
                                                          name: stock.name,
@@ -47,7 +50,12 @@ final class StockActorTests: XCTestCase {
     }
 
     override func setUpWithError() throws {
-        // stockActor varies with each test
+        container = NSPersistentContainer(name: "CoreDataModel")
+        container.loadPersistentStores { _, error in
+            if let error {
+                print("Unresolved error \(error)")
+            }
+        }
     }
 
     override func tearDownWithError() throws {
@@ -59,8 +67,9 @@ final class StockActorTests: XCTestCase {
     /// Verify that the 2nd call to stockActor.serviceLoadedHistoricalData() inserts all new bars.
     /// This simulates loading from the DB and then loading additional dates from the HistoricalDataService API.
     func testInsertingNewBarsAfterInitialLoad() async throws {
-        stock = Stock.testAAPL() // use AAPL because historical data exists in charts.db
-        stockActor = StockActor(stock: stock,
+        let comparisonStock = ComparisonStock.testAAPL(context: container.viewContext)
+        // use AAPL because historical data exists in charts.db
+        stockActor = StockActor(stock: comparisonStock,
                                 gregorian: calendar,
                                 delegate: mockStockDelegate,
                                 oldestBarShown: initialOldestBarShown,
@@ -85,15 +94,15 @@ final class StockActorTests: XCTestCase {
 
     /// Tell the DBActor that a stock split occurred for the testStock so it deletes any cached history
     func testStockWithNoCachedHistory() async throws {
-        stock = Stock.testStock()
-        stockActor = StockActor(stock: stock,
+        let comparisonStock = ComparisonStock.testStock(context: container.viewContext)
+        stockActor = StockActor(stock: comparisonStock,
                                 gregorian: calendar,
                                 delegate: mockStockDelegate,
                                 oldestBarShown: initialOldestBarShown,
                                 barUnit: .daily,
                                 xFactor: defaultXFactor)
 
-        await deleteHistory(for: stock)
+        await deleteHistory(for: comparisonStock)
 
         var (maxPeriod, _) = await stockActor.maxPeriodSupported(newBarUnit: .daily, newXFactor: defaultXFactor)
 
@@ -115,8 +124,8 @@ final class StockActorTests: XCTestCase {
 
     /// Verify that panning (which uses shiftRedraw) increases the oldestBarShown by amount of pan
     func testShiftRedraw() async throws {
-        stock = Stock.testStock()
-        stockActor = StockActor(stock: stock,
+        let comparisonStock = ComparisonStock.testStock(context: container.viewContext)
+        stockActor = StockActor(stock: comparisonStock,
                                 gregorian: calendar,
                                 delegate: mockStockDelegate,
                                 oldestBarShown: initialOldestBarShown,
@@ -142,8 +151,8 @@ final class StockActorTests: XCTestCase {
 
     /// Try shifting by -2 x initialOldestBarShown which would result in a negative (off-screen) chart if StockActor doesn't prevent that
     func testShiftToNegativeBars() async throws {
-        stock = Stock.testStock()
-        stockActor = StockActor(stock: stock,
+        let comparisonStock = ComparisonStock.testStock(context: container.viewContext)
+        stockActor = StockActor(stock: comparisonStock,
                                 gregorian: calendar,
                                 delegate: mockStockDelegate,
                                 oldestBarShown: initialOldestBarShown,
@@ -167,9 +176,9 @@ final class StockActorTests: XCTestCase {
     /// Verify StockActor combines historical and fundamental data into ChartElements for rendering (by ChartRenderer).
     /// Then change the chart type from candlestick to a close-only line chart and compare the old and new ChartElements.
     func testCopyChartElements() async throws {
-        stock = Stock.testAAPL()
-        stock.chartType = .candle
-        stockActor = StockActor(stock: stock,
+        let comparisonStock = ComparisonStock.testAAPL(context: container.viewContext)
+        comparisonStock.chartType = Int64(ChartType.candle.rawValue)
+        stockActor = StockActor(stock: comparisonStock,
                                 gregorian: calendar,
                                 delegate: mockStockDelegate,
                                 oldestBarShown: initialOldestBarShown,
@@ -180,70 +189,76 @@ final class StockActorTests: XCTestCase {
         await stockActor.setPxHeight(pxHeight, sparklineHeight: sparklineHeight, scale: retinaScale)
         await stockActor.fetchPriceAndFundamentals()
 
-        let candleChartElements = await stockActor.copyChartElements()
+        let expectation = XCTestExpectation(description: "Wait for requestFinished")
 
-        XCTAssert(candleChartElements.monthLabels.count > 0)
-        XCTAssert(candleChartElements.monthLines.count > 0)
-        XCTAssert(candleChartElements.oldestReportInView > 0)
-        XCTAssert(candleChartElements.newestReportInView >= 0)
+        mockStockDelegate.requestFinishedCompletion = { chartPercentChange in
+            XCTAssert(chartPercentChange.compare(NSDecimalNumber.one) != .orderedSame, "Expected non-default value")
+            expectation.fulfill()
 
-        let fundamentalMetrics = stock.fundamentalList.split(separator: ",")
+            let candleChartElements = await self.stockActor.copyChartElements()
 
-        XCTAssert(candleChartElements.fundamentalColumns.count == fundamentalMetrics.count)
-        XCTAssert(candleChartElements.fundamentalAlignments.count >= 55) // report count as of August 2023
-        XCTAssert(candleChartElements.points.count > 0)
-        XCTAssert(candleChartElements.redPoints.count > 0)
-        XCTAssert(candleChartElements.yFactor > 0.0)
-        XCTAssert(candleChartElements.yFactor > 0.0)
-        XCTAssert(candleChartElements.maxHigh.compare(NSDecimalNumber.one) == .orderedDescending)
-        XCTAssert(candleChartElements.minLow.compare(NSDecimalNumber.zero) == .orderedDescending)
-        XCTAssert(candleChartElements.scaledLow.compare(NSDecimalNumber.zero) == .orderedDescending)
-        XCTAssert(candleChartElements.lastPrice.compare(NSDecimalNumber.one) == .orderedDescending)
-        XCTAssert(candleChartElements.movingAvg1.count == 0, "50 day moving average not enabled")
-        XCTAssert(candleChartElements.movingAvg2.count > 0, "200 day moving average enabled by default")
-        XCTAssert(candleChartElements.upperBollingerBand.count == 0, "Bolling Bands not enabled by default")
-        XCTAssert(candleChartElements.middleBollingerBand.count == 0, "Bolling Bands not enabled by default")
-        XCTAssert(candleChartElements.lowerBollingerBand.count == 0, "Bolling Bands not enabled by default")
-        XCTAssert(candleChartElements.redVolume.count > 0)
-        XCTAssert(candleChartElements.blackVolume.count > 0)
-        XCTAssert(candleChartElements.greenBars.count > 0)
-        XCTAssert(candleChartElements.redBars.count > 0)
+            XCTAssert(candleChartElements.monthLabels.count > 0)
+            XCTAssert(candleChartElements.monthLines.count > 0)
+            XCTAssert(candleChartElements.oldestReportInView > 0)
+            XCTAssert(candleChartElements.newestReportInView >= 0)
 
-        let chartPercentChange = await stockActor.percentChangeAfterUpdateHighLow()
+            let fundamentalMetrics = comparisonStock.fundamentalList.split(separator: ",")
 
-        // Change the chart type to a close-only line and verify the changed values
-        stock.chartType = .close
-        await stockActor.update(updatedStock: stock)
-        await stockActor.recompute(chartPercentChange, forceRecompute: true)
+            XCTAssert(candleChartElements.fundamentalColumns.count == fundamentalMetrics.count)
+            XCTAssert(candleChartElements.fundamentalAlignments.count >= 55) // report count as of August 2023
+            XCTAssert(candleChartElements.points.count > 0)
+            XCTAssert(candleChartElements.redPoints.count > 0)
+            XCTAssert(candleChartElements.yFactor > 0.0)
+            XCTAssert(candleChartElements.yFactor > 0.0)
+            XCTAssert(candleChartElements.maxHigh.compare(NSDecimalNumber.one) == .orderedDescending)
+            XCTAssert(candleChartElements.minLow.compare(NSDecimalNumber.zero) == .orderedDescending)
+            XCTAssert(candleChartElements.scaledLow.compare(NSDecimalNumber.zero) == .orderedDescending)
+            XCTAssert(candleChartElements.lastPrice.compare(NSDecimalNumber.one) == .orderedDescending)
+            XCTAssert(candleChartElements.movingAvg1.count == 0, "50 day moving average not enabled")
+            XCTAssert(candleChartElements.movingAvg2.count > 0, "200 day moving average enabled by default")
+            XCTAssert(candleChartElements.upperBollingerBand.count == 0, "Bolling Bands not enabled by default")
+            XCTAssert(candleChartElements.middleBollingerBand.count == 0, "Bolling Bands not enabled by default")
+            XCTAssert(candleChartElements.lowerBollingerBand.count == 0, "Bolling Bands not enabled by default")
+            XCTAssert(candleChartElements.redVolume.count > 0)
+            XCTAssert(candleChartElements.blackVolume.count > 0)
+            XCTAssert(candleChartElements.greenBars.count > 0)
+            XCTAssert(candleChartElements.redBars.count > 0)
 
-        let closeChartElements = await stockActor.copyChartElements()
+            // Change the chart type to a close-only line and verify the changed values
+            comparisonStock.chartType = Int64(ChartType.close.rawValue)
+            await self.stockActor.update(updatedStock: comparisonStock)
+            await self.stockActor.recompute(chartPercentChange, forceRecompute: true)
+            // recompute() will return when chartElements are ready -- it doesn't call requestFinished()
 
-        XCTAssert(closeChartElements.points.count > 0)
-        XCTAssert(closeChartElements.redPoints.count == 0, "No redPoints on a close-only line chart")
-        XCTAssert(closeChartElements.greenBars.count == 0, "No green bars on a close-only line chart")
-        XCTAssert(closeChartElements.redBars.count == 0, "No red bars on a close-only line chart")
+            let closeChartElements = await self.stockActor.copyChartElements()
 
-        XCTAssert(candleChartElements.monthLabels.count == closeChartElements.monthLabels.count)
-        XCTAssert(candleChartElements.monthLines.count == closeChartElements.monthLines.count)
-        XCTAssert(candleChartElements.oldestReportInView == closeChartElements.oldestReportInView)
-        XCTAssert(candleChartElements.newestReportInView == closeChartElements.newestReportInView)
+            XCTAssert(closeChartElements.points.count > 0)
+            XCTAssert(closeChartElements.redPoints.count == 0, "No redPoints on a close-only line chart")
+            XCTAssert(closeChartElements.greenBars.count == 0, "No green bars on a close-only line chart")
+            XCTAssert(closeChartElements.redBars.count == 0, "No red bars on a close-only line chart")
 
-        XCTAssert(candleChartElements.fundamentalColumns.count == closeChartElements.fundamentalColumns.count)
-        XCTAssert(candleChartElements.fundamentalAlignments.count == closeChartElements.fundamentalAlignments.count)
+            XCTAssert(candleChartElements.monthLabels.count == closeChartElements.monthLabels.count)
+            XCTAssert(candleChartElements.monthLines.count == closeChartElements.monthLines.count)
+            XCTAssert(candleChartElements.oldestReportInView == closeChartElements.oldestReportInView)
+            XCTAssert(candleChartElements.newestReportInView == closeChartElements.newestReportInView)
 
-        XCTAssert(candleChartElements.yFactor == closeChartElements.yFactor)
-        XCTAssert(candleChartElements.yFloor == closeChartElements.yFloor)
-        XCTAssert(candleChartElements.maxHigh == closeChartElements.maxHigh)
-        XCTAssert(candleChartElements.minLow == closeChartElements.minLow)
-        XCTAssert(candleChartElements.scaledLow == closeChartElements.scaledLow)
-        XCTAssert(candleChartElements.lastPrice == closeChartElements.lastPrice)
-        XCTAssert(closeChartElements.movingAvg1.count == 0, "50 day moving average not enabled")
-        XCTAssert(closeChartElements.movingAvg2.count > 0, "200 day moving average enabled by default")
-        XCTAssert(closeChartElements.upperBollingerBand.count == 0, "Bolling Bands not enabled by default")
-        XCTAssert(closeChartElements.middleBollingerBand.count == 0, "Bolling Bands not enabled by default")
-        XCTAssert(closeChartElements.lowerBollingerBand.count == 0, "Bolling Bands not enabled by default")
-        XCTAssert(candleChartElements.redVolume.count == closeChartElements.redVolume.count)
-        XCTAssert(candleChartElements.blackVolume.count == closeChartElements.blackVolume.count)
+            XCTAssert(candleChartElements.fundamentalColumns.count == closeChartElements.fundamentalColumns.count)
+            XCTAssert(candleChartElements.fundamentalAlignments.count == closeChartElements.fundamentalAlignments.count)
+
+            XCTAssert(candleChartElements.yFactor == closeChartElements.yFactor)
+            XCTAssert(candleChartElements.yFloor == closeChartElements.yFloor)
+            XCTAssert(candleChartElements.maxHigh == closeChartElements.maxHigh)
+            XCTAssert(candleChartElements.minLow == closeChartElements.minLow)
+            XCTAssert(candleChartElements.scaledLow == closeChartElements.scaledLow)
+            XCTAssert(candleChartElements.lastPrice == closeChartElements.lastPrice)
+            XCTAssert(closeChartElements.movingAvg1.count == 0, "50 day moving average not enabled")
+            XCTAssert(closeChartElements.movingAvg2.count > 0, "200 day moving average enabled by default")
+            XCTAssert(closeChartElements.upperBollingerBand.count == 0, "Bolling Bands not enabled by default")
+            XCTAssert(closeChartElements.middleBollingerBand.count == 0, "Bolling Bands not enabled by default")
+            XCTAssert(closeChartElements.lowerBollingerBand.count == 0, "Bolling Bands not enabled by default")
+            XCTAssert(candleChartElements.redVolume.count == closeChartElements.redVolume.count)
+            XCTAssert(candleChartElements.blackVolume.count == closeChartElements.blackVolume.count)
+        }
     }
 
 }

@@ -6,22 +6,31 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import XCTest
+
+@testable import ChartInsight
 
 @MainActor final class WatchlistViewModelTests: XCTestCase {
 
+    var container: NSPersistentContainer!
     var scrollChartViewModel: ScrollChartViewModel!
     var watchlistViewModel: WatchlistViewModel!
 
     /// Initialize fresh viewModels
     override func setUpWithError() throws {
+        container = NSPersistentContainer(name: "CoreDataModel")
+        container.loadPersistentStores { _, error in
+            if let error {
+                print("Unresolved error \(error)")
+            }
+        }
         scrollChartViewModel = ScrollChartViewModel(contentsScale: 2.0)
-        watchlistViewModel = WatchlistViewModel(scrollChartViewModel: scrollChartViewModel)
+        watchlistViewModel = WatchlistViewModel(container: CoreDataStack.shared.container, scrollChartViewModel: scrollChartViewModel)
     }
 
+    /// CoreData implementation of WatchlistViewModel.init(container, scrollChartModel:) fetches comparisonList so listCount > 0
     func testDidUpdateAfterDbFetch() async throws {
-
-        XCTAssert(0 == watchlistViewModel.listCount)
 
         let expectation = XCTestExpectation(description: "Expect didUpdate(_) closure to be called")
 

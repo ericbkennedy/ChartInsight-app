@@ -38,7 +38,7 @@ final class HistoricalDataService {
     private var nextClose: Date
     private var gregorian: Calendar?
     private var ticker: String
-    private var stockId: Int
+    private var stockId: Int64
     private var dateFormatter: DateFormatter
     private var isLoadingData: Bool
     private var countBars: Int
@@ -49,10 +49,10 @@ final class HistoricalDataService {
     private var lastOfflineError: Date
     private var ephemeralSession: URLSession = URLSession(configuration: .ephemeral) // skip web cache
 
-    public init(for stock: Stock, calendar: Calendar) {
+    public init(for stock: ComparisonStock, calendar: Calendar) {
         fetchedData = []
         isLoadingData = false
-        stockId = stock.id
+        stockId = stock.stockId
         ticker = stock.ticker
         gregorian = calendar
         (countBars, barsFromDB) = (0, 0)
@@ -281,7 +281,7 @@ final class HistoricalDataService {
         isLoadingData = false // allows StockActor to request intraday data if needed
 
         // save to DB after updating UI with historicalDataLoaded()
-        await DBActor.shared.save(fetchedData, stockId: stockId)
+        await DBActor.shared.save(fetchedData, stockId: Int64(stockId))
     }
 
     /// Call StockActor delegate and have it update the bar data on a background thread

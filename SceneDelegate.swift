@@ -6,6 +6,7 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -30,8 +31,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
 
         scrollChartViewModel = ScrollChartViewModel(contentsScale: window.screen.scale)
-        watchlistViewModel = WatchlistViewModel(scrollChartViewModel: scrollChartViewModel)
+        watchlistViewModel = WatchlistViewModel(container: CoreDataStack.shared.container, scrollChartViewModel: scrollChartViewModel)
         watchlistViewController = WatchlistViewController(watchlistViewModel: watchlistViewModel)
+        settingsViewController.container = CoreDataStack.shared.container
 
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
 

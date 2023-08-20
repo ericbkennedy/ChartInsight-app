@@ -12,6 +12,7 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import Foundation
 import UIKit
 
@@ -23,8 +24,8 @@ protocol StockActorDelegate: AnyObject {
 }
 
 actor StockActor: ServiceDelegate {
-    public let comparisonStockId: Int
-    private var stock: Stock
+    public let comparisonStockId: NSManagedObjectID
+    private var stock: ComparisonStock
     private let gregorian: Calendar
     public weak var delegate: StockActorDelegate?
 
@@ -56,8 +57,8 @@ actor StockActor: ServiceDelegate {
     private var volumeBase: Double
     private var volumeHeight: Double
 
-    init(stock: Stock, gregorian: Calendar, delegate: StockActorDelegate, oldestBarShown: Int, barUnit: BarUnit, xFactor: CGFloat) {
-        self.comparisonStockId = stock.comparisonStockId
+    init(stock: ComparisonStock, gregorian: Calendar, delegate: StockActorDelegate, oldestBarShown: Int, barUnit: BarUnit, xFactor: CGFloat) {
+        self.comparisonStockId = stock.objectID
         self.stock = stock
         self.gregorian = gregorian
         self.delegate = delegate
@@ -75,8 +76,8 @@ actor StockActor: ServiceDelegate {
         historicalDataService = HistoricalDataService(for: stock, calendar: gregorian)
     }
 
-    public func update(updatedStock: Stock) {
-        guard stock.comparisonStockId == updatedStock.comparisonStockId else { return }
+    public func update(updatedStock: ComparisonStock) {
+        guard stock.id == updatedStock.id else { return }
         stock = updatedStock
         chartElements.stock = updatedStock // required for updated chart options
     }
@@ -102,7 +103,7 @@ actor StockActor: ServiceDelegate {
 
         // Uses 'async let' to start simultaneous downloads of historical data and fundamental data
         async let historicalTask: Void = historicalDataService.fetchNewerThanDate(currentNewest: Date.distantPast)
-        if stock.fundamentalList.count > 4 {
+        if stock.hasFundamentals && stock.fundamentalList.count > 4 {
             fundamentalService = FundamentalService(for: stock, delegate: self)
             try? await fundamentalService?.fetch()
         }
@@ -474,9 +475,9 @@ actor StockActor: ServiceDelegate {
             }
             lastMonth = periodData[index].month
 
-            if stock.chartType == .ohlc || stock.chartType == .hlc {
+            if stock.chartType == ChartType.ohlc.rawValue || stock.chartType == ChartType.hlc.rawValue {
                 if periodData[index].open > periodData[index].close { // red bar, see AMZN 8/4/23
-                    if stock.chartType == .ohlc { // include open
+                    if stock.chartType == ChartType.ohlc.rawValue { // include open
                         chartElements.redPoints.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: calcY(periodData[index].open)),
                                                                     CGPoint(x: barCenter, y: calcY(periodData[index].open))])
                     }
@@ -485,7 +486,7 @@ actor StockActor: ServiceDelegate {
                                                                 CGPoint(x: barCenter, y: calcY(periodData[index].close)),
                                                                 CGPoint(x: barCenter + xFactor/2, y: calcY(periodData[index].close))])
                 } else { // green bar
-                    if stock.chartType == .ohlc { // include open
+                    if stock.chartType == ChartType.ohlc.rawValue { // include open
                         chartElements.points.append(contentsOf: [CGPoint(x: barCenter - xFactor/2, y: calcY(periodData[index].open)),
                                                                  CGPoint(x: barCenter, y: calcY(periodData[index].open))])
                     }
@@ -495,7 +496,7 @@ actor StockActor: ServiceDelegate {
                                                              CGPoint(x: barCenter, y: calcY(periodData[index].close)),
                                                              CGPoint(x: barCenter + xFactor/2, y: calcY(periodData[index].close))])
                 }
-            } else if stock.chartType == .candle {
+            } else if stock.chartType == ChartType.candle.rawValue {
                 barHeight = chartElements.yFactor * (periodData[index].open - periodData[index].close)
                 if abs(barHeight) < 1 {
                     barHeight = barHeight > 0 ? 1 : -1  // min 1 px height either up or down
@@ -539,7 +540,7 @@ actor StockActor: ServiceDelegate {
                                                                  CGPoint(x: barCenter, y: calcY(periodData[index].low))])
                     }
                 }
-            } else if stock.chartType == .close {
+            } else if stock.chartType == ChartType.close.rawValue {
                 chartElements.points.append(CGPoint(x: barCenter, y: calcY(periodData[index].close)))
             }
             if sma50 && periodData[index].movingAvg1 > 0 {

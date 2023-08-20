@@ -13,7 +13,7 @@
 import Foundation
 
 struct ChartElements {
-    public var stock: Stock
+    public var stock: ComparisonStock
     public var monthLabels: [String] = []
     public var monthLines: [CGPoint] = []
     // Fundamental reports

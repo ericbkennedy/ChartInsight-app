@@ -120,19 +120,19 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
 
         guard webView.url?.absoluteString.contains("chartinsight.com") == true else { return }
 
-        webView.evaluateJavaScript("document.querySelector('#leftTickTicker')?.innerHTML") { (result, error) in
-            guard error == nil, let ticker = result as? String else { return }
+        webView.evaluateJavaScript("document.querySelector('#leftTickTicker')?.innerHTML") { (ticker, error) in
+            guard error == nil, let ticker = ticker as? String else { return }
 
             Task {
                 var buttonText = ""
-                let comparisonList = await DBActor.shared.comparisonList(ticker: ticker)
-                if comparisonList.isEmpty {
+                let comparison = Comparison.findExisting(ticker: ticker)
+                if comparison == nil {
                     if let stock = await DBActor.shared.getStock(ticker: ticker) {
                         buttonText = "Add \(ticker) to Watchlist"
                         self.stock = stock
                     }
                 } else {
-                    self.comparison = comparisonList[0]
+                    self.comparison = comparison
                     buttonText = "View \(ticker) on Watchlist"
                 }
 

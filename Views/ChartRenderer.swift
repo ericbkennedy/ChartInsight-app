@@ -102,7 +102,7 @@ struct ChartRenderer {
             context.fill(chartElements.blackVolume)
 
             context.setStrokeColor(chartElements.stock.upColor.cgColor)
-            if chartElements.stock.chartType == .close {
+            if chartElements.stock.chartType == ChartType.close.rawValue {
                 context.setLineJoin(.round)
                 strokeLineFromPoints(chartElements.points, context: context)
                 context.setLineJoin(.miter)
