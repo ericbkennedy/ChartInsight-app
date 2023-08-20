@@ -19,7 +19,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var watchlistViewModel: WatchlistViewModel!
     var watchlistViewController: WatchlistViewController!
     var webViewController = WebViewController()
-    var settingsViewController = SettingsViewController(style: .plain)
+    var settingsViewController: SettingsViewController!
 
     var watchlistNavigationController: UINavigationController?
     var webNavigationController: UINavigationController?
@@ -33,7 +33,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         scrollChartViewModel = ScrollChartViewModel(contentsScale: window.screen.scale)
         watchlistViewModel = WatchlistViewModel(container: CoreDataStack.shared.container, scrollChartViewModel: scrollChartViewModel)
         watchlistViewController = WatchlistViewController(watchlistViewModel: watchlistViewModel)
-        settingsViewController.container = CoreDataStack.shared.container
+        settingsViewController = SettingsViewController(watchlistViewModel: watchlistViewModel)
 
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
 
@@ -47,7 +47,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
         }
 
-        settingsViewController.delegate = watchlistViewModel // will refresh comparison list after deletion
         watchlistNavigationController = UINavigationController(rootViewController: watchlistViewController)
         watchlistNavigationController?.title = "Watchlist"
 

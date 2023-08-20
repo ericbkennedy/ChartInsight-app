@@ -28,6 +28,7 @@
 		80975B7E2A892A1F00C8AAB8 /* ScrollChartViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D6D1E42A86EE9700F26527 /* ScrollChartViewModelTests.swift */; };
 		8097DB0A2A40BC38003E11E0 /* UIColor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */; };
 		8097DB122A422FB4003E11E0 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097DB112A422FB4003E11E0 /* SettingsViewController.swift */; };
+		809BDA692A925F5F00374656 /* ChildTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809BDA682A925F5F00374656 /* ChildTableViewController.swift */; };
 		809F32352A36C7430018526F /* AddStockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809F32342A36C7430018526F /* AddStockController.swift */; };
 		80A1164C2A89552200E2D3A5 /* BarUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A1164B2A89552200E2D3A5 /* BarUnit.swift */; };
 		80A1164F2A896C7C00E2D3A5 /* WatchlistViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A1164E2A896C7C00E2D3A5 /* WatchlistViewModel.swift */; };
@@ -104,6 +105,7 @@
 		8096A4652A7C6DFD00F5FA88 /* Mocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mocks.swift; sourceTree = "<group>"; };
 		8097DB092A40BC38003E11E0 /* UIColor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extensions.swift"; sourceTree = "<group>"; };
 		8097DB112A422FB4003E11E0 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		809BDA682A925F5F00374656 /* ChildTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildTableViewController.swift; sourceTree = "<group>"; };
 		809F32342A36C7430018526F /* AddStockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockController.swift; sourceTree = "<group>"; };
 		80A101252A7EB03A00C5AECC /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		80A1164B2A89552200E2D3A5 /* BarUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarUnit.swift; sourceTree = "<group>"; };
@@ -193,6 +195,7 @@
 				801191872A42734B001C6ADD /* AddFundamentalController.swift */,
 				809F32342A36C7430018526F /* AddStockController.swift */,
 				80AA23242A4902EB004F95F0 /* ChartOptionsController.swift */,
+				809BDA682A925F5F00374656 /* ChildTableViewController.swift */,
 				8097DB112A422FB4003E11E0 /* SettingsViewController.swift */,
 				802E48D42A46278B00D02E8F /* WatchlistViewController.swift */,
 				80ACF8CB2A4F85FD001A1D7B /* WebViewController.swift */,
@@ -483,6 +486,7 @@
 				80DE194E2A8F2C4F00398F8B /* CoreDataModel.xcdatamodeld in Sources */,
 				80A1164C2A89552200E2D3A5 /* BarUnit.swift in Sources */,
 				80B858BB2A4B849900139EBA /* BarData.swift in Sources */,
+				809BDA692A925F5F00374656 /* ChildTableViewController.swift in Sources */,
 				80B858B72A4B849900139EBA /* Comparison.swift in Sources */,
 				80B858B52A4B849900139EBA /* FundamentalService.swift in Sources */,
 				809F32352A36C7430018526F /* AddStockController.swift in Sources */,

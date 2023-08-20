@@ -6,7 +6,6 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
-import CoreData
 import Foundation
 import MessageUI
 
@@ -15,17 +14,18 @@ public enum SectionType: Int, CaseIterable {
 }
 
 class SettingsViewController: UITableViewController, MFMailComposeViewControllerDelegate {
-    public var delegate: DBActorDelegate?
-    public var container: NSPersistentContainer!
-    private var list: [Comparison] = []
     private let cellID = "settingsCell"
+    private var viewModel: WatchlistViewModel!
 
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
+    /// Designated initializer
+    init(watchlistViewModel: WatchlistViewModel) {
+        viewModel = watchlistViewModel
+        super.init(style: .plain)
     }
 
-    override init(style: UITableView.Style) {
-        super.init(style: style)
+    /// Required for storyboards which are not used for this view controller
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
     }
 
     override func viewDidLoad() {
@@ -41,13 +41,6 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
 
         let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneEditing))
         navigationItem.rightBarButtonItem = doneButton
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        list = Comparison.fetchAll()
-        // reload list on each apperence so it reflects added stock
-        tableView.reloadData()
     }
 
     @objc func doneEditing() {
@@ -78,9 +71,8 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         } else if indexPath.section == SectionType.contactSupport.rawValue {
             config.text = AccessibilityId.Settings.contactSupport
             cell.accessoryType = .detailDisclosureButton
-        } else if indexPath.row < list.count {
-            let comparison = list[indexPath.row]
-            config.text = comparison.title
+        } else if indexPath.row < viewModel.listCount {
+            config.text = viewModel.title(for: indexPath.row)
         }
 
         cell.contentConfiguration = config
@@ -99,7 +91,7 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         if section != SectionType.stockList.rawValue {
             return 1
         }
-        return list.count
+        return viewModel.listCount
     }
 
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
@@ -108,11 +100,8 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
 
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if indexPath.section == SectionType.stockList.rawValue && editingStyle == .delete {
-            if indexPath.row < list.count {
-                let comparison = list[indexPath.row]
-                container.viewContext.delete(comparison)
-                list = Comparison.fetchAll()
-                delegate?.update(list: list, reloadComparison: true)
+            if indexPath.row < viewModel.listCount {
+                viewModel.delete(at: indexPath.row)
                 tableView.deleteRows(at: [indexPath], with: .fade)
                 tableView.reloadData()
             }

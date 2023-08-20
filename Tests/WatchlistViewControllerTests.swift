@@ -39,9 +39,40 @@ import XCTest
     }
 
     /// CoreData implementation of WatchlistViewModel.init(container, scrollChartModel:) fetches comparisonList so listCount > 0
-    @MainActor func testUpdateWithList() async throws {
-        // MainActor should have received rows from the DBActor
-        XCTAssert(0 < watchlistViewController.tableView(watchlistViewController.tableView, numberOfRowsInSection: 0))
+    func testComparisonListLoaded() throws {
+        XCTAssertNotNil(watchlistViewController.childTableViewController)
+
+        guard let tableView = watchlistViewController.childTableViewController.tableView else {
+            return XCTFail("Missing childTableViewController.tableView")
+        }
+
+        XCTAssert(0 < watchlistViewController.childTableViewController.tableView(tableView, numberOfRowsInSection: 0))
     }
 
+    /// Verify that a comparison has loaded and the navigationItem contains 4+ buttons (left toggle, 1+ stock(s), compare button, right menu)
+    func testNavButtonToolbarContainsAStock() throws {
+        guard let navigationToolbar = watchlistViewController.navigationItem.titleView as? UIToolbar else {
+            return XCTFail("Missing navigationToolbar")
+        }
+
+        guard let navigationItemButtons = navigationToolbar.items else {
+            return XCTFail("Missing navigationToolbar.items")
+        }
+        XCTAssert(navigationItemButtons.count >= 4, "Expected >= 4 buttons, found \(navigationItemButtons.count)")
+
+        var stockButtonCount = 0, compareButtonCount = 0
+
+        for barButtonItem in navigationItemButtons {
+            if let buttonTitle = barButtonItem.title, buttonTitle.isEmpty == false {
+                print(buttonTitle)
+                if buttonTitle == "+ compare" {
+                    compareButtonCount += 1
+                } else if buttonTitle.prefixMatch(of: /\w+\s?/) != nil {
+                    stockButtonCount += 1
+                }
+            }
+        }
+        XCTAssert(stockButtonCount > 0, "Expected at least one stock, found \(stockButtonCount)")
+        XCTAssert(compareButtonCount == 1, "Expected one comparison button")
+    }
 }

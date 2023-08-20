@@ -12,11 +12,9 @@
 import Foundation
 import UIKit
 
-let padding: CGFloat = 5
-
 final class ScrollChartView: UIView {
     public var svWidth: CGFloat
-
+    public let padding: CGFloat = 5
     public var viewModel: ScrollChartViewModel
     public var progressIndicator: ProgressIndicator? // reference to WatchlistVC property
 

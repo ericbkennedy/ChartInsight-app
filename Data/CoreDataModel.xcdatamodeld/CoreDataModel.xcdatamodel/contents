@@ -3,7 +3,7 @@
     <entity name="Comparison" representedClassName="Comparison" syncable="YES">
         <attribute name="created" attributeType="Date" defaultDateTimeInterval="714188040" usesScalarValueType="NO"/>
         <attribute name="title" optional="YES" attributeType="String"/>
-        <relationship name="stockSet" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="ComparisonStock" inverseName="comparison" inverseEntity="ComparisonStock"/>
+        <relationship name="stockSet" toMany="YES" deletionRule="Cascade" ordered="YES" destinationEntity="ComparisonStock" inverseName="comparison" inverseEntity="ComparisonStock"/>
     </entity>
     <entity name="ComparisonStock" representedClassName="ComparisonStock" syncable="YES">
         <attribute name="chartType" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>

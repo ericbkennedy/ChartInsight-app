@@ -14,7 +14,7 @@
 import Foundation
 import UIKit
 
-class WatchlistViewController: UITableViewController {
+class WatchlistViewController: UIViewController {
     var progressIndicator: ProgressIndicator?
     var magnifier = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
 
@@ -22,11 +22,8 @@ class WatchlistViewController: UITableViewController {
         case tableView, scrollChartView, magnifier, progressIndicator
     }
 
-    private let cellID = "cellId"
-    private let padding = 6.0
     private var width: CGFloat = 0
     private var height: CGFloat = 0
-    private var rowHeight: CGFloat = 0
     private var statusBarHeight: CGFloat = 0 // set using safeAreaInsets
     private var toolbarHeight: CGFloat = 0
     private var tableViewWidthVisible: CGFloat = 0
@@ -39,11 +36,11 @@ class WatchlistViewController: UITableViewController {
     private var longPressRecognizer = UILongPressGestureRecognizer()
     private var panGestureRecognizer = UIPanGestureRecognizer()
     private var pinchGestureRecognizer = UIPinchGestureRecognizer()
-    private var comparisonListToolbar = UIToolbar() // in tableView header
-    private var newComparisonButton = UIBarButtonItem(systemItem: .add)
     private var toggleListButton = UIBarButtonItem(image: UIImage(named: "toggleList"))
     private var shareMenuButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"))
     private var navStockButtonToolbar = UIToolbar() // will be navigationItem.titleView
+
+    internal var childTableViewController: ChildTableViewController!
 
     private var scrollChartViewModel: ScrollChartViewModel!
     private var watchlistViewModel: WatchlistViewModel!
@@ -53,7 +50,7 @@ class WatchlistViewController: UITableViewController {
         self.watchlistViewModel = watchlistViewModel
         scrollChartViewModel = watchlistViewModel.scrollChartViewModel
         scrollChartView = ScrollChartView(viewModel: scrollChartViewModel)
-        super.init(style: .plain)
+        super.init(nibName: nil, bundle: nil) // super.init() is only available in iOS 16.4
 
         self.watchlistViewModel.didBeginRequest = { [weak self] comparison in
             self?.scrollChartView.clearChart()
@@ -65,8 +62,9 @@ class WatchlistViewController: UITableViewController {
         }
 
         self.watchlistViewModel.didUpdate = { [weak self] selectedIndex in
-            self?.tableView.reloadData() // will require reselecting the row below
-            self?.tableView.selectRow(at: IndexPath(row: selectedIndex, section: 0),
+
+            self?.childTableViewController.tableView.reloadData() // will require reselecting the row below
+            self?.childTableViewController.tableView.selectRow(at: IndexPath(row: selectedIndex, section: 0),
                                 animated: false, scrollPosition: .middle)
         }
     }
@@ -77,21 +75,24 @@ class WatchlistViewController: UITableViewController {
                                                          scrollChartViewModel: ScrollChartViewModel(contentsScale: 2.0)))
     }
 
+    /// Add Child UITableViewController so it can scroll without moving the chart
+    func addChildTableViewController() {
+        childTableViewController = ChildTableViewController(watchlistViewModel: watchlistViewModel)
+        addChild(childTableViewController)
+        // Note: dimensions will be set in viewWillAppear
+        view.addSubview(childTableViewController.view)
+        childTableViewController.didMove(toParent: self)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.insetsLayoutMarginsFromSafeArea = true
 
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.separatorStyle = .none
-        tableView.sectionHeaderTopPadding = 1 // aligns upper border with ScrollChartView divider
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
-        tableView.accessibilityIdentifier = AccessibilityId.Watchlist.tableView
+        addChildTableViewController()
 
         tableViewWidthVisible = UIDevice.current.userInterfaceIdiom == .phone ? 66 : 100
-        rowHeight = UIDevice.current.userInterfaceIdiom == .phone ? 40 : 44
 
         scrollChartView.layer.anchorPoint = .zero // allows bounds = frame
-        scrollChartView.layer.position = CGPoint(x: tableViewWidthVisible, y: 0)
         scrollChartView.layer.zPosition = ZPosition.scrollChartView.rawValue
         view.addSubview(scrollChartView)
 
@@ -117,10 +118,6 @@ class WatchlistViewController: UITableViewController {
         toggleListButton.target = self
         toggleListButton.action = #selector(toggleList)
         toggleListButton.accessibilityIdentifier = AccessibilityId.Watchlist.toggleListButton
-        newComparisonButton.target = self
-        newComparisonButton.action = #selector(newComparison)
-        newComparisonButton.accessibilityIdentifier = AccessibilityId.Watchlist.newComparisonButton
-        comparisonListToolbar.items = [newComparisonButton]
     }
 
     /// Update subviews now that frame size is available
@@ -142,31 +139,6 @@ class WatchlistViewController: UITableViewController {
         view.layer.setNeedsDisplay()
     }
 
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return watchlistViewModel.listCount
-    }
-
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
-        var config = cell.defaultContentConfiguration()
-        config.text = watchlistViewModel.title(for: indexPath.row)
-        cell.contentConfiguration = config
-        return cell
-    }
-
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        watchlistViewModel.didSelectRow(at: indexPath.row)
-    }
-
-    override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        return rowHeight
-    }
-
-    /// "+" add button in tableView header (wrapped in a UIToolbar)
-    override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        return comparisonListToolbar
-    }
-
     /// Find the keyWindow and get the safeAreaInsets for the notch and other unsafe areas
     private func getSafeAreaInsets() -> UIEdgeInsets {
         for scene in UIApplication.shared.connectedScenes {
@@ -182,7 +154,7 @@ class WatchlistViewController: UITableViewController {
     /// Determine if the frame size has changed and subviews must be resized
     private func isNewFrameSize(newSize: CGSize) -> Bool {
         let newWidth = newSize.width
-        var newHeight = newSize.height - padding
+        var newHeight = newSize.height
         let safeAreaInsets = getSafeAreaInsets()
 
         toolbarHeight = 44
@@ -191,7 +163,7 @@ class WatchlistViewController: UITableViewController {
             statusBarHeight = safeAreaInsets.top
         }
 
-        newHeight = newSize.height - statusBarHeight - 2 * toolbarHeight - padding - safeAreaInsets.bottom
+        newHeight = newSize.height - statusBarHeight - 2 * toolbarHeight - safeAreaInsets.bottom
 
         if newHeight != height || newWidth != width { // iPad multitasking only reduces the width
             width = newWidth
@@ -202,13 +174,13 @@ class WatchlistViewController: UITableViewController {
     }
 
     private func resizeSubviews(newSize: CGSize) {
+        childTableViewController.view.frame = view.bounds
         navStockButtonToolbar.frame = CGRect(x: 0, y: 0, width: newSize.width, height: toolbarHeight)
-        tableView.reloadData()
-
         let delta = scrollChartView.bounds.size.width - newSize.width
         let shiftBars = Int(scrollChartView.layer.contentsScale
                             * delta/(scrollChartViewModel.xFactor * scrollChartViewModel.barUnit.rawValue))
         scrollChartViewModel.updateMaxPercentChange(barsShifted: -shiftBars) // shiftBars are + when delta is -
+        scrollChartView.layer.position = CGPoint(x: tableViewWidthVisible, y: toolbarHeight + statusBarHeight)
         scrollChartView.bounds = CGRect(x: 0, y: 0, width: width, height: height) // isNewFrameSize calculated height
         let (pxWidth, pxHeight) = scrollChartView.resize()
         scrollChartViewModel.resize(pxWidth: pxWidth, pxHeight: pxHeight)
@@ -248,7 +220,7 @@ class WatchlistViewController: UITableViewController {
             return
         }
 
-        let xPress = recognizer.location(in: scrollChartView).x - padding
+        let xPress = recognizer.location(in: scrollChartView).x - scrollChartView.padding
         let yPress = recognizer.location(in: scrollChartView).y
         let midpoint: CGFloat = 50
         let magnifierWidth: CGFloat = 2 * midpoint
@@ -297,7 +269,7 @@ class WatchlistViewController: UITableViewController {
     /// When the gesture ends, have scrollChartViewModel recompute the ChartElements with the new scale.
     @objc func handlePinch(recognizer: UIPinchGestureRecognizer) {
         recognizer.cancelsTouchesInView = true
-        let pinchMidpoint = recognizer.location(in: view).x - scrollChartView.layer.position.x - padding
+        let pinchMidpoint = recognizer.location(in: view).x - scrollChartView.layer.position.x - scrollChartView.padding
         if recognizer.state == .began {
             pinchCount = 0
             pinchMidpointSum = 0.0
@@ -385,6 +357,7 @@ class WatchlistViewController: UITableViewController {
     }
 
     /// User clicked the "+" add button in the header of the tableView to create a new stock comparison
+    /// Called by ChildTableViewController
     @objc func newComparison(button: UIBarButtonItem) {
         let addStockController = AddStockController(style: .plain)
         addStockController.delegate = watchlistViewModel

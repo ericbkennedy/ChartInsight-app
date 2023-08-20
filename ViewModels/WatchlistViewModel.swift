@@ -13,6 +13,7 @@ import CoreData
 import Foundation
 
 protocol ChartOptionsDelegate: AnyObject {
+    func delete(comparison: Comparison)
     func deleteStock(_ stock: ComparisonStock)
     func load(comparisonToChart: Comparison)
     func insert(stock: Stock, isNewComparison: Bool)
@@ -63,6 +64,20 @@ protocol ChartOptionsDelegate: AnyObject {
         guard list.count > row else { return "" }
         return list[row].title
     }
+
+    /// Called when the user deletes a comparison from the SettingsViewController
+    public func delete(at index: Int) {
+        guard list.count > index else { return }
+        delete(comparison: list[index])
+    }
+
+    /// Delete a comparison. CoreData will handle cascading delete for comparisonStock entries
+    public func delete(comparison: Comparison) {
+        let isCurrentComparison = scrollChartViewModel.comparison == comparison
+
+        container.viewContext.delete(comparison)
+        update(list: Comparison.fetchAll(), reloadComparison: isCurrentComparison)
+    }
 }
 
 extension WatchlistViewModel: DBActorDelegate {
@@ -93,7 +108,7 @@ extension WatchlistViewModel: ChartOptionsDelegate {
         Task {
             var updatedList: [Comparison]
             if stockCountBeforeDeletion <= 1 { // all stocks in comparison were deleted
-                container.viewContext.delete(currentComparison)
+                delete(comparison: currentComparison)
                 updatedList = Comparison.fetchAll()
             } else {  // comparison still has at least one stock left
                 updatedList = await scrollChartViewModel.removeFromComparison(stock: stock)
