@@ -48,6 +48,18 @@ extension ComparisonStock {
     static func testStock(context: NSManagedObjectContext) -> ComparisonStock {
         return ComparisonStock(context: context).setValues(with: Stock.testStock())
     }
+
+    /// DBActor will delete the history after a stock split. This creates a fake stock split to clear cached price data.
+    internal func deleteHistory(delegate: MockStockDelegate) async {
+        let stockChange = StockChangeService.StockChange(stockId: Int(self.stockId),
+                                                         ticker: self.ticker,
+                                                         action: .split,
+                                                         name: self.name,
+                                                         startDateInt: 0,
+                                                         hasFundamentals: 0)
+
+        await DBActor.shared.update(stockChanges: [stockChange], delegate: delegate)
+    }
 }
 
 class MockStockDelegate: StockActorDelegate, DBActorDelegate {

@@ -26,7 +26,7 @@ extension DBActor {
 
 final class StockActorTests: XCTestCase {
 
-    private var container: NSPersistentContainer!
+    private var container = CoreDataStack.shared.container
     private var stockActor: StockActor!
     private var mockStockDelegate = MockStockDelegate()
     private let calendar = Calendar(identifier: .gregorian)
@@ -37,25 +37,7 @@ final class StockActorTests: XCTestCase {
     private let retinaScale = 2.0
     private let defaultXFactor = 7.5
 
-    /// DBActor will delete the history after a stock split. This creates a fake stock split to clear cached price data.
-    private func deleteHistory(for stock: ComparisonStock) async {
-        let stockChange = StockChangeService.StockChange(stockId: Int(stock.stockId),
-                                                         ticker: stock.ticker,
-                                                         action: .split,
-                                                         name: stock.name,
-                                                         startDateInt: 0,
-                                                         hasFundamentals: 0)
-
-        await DBActor.shared.update(stockChanges: [stockChange], delegate: mockStockDelegate)
-    }
-
     override func setUpWithError() throws {
-        container = NSPersistentContainer(name: "CoreDataModel")
-        container.loadPersistentStores { _, error in
-            if let error {
-                print("Unresolved error \(error)")
-            }
-        }
     }
 
     override func tearDownWithError() throws {
@@ -102,7 +84,7 @@ final class StockActorTests: XCTestCase {
                                 barUnit: .daily,
                                 xFactor: defaultXFactor)
 
-        await deleteHistory(for: comparisonStock)
+        await comparisonStock.deleteHistory(delegate: mockStockDelegate)
 
         var (maxPeriod, _) = await stockActor.maxPeriodSupported(newBarUnit: .daily, newXFactor: defaultXFactor)
 

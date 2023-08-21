@@ -40,7 +40,9 @@ final class HistoricalDataService {
     private var ticker: String
     private var stockId: Int64
     private var dateFormatter: DateFormatter
-    private var isLoadingData: Bool
+
+    /// True during an API request for price data (historical or intraday)
+    private (set) var isRequestingRemoteData: Bool
     private var countBars: Int
     private var barsFromDB: Int
     private var fetchedData: [BarData]
@@ -51,7 +53,7 @@ final class HistoricalDataService {
 
     public init(for stock: ComparisonStock, calendar: Calendar) {
         fetchedData = []
-        isLoadingData = false
+        isRequestingRemoteData = false
         stockId = stock.stockId
         ticker = stock.ticker
         gregorian = calendar
@@ -97,14 +99,14 @@ final class HistoricalDataService {
         let afterClose: TimeInterval = 3600.0
         let secondsAfterClose = Date().timeIntervalSince(nextClose)
 
-        if !isLoadingData && secondsAfterClose > afterClose {
+        if !isRequestingRemoteData && secondsAfterClose > afterClose {
             return true
         }
         return false // either wait a minute to refetch intraday data or wait until an hour after close
     }
 
     public func fetchIntradayQuote() async {
-        if isLoadingData {
+        if isRequestingRemoteData {
             return
         } else if isRecent(lastOfflineError) {
             print("last offline error \(lastOfflineError) was too recent to try again %f",
@@ -115,7 +117,7 @@ final class HistoricalDataService {
 
         let urlString = "https://chartinsight.com/api/intraday/\(ticker)?token=\(apiKey)"
         guard let url = URL(string: urlString) else { return }
-        isLoadingData = true
+        isRequestingRemoteData = true
 
         do {
             try await fetchIntraday(from: url)
@@ -209,10 +211,9 @@ final class HistoricalDataService {
 
         requestNewest = Date()
 
-        if isLoadingData {
+        if isRequestingRemoteData {
             return // since another request is in progress let it call the delegate methods when it finishes or fails
         }
-        isLoadingData = true
 
         barsFromDB = 0
         countBars = 0
@@ -239,6 +240,7 @@ final class HistoricalDataService {
             print("lastOfflineError \(lastOfflineError) was too recent to try again")
             await cancelDownload()
         } else if Date().compare(nextClose) == .orderedDescending {
+            isRequestingRemoteData = true
             guard let url = formatRequestURL() else { return }
 
             do {
@@ -277,8 +279,8 @@ final class HistoricalDataService {
             }
         }
 
+        isRequestingRemoteData = false // allows StockActor to request intraday data if needed
         await historicalDataLoaded(barDataArray: fetchedData)
-        isLoadingData = false // allows StockActor to request intraday data if needed
 
         // save to DB after updating UI with historicalDataLoaded()
         await DBActor.shared.save(fetchedData, stockId: Int64(stockId))
@@ -351,8 +353,8 @@ final class HistoricalDataService {
 
     /// Called BEFORE creating a URLSessionTask if there was a recent offline error or it was too soon to try again
     private func cancelDownload() async {
-        if isLoadingData {
-            isLoadingData = false
+        if isRequestingRemoteData {
+            isRequestingRemoteData = false
         }
         await delegate?.serviceCanceled()
     }

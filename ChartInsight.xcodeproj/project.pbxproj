@@ -19,6 +19,7 @@
 		80278A762A4CE3240051CFBE /* ScrollChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A752A4CE3240051CFBE /* ScrollChartView.swift */; };
 		80278A792A4DEE5B0051CFBE /* ChartRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */; };
 		802E48D52A46278B00D02E8F /* WatchlistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 802E48D42A46278B00D02E8F /* WatchlistViewController.swift */; };
+		805667AE2A941CC4005F7638 /* HistoricalDataServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8043CC4E2A93E93A00397CC3 /* HistoricalDataServiceTests.swift */; };
 		808259312A8E9C2A004A0619 /* AccessibilityId.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808259302A8E9C2A004A0619 /* AccessibilityId.swift */; };
 		808259322A8E9C2A004A0619 /* AccessibilityId.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808259302A8E9C2A004A0619 /* AccessibilityId.swift */; };
 		808259332A8EC047004A0619 /* AccessibilityId.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808259302A8E9C2A004A0619 /* AccessibilityId.swift */; };
@@ -97,6 +98,7 @@
 		80278A752A4CE3240051CFBE /* ScrollChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollChartView.swift; sourceTree = "<group>"; };
 		80278A782A4DEE5B0051CFBE /* ChartRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderer.swift; sourceTree = "<group>"; };
 		802E48D42A46278B00D02E8F /* WatchlistViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistViewController.swift; sourceTree = "<group>"; };
+		8043CC4E2A93E93A00397CC3 /* HistoricalDataServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricalDataServiceTests.swift; sourceTree = "<group>"; };
 		808259302A8E9C2A004A0619 /* AccessibilityId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityId.swift; sourceTree = "<group>"; };
 		808A32C72A8996A70016CC78 /* WatchlistViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistViewModelTests.swift; sourceTree = "<group>"; };
 		808A32DF2A899B4E0016CC78 /* UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -304,6 +306,7 @@
 				80D5B9F12A29518800314733 /* BigNumberFormatterTests.swift */,
 				80D5B9EA2A294F2100314733 /* ChartInsightTests.swift */,
 				8096A4652A7C6DFD00F5FA88 /* Mocks.swift */,
+				8043CC4E2A93E93A00397CC3 /* HistoricalDataServiceTests.swift */,
 				80D6D1E42A86EE9700F26527 /* ScrollChartViewModelTests.swift */,
 				80B966A92A70630B003DB7C8 /* StockActorTests.swift */,
 				80EA06662A7C8B8B009FED8E /* UIViewController+TestHelper.swift */,
@@ -537,6 +540,7 @@
 				80D5B9F22A29518800314733 /* BigNumberFormatterTests.swift in Sources */,
 				80D5B9EB2A294F2100314733 /* ChartInsightTests.swift in Sources */,
 				80EA06672A7C8B8B009FED8E /* UIViewController+TestHelper.swift in Sources */,
+				805667AE2A941CC4005F7638 /* HistoricalDataServiceTests.swift in Sources */,
 				80EA06632A7C8217009FED8E /* WatchlistViewControllerTests.swift in Sources */,
 				808A32C82A8996A70016CC78 /* WatchlistViewModelTests.swift in Sources */,
 				8096A4662A7C6DFD00F5FA88 /* Mocks.swift in Sources */,

@@ -13,19 +13,12 @@ import XCTest
 
 @MainActor final class WatchlistViewControllerTests: XCTestCase {
 
-    var container: NSPersistentContainer!
     var scrollChartViewModel: ScrollChartViewModel!
     var watchlistViewModel: WatchlistViewModel!
     var watchlistViewController: WatchlistViewController!
 
     /// Initialize fresh viewModels
     override func setUpWithError() throws {
-        container = NSPersistentContainer(name: "CoreDataModel")
-        container.loadPersistentStores { _, error in
-            if let error {
-                print("Unresolved error \(error)")
-            }
-        }
         scrollChartViewModel = ScrollChartViewModel(contentsScale: 2.0)
         watchlistViewModel = WatchlistViewModel(container: CoreDataStack.shared.container, scrollChartViewModel: scrollChartViewModel)
 
