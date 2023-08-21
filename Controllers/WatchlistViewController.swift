@@ -60,13 +60,7 @@ class WatchlistViewController: UIViewController {
         self.watchlistViewModel.didDismiss = { [weak self] in
             self?.dismissPopover()
         }
-
-        self.watchlistViewModel.didUpdate = { [weak self] selectedIndex in
-
-            self?.childTableViewController.tableView.reloadData() // will require reselecting the row below
-            self?.childTableViewController.tableView.selectRow(at: IndexPath(row: selectedIndex, section: 0),
-                                animated: false, scrollPosition: .middle)
-        }
+        // watchlistViewModel.didUpdate is set by childTableViewController
     }
 
     ///  Initializer required by parent class for use with storyboards which this app doesn't use

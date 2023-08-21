@@ -20,6 +20,11 @@ final class ChildTableViewController: UITableViewController {
     init(watchlistViewModel: WatchlistViewModel) {
         viewModel = watchlistViewModel
         super.init(style: .plain)
+        viewModel.didUpdate = { [weak self] selectedIndex in
+            self?.tableView.reloadData() // will require reselecting the row below
+            self?.tableView.selectRow(at: IndexPath(row: selectedIndex, section: 0),
+                                animated: false, scrollPosition: .middle)
+        }
     }
 
     /// Required for storyboards which this view controller doesn't use
