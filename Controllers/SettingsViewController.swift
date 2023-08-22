@@ -14,7 +14,9 @@ public enum SectionType: Int, CaseIterable {
 }
 
 class SettingsViewController: UITableViewController, MFMailComposeViewControllerDelegate {
-    private let cellID = "settingsCell"
+    private let nightModeCellID = "nightModeCell"
+    private let stockCellID = "stockCell"
+    private let supportCellID = "supportCell"
     private var viewModel: WatchlistViewModel!
 
     /// Designated initializer
@@ -36,7 +38,9 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         tableView.setEditing(true, animated: false)
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: nightModeCellID)
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: stockCellID)
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: supportCellID)
         tableView.accessibilityIdentifier = AccessibilityId.Settings.tableView
 
         let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneEditing))
@@ -58,24 +62,33 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
 
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath)
-
-        var config = cell.defaultContentConfiguration()
+        var cell: UITableViewCell
 
         if indexPath.section == SectionType.nightMode.rawValue {
+            cell = tableView.dequeueReusableCell(withIdentifier: nightModeCellID, for: indexPath)
+            var config = cell.defaultContentConfiguration()
             config.text = "Night mode"
             let onOffSwitch = UISwitch()
             onOffSwitch.isOn = UserDefaults.standard.bool(forKey: "darkMode")
             onOffSwitch.addTarget(self, action: #selector(toggleNightDay), for: .touchUpInside)
             cell.accessoryView = onOffSwitch
+            cell.contentConfiguration = config
+
         } else if indexPath.section == SectionType.contactSupport.rawValue {
+            cell = tableView.dequeueReusableCell(withIdentifier: nightModeCellID, for: indexPath)
+            var config = cell.defaultContentConfiguration()
             config.text = AccessibilityId.Settings.contactSupport
             cell.accessoryType = .detailDisclosureButton
-        } else if indexPath.row < viewModel.listCount {
-            config.text = viewModel.title(for: indexPath.row)
-        }
+            cell.contentConfiguration = config
 
-        cell.contentConfiguration = config
+        } else {
+            cell = tableView.dequeueReusableCell(withIdentifier: stockCellID, for: indexPath)
+            var config = cell.defaultContentConfiguration()
+            if indexPath.row < viewModel.listCount {
+                config.text = viewModel.title(for: indexPath.row)
+            }
+            cell.contentConfiguration = config
+        }
         return cell
     }
 
@@ -98,14 +111,24 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         return indexPath.section == SectionType.stockList.rawValue
     }
 
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if indexPath.section == SectionType.stockList.rawValue && editingStyle == .delete {
-            if indexPath.row < viewModel.listCount {
-                viewModel.delete(at: indexPath.row)
-                tableView.deleteRows(at: [indexPath], with: .fade)
-                tableView.reloadData()
-            }
+    override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        if indexPath.section == SectionType.stockList.rawValue {
+            return .delete
         }
+        return .none
+    }
+
+    override func tableView(_ tableView: UITableView,
+                            trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard indexPath.section == SectionType.stockList.rawValue else { return nil }
+
+        let delete = UIContextualAction(style: .destructive, title: "Delete") { [unowned self] _, _, completionHandler in
+            viewModel.delete(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .fade)
+            tableView.reloadData()
+            completionHandler(true)
+        }
+        return UISwipeActionsConfiguration(actions: [delete])
     }
 
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {

@@ -14,7 +14,8 @@ import XCTest
 final class HistoricalDataServiceTests: XCTestCase {
 
     var historicalDataService: HistoricalDataService!
-    var comparisonStock = ComparisonStock.testStock(context: CoreDataStack.shared.viewContext)
+    /// Use AAPL as the comparisonStock since testStock CBUS rarely has intraday data
+    var comparisonStock = ComparisonStock.testAAPL(context: CoreDataStack.shared.viewContext)
     var serviceLoadedHistoricalDataCompletion: ((_ loadedData: [ChartInsight.BarData]) async -> Void)?
     var serviceLoadedIntradayBarCompletion: ((_ intradayBar: ChartInsight.BarData) async -> Void)?
 
@@ -55,6 +56,10 @@ final class HistoricalDataServiceTests: XCTestCase {
                 XCTAssert(intradayBar.year >= 2023)
                 expectIntradayData.fulfill()
             }
+
+            // Use async let so we can await the unfulfilled expectation
+            async let _ = historicalDataService.fetchIntradayQuote()
+
             await fulfillment(of: [expectIntradayData], timeout: 60)
         } else {
             print("Outside intraday window so no need to fetch intraday data")
