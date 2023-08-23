@@ -325,6 +325,7 @@ struct ChartRenderer {
 
         let magnification: CGFloat = 2.0
         let midpoint = magnifierSize / (2 * magnification)
+        let center = midpoint * contentsScale
 
         let x = (x - midpoint) * contentsScale // subtract midpoint to make the touch point the center of the lens, not the top left corner
         var y = (y - 2 * midpoint) * contentsScale
@@ -344,7 +345,7 @@ struct ChartRenderer {
         lensContext.setStrokeColor(strokeColor.cgColor)
         lensContext.setLineWidth(UIScreen.main.scale)
         lensContext.setShadow(offset: CGSize(width: 0.5, height: 0.5), blur: 0.75)
-        numberFormatter.maximumFractionDigits = bar.high > 100 ? 0 : 2
+        numberFormatter.maximumFractionDigits = bar.high > magnifierSize ? 0 : 2
 
         var label = monthName
         if barUnit != .monthly {
@@ -353,40 +354,48 @@ struct ChartRenderer {
             label += "'" + String(bar.year).suffix(2)
         }
 
-        showString(label, at: CGPoint(x: 16.0 * contentsScale, y: 7.0 * contentsScale), with: color, size: 12.0)
+        let spacing = 2.5 * contentsScale
+        let defaultBarHeight = center + spacing
+        let fontSize = 12.0
 
-        let scopeFactor = (bar.high > bar.low) ? 31.0 * contentsScale / (bar.high - bar.low) : 0
+        showString(label, x: center - 2 * spacing, y: 2 * spacing, with: color, size: fontSize)
+
+        let scopeFactor = (bar.high > bar.low) ? defaultBarHeight / (bar.high - bar.low) : 0
         let midPoint = (bar.high + bar.low) / 2.0
 
         label = numberFormatter.string(from: NSNumber(value: bar.open)) ?? ""
-        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.open)
-        showString(label, at: CGPoint(x: 10.0 * contentsScale, y: y), with: color, size: 12.0)
+        y = defaultBarHeight + scopeFactor * (midPoint - bar.open)
+        showString(label, x: 4 * spacing, y: y, with: color, size: fontSize)
 
-        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
-        lensContext.move(to: CGPoint(x: 20.0 * contentsScale, y: y))
-        lensContext.addLine(to: CGPoint(x: 25.0 * contentsScale, y: y))
+        /// Increase bar height if the range is less than the default height, otherwise reduce it to leave room for labels above and below.
+        func scaleBarHeight(_ computed: Double) -> Double {
+            if computed < defaultBarHeight {
+                return computed + spacing
+            }
+            return computed - 2 * spacing // allow space above and below
+        }
+
+        lensContext.move(to: CGPoint(x: center - 2 * spacing, y: scaleBarHeight(y)))
+        lensContext.addLine(to: CGPoint(x: center, y: scaleBarHeight(y)))
 
         label = numberFormatter.string(from: NSNumber(value: bar.high)) ?? ""
-        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.high)
-        showString(label, at: CGPoint(x: 22.0 * contentsScale, y: y), with: color, size: 12.0)
+        y = defaultBarHeight + scopeFactor * (midPoint - bar.high)
+        showString(label, x: center - spacing, y: y, with: color, size: fontSize)
 
-        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
-        lensContext.move(to: CGPoint(x: 25.0 * contentsScale, y: y))
+        lensContext.move(to: CGPoint(x: center, y: scaleBarHeight(y)))
 
         label = numberFormatter.string(from: NSNumber(value: bar.low)) ?? ""
-        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.low)
-        showString(label, at: CGPoint(x: 22.0 * contentsScale, y: y), with: color, size: 12.0)
+        y = defaultBarHeight + scopeFactor * (midPoint - bar.low)
+        showString(label, x: center - spacing, y: y, with: color, size: fontSize)
 
-        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
-        lensContext.addLine(to: CGPoint(x: 25.0 * contentsScale, y: y))
+        lensContext.addLine(to: CGPoint(x: center, y: scaleBarHeight(y)))
 
         label = numberFormatter.string(from: NSNumber(value: bar.close)) ?? ""
-        y = 27.5 * contentsScale + scopeFactor * (midPoint - bar.close)
-        showString(label, at: CGPoint(x: 33.0 * contentsScale, y: y), with: color, size: 12.0)
+        y = defaultBarHeight + scopeFactor * (midPoint - bar.close)
+        showString(label, x: center + 2 * spacing, y: y, with: color, size: fontSize)
 
-        y = (y < 27.5 * contentsScale) ? y + 2.5 * contentsScale : y - 5.0 * contentsScale
-        lensContext.move(to: CGPoint(x: 25.0 * contentsScale, y: y))
-        lensContext.addLine(to: CGPoint(x: 30.0 * contentsScale, y: y))
+        lensContext.move(to: CGPoint(x: center, y: scaleBarHeight(y)))
+        lensContext.addLine(to: CGPoint(x: center + 2 * spacing, y: scaleBarHeight(y)))
         lensContext.strokePath()
 
         let screenshot = UIGraphicsGetImageFromCurrentImageContext()
@@ -425,10 +434,10 @@ struct ChartRenderer {
     }
 
     /// Renders string in current graphics context
-    private func showString(_ string: String, at point: CGPoint, with color: UIColor, size: CGFloat) {
+    private func showString(_ string: String, x: Double, y: Double, with color: UIColor, size: CGFloat) {
         let textAttributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: size),
                               NSAttributedString.Key.foregroundColor: color]
-        string.draw(at: CGPoint(x: point.x, y: point.y - size), withAttributes: textAttributes)
+        string.draw(at: CGPoint(x: x, y: y - size), withAttributes: textAttributes)
     }
 
     /// Create a continuous path using the points provided and stroke the final path
