@@ -309,97 +309,102 @@ struct ChartRenderer {
     }
 
     /// Enlarged screenshot of chart under user's finger with a bar highlighted if coordinates match
-    public func magnifyBar(x: CGFloat, y: CGFloat, bar: BarData, monthName: String) -> UIImage? {
-        UIGraphicsBeginImageContextWithOptions(CGSize(width: magnifierSize, height: magnifierSize), false, contentsScale)
-        guard let lensContext = UIGraphicsGetCurrentContext() else { return nil }
+    public func magnifyBar(x: CGFloat, y: CGFloat, bar: BarData, monthName: String) -> UIImage {
 
-        var backgroundColor = UIColor.white
-        var color = UIColor.black
-        if UserDefaults.standard.bool(forKey: "darkMode") {
-            backgroundColor = UIColor.black // reverse colors
-            color = UIColor.white
-        }
+        // Initialize UIGraphicsImageRenderer using standard 0-1 RGB range instead of wide gamut on newer devices
+        let format = UIGraphicsImageRendererFormat()
+        format.preferredRange = .standard // default would include >1 wide gamut
 
-        lensContext.setFillColor(backgroundColor.cgColor)
-        lensContext.fill(CGRect(x: 0, y: 0, width: magnifierSize, height: magnifierSize))
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: magnifierSize, height: magnifierSize), format: format)
 
-        let magnification: CGFloat = 2.0
-        let midpoint = magnifierSize / (2 * magnification)
-        let center = midpoint * contentsScale
-
-        let x = (x - midpoint) * contentsScale // subtract midpoint to make the touch point the center of the lens, not the top left corner
-        var y = (y - 2 * midpoint) * contentsScale
-
-        if contentsScale >= 1 {
-            lensContext.scaleBy(x: magnification / contentsScale, y: magnification / contentsScale)
-        }
-        lensContext.draw(layerRef, at: CGPoint(x: -x, y: -y))
-        lensContext.setBlendMode(.normal)
-
-        // Overlay background color with 25% opacity so lensContext bar color stands out
-        lensContext.setFillColor(backgroundColor.withAlphaComponent(0.25).cgColor)
-        lensContext.fill(CGRect(x: 0, y: 0, width: magnifierSize, height: magnifierSize))
-
-        let strokeColor = color
-
-        lensContext.setStrokeColor(strokeColor.cgColor)
-        lensContext.setLineWidth(UIScreen.main.scale)
-        lensContext.setShadow(offset: CGSize(width: 0.5, height: 0.5), blur: 0.75)
-        numberFormatter.maximumFractionDigits = bar.high > magnifierSize ? 0 : 2
-
-        var label = monthName
-        if barUnit != .monthly {
-            label += "\(bar.day)"
-        } else {
-            label += "'" + String(bar.year).suffix(2)
-        }
-
-        let spacing = 2.5 * contentsScale
-        let defaultBarHeight = center + spacing
-        let fontSize = 12.0
-
-        showString(label, x: center - 2 * spacing, y: 2 * spacing, with: color, size: fontSize)
-
-        let scopeFactor = (bar.high > bar.low) ? defaultBarHeight / (bar.high - bar.low) : 0
-        let midPoint = (bar.high + bar.low) / 2.0
-
-        label = numberFormatter.string(from: NSNumber(value: bar.open)) ?? ""
-        y = defaultBarHeight + scopeFactor * (midPoint - bar.open)
-        showString(label, x: 4 * spacing, y: y, with: color, size: fontSize)
-
-        /// Increase bar height if the range is less than the default height, otherwise reduce it to leave room for labels above and below.
-        func scaleBarHeight(_ computed: Double) -> Double {
-            if computed < defaultBarHeight {
-                return computed + spacing
+        let screenshot = renderer.image { lensContext in
+            var backgroundColor = UIColor.white
+            var color = UIColor.black
+            var overlayBlendMode = CGBlendMode.screen
+            if UserDefaults.standard.bool(forKey: "darkMode") {
+                backgroundColor = UIColor.black // reverse colors
+                color = UIColor.white
+                overlayBlendMode = .darken
             }
-            return computed - 2 * spacing // allow space above and below
+
+            backgroundColor.setFill()
+            lensContext.fill(CGRect(x: 0, y: 0, width: magnifierSize, height: magnifierSize))
+
+            let magnification: CGFloat = 2.0
+            let midpoint = magnifierSize / (2 * magnification)
+            let center = midpoint * contentsScale
+
+            let x = (x - midpoint) * contentsScale // subtract midpoint to make the touch point the center of the lens, not the top left corner
+            var y = (y - 2 * midpoint) * contentsScale
+
+            if contentsScale >= 1 {
+                lensContext.cgContext.scaleBy(x: magnification / contentsScale, y: magnification / contentsScale)
+            }
+
+            lensContext.cgContext.draw(layerRef, at: CGPoint(x: -x, y: -y))
+            lensContext.cgContext.setBlendMode(.normal)
+
+            // Overlay background color with 25% opacity so lensContext bar color stands out
+            backgroundColor.withAlphaComponent(0.25).setFill()
+            lensContext.fill(CGRect(x: 0, y: 0, width: magnifierSize * contentsScale, height: magnifierSize * contentsScale),
+                             blendMode: overlayBlendMode)
+
+            color.setStroke()
+            lensContext.cgContext.setLineWidth(UIScreen.main.scale)
+            lensContext.cgContext.setShadow(offset: CGSize(width: 0.5, height: 0.5), blur: 0.75)
+            numberFormatter.maximumFractionDigits = bar.high > magnifierSize ? 0 : 2
+
+            var label = monthName
+            if barUnit != .monthly {
+                label += "\(bar.day)"
+            } else {
+                label += "'" + String(bar.year).suffix(2)
+            }
+
+            let spacing = 2.5 * contentsScale
+            let defaultBarHeight = center + spacing
+            let fontSize = 12.0
+
+            showString(label, x: center - 2 * spacing, y: 2 * spacing, with: color, size: fontSize)
+
+            let scopeFactor = (bar.high > bar.low) ? defaultBarHeight / (bar.high - bar.low) : 0
+            let midPoint = (bar.high + bar.low) / 2.0
+
+            label = numberFormatter.string(from: NSNumber(value: bar.open)) ?? ""
+            y = defaultBarHeight + scopeFactor * (midPoint - bar.open)
+            showString(label, x: 4 * spacing, y: y, with: color, size: fontSize)
+
+            /// Increase bar height if the range is less than the default height, otherwise reduce it to leave room for labels above and below.
+            func scaleBarHeight(_ computed: Double) -> Double {
+                if computed < defaultBarHeight {
+                    return computed + spacing
+                }
+                return computed - 2 * spacing // allow space above and below
+            }
+
+            lensContext.cgContext.move(to: CGPoint(x: center - 2 * spacing, y: scaleBarHeight(y)))
+            lensContext.cgContext.addLine(to: CGPoint(x: center, y: scaleBarHeight(y)))
+
+            label = numberFormatter.string(from: NSNumber(value: bar.high)) ?? ""
+            y = defaultBarHeight + scopeFactor * (midPoint - bar.high)
+            showString(label, x: center - spacing, y: y, with: color, size: fontSize)
+
+            lensContext.cgContext.move(to: CGPoint(x: center, y: scaleBarHeight(y)))
+
+            label = numberFormatter.string(from: NSNumber(value: bar.low)) ?? ""
+            y = defaultBarHeight + scopeFactor * (midPoint - bar.low)
+            showString(label, x: center - spacing, y: y, with: color, size: fontSize)
+
+            lensContext.cgContext.addLine(to: CGPoint(x: center, y: scaleBarHeight(y)))
+
+            label = numberFormatter.string(from: NSNumber(value: bar.close)) ?? ""
+            y = defaultBarHeight + scopeFactor * (midPoint - bar.close)
+            showString(label, x: center + 2 * spacing, y: y, with: color, size: fontSize)
+
+            lensContext.cgContext.move(to: CGPoint(x: center, y: scaleBarHeight(y)))
+            lensContext.cgContext.addLine(to: CGPoint(x: center + 2 * spacing, y: scaleBarHeight(y)))
+            lensContext.cgContext.strokePath()
         }
-
-        lensContext.move(to: CGPoint(x: center - 2 * spacing, y: scaleBarHeight(y)))
-        lensContext.addLine(to: CGPoint(x: center, y: scaleBarHeight(y)))
-
-        label = numberFormatter.string(from: NSNumber(value: bar.high)) ?? ""
-        y = defaultBarHeight + scopeFactor * (midPoint - bar.high)
-        showString(label, x: center - spacing, y: y, with: color, size: fontSize)
-
-        lensContext.move(to: CGPoint(x: center, y: scaleBarHeight(y)))
-
-        label = numberFormatter.string(from: NSNumber(value: bar.low)) ?? ""
-        y = defaultBarHeight + scopeFactor * (midPoint - bar.low)
-        showString(label, x: center - spacing, y: y, with: color, size: fontSize)
-
-        lensContext.addLine(to: CGPoint(x: center, y: scaleBarHeight(y)))
-
-        label = numberFormatter.string(from: NSNumber(value: bar.close)) ?? ""
-        y = defaultBarHeight + scopeFactor * (midPoint - bar.close)
-        showString(label, x: center + 2 * spacing, y: y, with: color, size: fontSize)
-
-        lensContext.move(to: CGPoint(x: center, y: scaleBarHeight(y)))
-        lensContext.addLine(to: CGPoint(x: center + 2 * spacing, y: scaleBarHeight(y)))
-        lensContext.strokePath()
-
-        let screenshot = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
         return screenshot
     }
 
