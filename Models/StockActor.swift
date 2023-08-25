@@ -242,6 +242,7 @@ actor StockActor: ServiceDelegate {
     }
 
     /// User panned ScrollChartView by barsShifted
+    @discardableResult
     public func shiftRedraw(_ barsShifted: Int, screenBarWidth: Int) async -> NSDecimalNumber {
         if oldestBarShown + barsShifted >= periodData.count {
             // no older bars available so return to caller

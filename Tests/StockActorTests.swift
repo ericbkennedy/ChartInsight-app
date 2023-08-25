@@ -146,7 +146,7 @@ final class StockActorTests: XCTestCase {
 
         let toOffscreenValue = -2 * initialOldestBarShown
 
-        _ = await stockActor.shiftRedraw(toOffscreenValue, screenBarWidth: screenBarWidth)
+        await stockActor.shiftRedraw(toOffscreenValue, screenBarWidth: screenBarWidth)
 
         let (shiftedMaxPeriod, shiftedOldestBarShown) = await stockActor.maxPeriodSupported(newBarUnit: .daily, newXFactor: defaultXFactor)
 

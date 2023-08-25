@@ -176,5 +176,6 @@ extension WatchlistViewModel: ChartOptionsDelegate {
     /// Called by ChartOptionsController when the user adds new fundamental metrics
     public func reload(stock: ComparisonStock) async {
         CoreDataStack.shared.save()
+        update(list: Comparison.fetchAll(), reloadComparison: true)
     }
 }

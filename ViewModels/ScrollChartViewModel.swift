@@ -86,7 +86,7 @@ final class ScrollChartViewModel: StockActorDelegate {
 
         if stocksReady == stockActorList.count {
             // Check if a stock has less price data available and limit all stocks to that shorter date range
-            _ = await limitComparisonPeriod()
+            await limitComparisonPeriod()
             didUpdate?(await copyChartElements())
         }
     }
@@ -140,6 +140,7 @@ final class ScrollChartViewModel: StockActorDelegate {
 
     /// Check if a stockActor has less price data available and update that actor's oldestBarShown to fit the periodLimit
     /// Returns a tuple (periodLimit, limitOldestBarShown)
+    @discardableResult
     public func limitComparisonPeriod() async -> (Int, Int) {
         var supportedPeriods = [Int]()
         var oldestBarsShown = [Int]()
@@ -176,7 +177,7 @@ final class ScrollChartViewModel: StockActorDelegate {
         }
         for (index, stockActor) in stockActorList.enumerated() where stockActor.comparisonStockId == stock.objectID {
             await stockActor.invalidateAndCancel()
-            _ = stockActorList.remove(at: index)
+            stockActorList.remove(at: index)
             break
         }
         let updatedList = await comparison.delete(stock: stock)

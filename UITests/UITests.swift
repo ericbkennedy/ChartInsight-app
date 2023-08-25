@@ -24,6 +24,7 @@ final class UITests: XCTestCase {
     var settingsTableView: XCUIElement!
     var settingsTabItem: XCUIElement!
     var watchlistTabItem: XCUIElement!
+    var scrollChartViewItem: XCUIElement!
 
     override func setUpWithError() throws {
         let app = XCUIApplication()
@@ -40,6 +41,7 @@ final class UITests: XCTestCase {
         settingsTableView = app.tables[AccessibilityId.Settings.tableView]
         settingsTabItem = app.tabBars.buttons.element(boundBy: 2)
         watchlistTabItem = app.tabBars.buttons.element(boundBy: 0)
+        scrollChartViewItem = app.otherElements[AccessibilityId.ScrollChartView.chart]
         continueAfterFailure = false
         app.launchArguments.append("--UITests") // will disable animation
         app.launch()
@@ -105,6 +107,14 @@ final class UITests: XCTestCase {
 
         doneWithChartOptionsButton.tap()
 
+        XCTAssertTrue(scrollChartViewItem.waitForExistence(timeout: 10))
+
+        // Verify that the scrollChartView has been redrawn with the added metric
+        let expectedLabel = "\(ticker) with 4 metrics"
+
+        XCTAssertTrue(scrollChartViewItem.label == expectedLabel,
+                        "Expected ScrollChartView.label to be \(expectedLabel), found \(scrollChartViewItem.label)")
+
         try deleteLastComparison()
 
         XCTAssert(comparisonTableView.cells.count == countBeforeAdding,
@@ -157,7 +167,12 @@ final class UITests: XCTestCase {
         XCTAssertTrue(navStockButtonToolbar.waitForExistence(timeout: 20))
 
         var buttonsInToolbarAfter = navStockButtonToolbar.buttons.count
-        XCTAssert(buttonsInToolbarAfter == 1 + buttonsInToolbarBeforeAdding)
+        if buttonsInToolbarBeforeAdding == 5 && UIDevice.current.userInterfaceIdiom == .phone {
+            // 3 stocks/ETFs is the max for the iPhone so QQQ will take the place of the + compare button
+            XCTAssert(buttonsInToolbarAfter == buttonsInToolbarBeforeAdding)
+        } else {
+            XCTAssert(buttonsInToolbarAfter == 1 + buttonsInToolbarBeforeAdding)
+        }
 
         let chartOptionsButton = navStockButtonToolbar.buttons[ticker]
         chartOptionsButton.tap()

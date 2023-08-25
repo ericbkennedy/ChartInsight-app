@@ -35,6 +35,9 @@ enum AccessibilityId {
     enum AddFundamental {
         static let tableView = "Fundamental metrics"
     }
+    enum ScrollChartView {
+        static let chart = "Stock chart"
+    }
     enum Settings {
         static let nideModeSwitch = "Night mode"
         static let tableView = "Settings and stock list"

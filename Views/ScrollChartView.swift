@@ -29,6 +29,8 @@ final class ScrollChartView: UIView {
         (maxWidth, scaleShift, scaledWidth, svWidth, svHeight) = (0, 0, 0, 0, 0)
         self.viewModel = viewModel
         super.init(frame: .zero)
+        self.isAccessibilityElement = true
+        self.accessibilityIdentifier = AccessibilityId.ScrollChartView.chart
         bindToViewModel()
     }
 
@@ -46,8 +48,21 @@ final class ScrollChartView: UIView {
         viewModel.didCancel = { [weak self] in
             self?.progressIndicator?.stopAnimating()
         }
-        viewModel.didUpdate = { [weak self] chartElements in
-            self?.renderCharts(stockChartElements: chartElements)
+        viewModel.didUpdate = { [weak self] chartElementsArray in
+            var title = ""
+            for chartElements in chartElementsArray {
+                if title.isEmpty == false {
+                    title += ", "
+                }
+                title += chartElements.stock.ticker
+                let metricCount = chartElements.fundamentalColumns.count
+                if metricCount > 0 {
+                    title += " with \(metricCount) metric"
+                    if metricCount > 1 { title += "s"}
+                }
+            }
+            self?.accessibilityLabel = title
+            self?.renderCharts(stockChartElements: chartElementsArray)
             self?.progressIndicator?.stopAnimating()
         }
         viewModel.didError = { [weak self] _ in

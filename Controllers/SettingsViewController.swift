@@ -47,6 +47,12 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
         navigationItem.rightBarButtonItem = doneButton
     }
 
+    /// Reload the tableView each time the view appears to ensure it is in sync with the viewModel data source
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        tableView.reloadData()
+    }
+
     @objc func doneEditing() {
         tabBarController?.selectedIndex = 0
     }
@@ -124,8 +130,8 @@ class SettingsViewController: UITableViewController, MFMailComposeViewController
 
         let delete = UIContextualAction(style: .destructive, title: "Delete") { [unowned self] _, _, completionHandler in
             viewModel.delete(at: indexPath.row)
+            // Note: viewDidAppear() must call tableView.reloadData() to ensure tableView is in sync with viewModel
             tableView.deleteRows(at: [indexPath], with: .fade)
-            tableView.reloadData()
             completionHandler(true)
         }
         return UISwipeActionsConfiguration(actions: [delete])

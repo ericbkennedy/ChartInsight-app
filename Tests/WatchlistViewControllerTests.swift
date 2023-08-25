@@ -57,7 +57,6 @@ import XCTest
 
         for barButtonItem in navigationItemButtons {
             if let buttonTitle = barButtonItem.title, buttonTitle.isEmpty == false {
-                print(buttonTitle)
                 if buttonTitle == "+ compare" {
                     compareButtonCount += 1
                 } else if buttonTitle.prefixMatch(of: /\w+\s?/) != nil {
