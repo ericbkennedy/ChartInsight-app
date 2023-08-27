@@ -40,8 +40,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = isDarkMode ? .dark : .light
         window.backgroundColor = UIColor.systemBackground
 
+        let list = Comparison.fetchAll()
+        var migrateToContext: NSManagedObjectContext?
+        if list.isEmpty {
+            migrateToContext = CoreDataStack.shared.viewContext
+        }
         Task {
-            await DBActor.shared.moveIfNeeded(delegate: watchlistViewModel)
+            await DBActor.shared.moveIfNeeded(delegate: watchlistViewModel, toManagedContext: migrateToContext)
+
             if let stockChanges = await StockChangeService().fetchChanges() { // will be nil if no changes since last fetch
                 await DBActor.shared.update(stockChanges: stockChanges, delegate: watchlistViewModel)
             }

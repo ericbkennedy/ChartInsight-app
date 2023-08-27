@@ -22,6 +22,7 @@ final class ScrollChartViewModelTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        try? container.viewContext.save() // ensure test comparison is fully deleted from CoreData
     }
 
     /// Creates and returns a comparison with a non-zero id so ScrollChartViewModel assumes it has already been saved and fetches data
@@ -48,6 +49,7 @@ final class ScrollChartViewModelTests: XCTestCase {
 
         let comparison = testEphemeralComparison()
         await scrollChartViewModel.updateComparison(newComparison: comparison) // will trigger didUpdate(_)
+        container.viewContext.delete(comparison)
     }
 
     /// Simulate the zoom out scaling that happens with a pinch gesture to show weekly and monthly views. Then zoom back in to daily.
@@ -88,6 +90,8 @@ final class ScrollChartViewModelTests: XCTestCase {
         scrollChartViewModel.scaleChart(newScale: zoomInScale, pxShift: 0)
         XCTAssert(.daily == scrollChartViewModel.barUnit)
         XCTAssert(round(scrollChartViewModel.xFactor) == zoomOutScale * initialXFactor)
+        // Delete this test comparison
+        container.viewContext.delete(comparison)
     }
 
     /// Create a new comparison, ensure it loads data, then delete it

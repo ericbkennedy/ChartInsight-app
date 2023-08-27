@@ -112,6 +112,7 @@ class WatchlistViewController: UIViewController {
         toggleListButton.target = self
         toggleListButton.action = #selector(toggleList)
         toggleListButton.accessibilityIdentifier = AccessibilityId.Watchlist.toggleListButton
+        toggleListButton.accessibilityLabel = AccessibilityId.Watchlist.toggleListButton
     }
 
     /// Update subviews now that frame size is available
@@ -125,6 +126,7 @@ class WatchlistViewController: UIViewController {
         navStockButtonToolbar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
         navStockButtonToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
         navStockButtonToolbar.accessibilityIdentifier = AccessibilityId.Watchlist.navStockButtonToolbar
+        navStockButtonToolbar.accessibilityLabel = AccessibilityId.Watchlist.navStockButtonToolbar
 
         if scrollChartViewModel.comparison == nil { // App just launched & views are loaded, now select a row
             watchlistViewModel.didSelectRow(at: 0)
@@ -322,6 +324,7 @@ class WatchlistViewController: UIViewController {
             }
             shareMenuButton.menu = UIMenu(title: "", children: menuActions)
             shareMenuButton.accessibilityIdentifier = AccessibilityId.Watchlist.shareMenuButton
+            shareMenuButton.accessibilityLabel = AccessibilityId.Watchlist.shareMenuButton
 
             let maxComparisonCount = UIDevice.current.userInterfaceIdiom == .pad ? 6 : 3
 
@@ -331,6 +334,8 @@ class WatchlistViewController: UIViewController {
                                                     target: self,
                                                     action: #selector(compareStock))
                 compareButton.accessibilityIdentifier = AccessibilityId.Watchlist.addToComparisonButton
+                compareButton.accessibilityLabel = AccessibilityId.Watchlist.addToComparisonButton
+
                 // Reduce font size of "+ compare" text
                 compareButton.setTitleTextAttributes([NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10)],
                                                      for: .normal)

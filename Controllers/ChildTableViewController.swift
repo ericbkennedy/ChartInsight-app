@@ -21,6 +21,7 @@ final class ChildTableViewController: UITableViewController {
         viewModel = watchlistViewModel
         super.init(style: .plain)
         viewModel.didUpdate = { [weak self] selectedIndex in
+            guard let count = self?.viewModel?.listCount, count > 0 else { return }
             self?.tableView.reloadData() // will require reselecting the row below
             self?.tableView.selectRow(at: IndexPath(row: selectedIndex, section: 0),
                                 animated: false, scrollPosition: .middle)
@@ -44,6 +45,7 @@ final class ChildTableViewController: UITableViewController {
         newComparisonButton.target = self // will forward to parent to keep compiler happy
         newComparisonButton.action = #selector(newComparison)
         newComparisonButton.accessibilityIdentifier = AccessibilityId.Watchlist.newComparisonButton
+        newComparisonButton.accessibilityLabel = AccessibilityId.Watchlist.newComparisonButton
         comparisonListToolbar.items = [newComparisonButton]
         comparisonListToolbar.setShadowImage(UIImage(), forToolbarPosition: .any) // top border
     }

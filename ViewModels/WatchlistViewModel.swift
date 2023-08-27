@@ -38,10 +38,6 @@ protocol ChartOptionsDelegate: AnyObject {
         self.container = container
         self.scrollChartViewModel = scrollChartViewModel
         list = Comparison.fetchAll()
-        if list.isEmpty {
-            Comparison.addSampleData(context: container.viewContext)
-            list = Comparison.fetchAll()
-        }
         // Wait to call update(list:reloadComparison:) until views have finished loading and have nonzero dimensions
     }
 
@@ -69,6 +65,7 @@ protocol ChartOptionsDelegate: AnyObject {
     public func delete(at index: Int) {
         guard list.count > index else { return }
         delete(comparison: list[index])
+        try? CoreDataStack.shared.viewContext.save()
     }
 
     /// Delete a comparison. CoreData will handle cascading delete for comparisonStock entries
@@ -88,6 +85,9 @@ extension WatchlistViewModel: DBActorDelegate {
             for (index, comparison) in newList.enumerated() where comparison.id == currentComparison.id {
                 selectedIndex = index
             }
+        }
+        if self.list.isEmpty && newList.isEmpty == false {
+            CoreDataStack.shared.save() // Save the newely migrated Comparison and ComparisonStock objects
         }
         self.list = newList
         didUpdate?(selectedIndex)

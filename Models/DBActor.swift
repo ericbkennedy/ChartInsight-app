@@ -8,6 +8,7 @@
 //  Copyright © 2023 Chart Insight LLC. All rights reserved.
 //
 
+import CoreData
 import Foundation
 
 protocol DBActorDelegate: AnyObject {
@@ -25,8 +26,8 @@ protocol DBActorDelegate: AnyObject {
         return String(format: "%@/Documents/charts.db", NSHomeDirectory())
     }
 
-    /// Ensure DB is in app's Documents directory. Then load stock comparison list and send to the delegate.
-    public func moveIfNeeded(delegate: DBActorDelegate) async {
+    /// Ensure DB is in Documents directory. If toManagedContext != nil, load list and call delegate?.update(list:reloadComparison:)
+    public func moveIfNeeded(delegate: DBActorDelegate, toManagedContext: NSManagedObjectContext? = nil) async {
         guard let path = Bundle.main.path(forResource: "charts.db", ofType: nil) else {
             print("charts.db is missing from Bundle")
             return
@@ -39,6 +40,9 @@ protocol DBActorDelegate: AnyObject {
                 let fromURL = URL(fileURLWithPath: path)
                 let toURL = URL(fileURLWithPath: destinationPath)
                 try fileManager.copyItem(at: fromURL, to: toURL)
+            }
+            if let toManagedContext {
+                await migrateComparisonList(toManagedContext, for: delegate)
             }
         } catch let error as NSError {
             print("DBUpdater Error: \(error.domain) \(error.description)")
@@ -282,5 +286,70 @@ protocol DBActorDelegate: AnyObject {
         sqlite3_finalize(statement)
         sqlite3_close(db)
         return nil
+    }
+
+    /// Creates NSManagedObjects to migrate comparison data from SQLite to CoreData
+    public func migrateComparisonList(_ context: NSManagedObjectContext, for delegate: DBActorDelegate) async {
+        var list: [Comparison] = []
+        var db: Sqlite3ptr = nil, statement: Sqlite3ptr = nil
+
+        guard SQLITE_OK == sqlite3_open_v2(dbPath(), &db, READONLY_NOMUTEX, nil) else { return }
+
+        enum Col: Int32 {
+            case comparisonId, stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentalList, technicalList
+        }
+        let sql = """
+        SELECT C.rowid, S.stockId, ticker, name, startDate, hasFundamentals, chartType, color, fundamentals, technicals
+        FROM comparison C JOIN comparisonStock CS on C.rowid = CS.comparisonId JOIN stock S ON S.stockId = CS.stockId
+        ORDER BY C.rowid, CS.rowId
+        """
+
+        guard SQLITE_OK == sqlite3_prepare_v2(db, sql, -1, &statement, nil) else { return }
+
+        var comparison: Comparison?
+        var lastComparisonId = 0
+        var title = ""
+
+        while SQLITE_ROW == sqlite3_step(statement) {
+            if lastComparisonId != sqlite3_column_int(statement, 0) {
+                title = ""
+                comparison = Comparison(context: context) // only need to create a new comparison after initial one
+                lastComparisonId = Int(sqlite3_column_int(statement, 0))
+                list.append(comparison!)
+            }
+            let stock = ComparisonStock(context: context)
+            stock.stockId = Int64(sqlite3_column_int(statement, Col.stockId.rawValue))
+            stock.ticker = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.ticker.rawValue)))
+            title = title.appending("\(stock.ticker) ")
+            stock.name = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.name.rawValue)))
+            stock.startDateString = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.startDate.rawValue)))
+            // startDateString will be converted to NSDate by [StockActor init] as price data is loaded
+            stock.hasFundamentals = 0 < sqlite3_column_int(statement, Col.hasFundamentals.rawValue)
+            stock.chartType = Int64(sqlite3_column_int(statement, Col.chartType.rawValue))
+
+            let hexString = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.color.rawValue)))
+
+            if hexString != "", let chartHexColor = ChartHexColor(rawValue: hexString) {
+                stock.setColors(upHexColor: chartHexColor)
+            } else {
+                stock.setColors(upHexColor: .greenAndRed) // upColor = green, down = red
+            }
+
+            if stock.hasFundamentals && sqlite3_column_bytes(statement, Col.fundamentalList.rawValue) > 2 {
+                stock.fundamentalList = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.fundamentalList.rawValue)))
+            } else {
+                stock.fundamentalList = "" // Clear out default vaulue for fundamentalList
+            }
+
+            if sqlite3_column_bytes(statement, Col.technicalList.rawValue) > 2 {
+                stock.technicalList = String(cString: UnsafePointer(sqlite3_column_text(statement, Col.technicalList.rawValue)))
+            }
+
+            comparison?.addToStockSet(stock)
+            comparison?.title = title
+        }
+        sqlite3_finalize(statement)
+        sqlite3_close(db)
+        await delegate.update(list: list, reloadComparison: true)
     }
 }

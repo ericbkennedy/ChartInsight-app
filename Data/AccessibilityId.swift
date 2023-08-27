@@ -2,6 +2,8 @@
 //  AccessibilityId.swift
 //  ChartInsight
 //
+//  These strings are the values for both for UI testing (AccessibilityIdentifier)
+//  and often for VoiceOver (AccessibilityLabel).
 //  An enum without cases is used to namespace the accessbility identifiers
 //  similar to how Apple uses a caseless enum in the Combine framework.
 //

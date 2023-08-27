@@ -69,9 +69,11 @@ class ChartOptionsController: UITableViewController {
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissPopover))
         navigationItem.leftBarButtonItem?.accessibilityIdentifier = AccessibilityId.ChartOptions.doneButton
+        navigationItem.leftBarButtonItem?.accessibilityLabel = AccessibilityId.ChartOptions.doneButton
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(deleteStock))
         navigationItem.rightBarButtonItem?.tintColor = UIColor.red
         navigationItem.rightBarButtonItem?.accessibilityIdentifier = AccessibilityId.ChartOptions.deleteButton
+        navigationItem.rightBarButtonItem?.accessibilityLabel = AccessibilityId.ChartOptions.deleteButton
     }
 
     /// User clicked Trash icon
