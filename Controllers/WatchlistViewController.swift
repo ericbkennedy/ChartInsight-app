@@ -156,7 +156,7 @@ class WatchlistViewController: UIViewController {
         toolbarHeight = 44
         statusBarHeight = 20
         if safeAreaInsets.top > statusBarHeight {
-            statusBarHeight = safeAreaInsets.top
+            statusBarHeight = safeAreaInsets.top - 5
         }
 
         newHeight = newSize.height - statusBarHeight - 2 * toolbarHeight - safeAreaInsets.bottom

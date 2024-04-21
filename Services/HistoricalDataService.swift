@@ -15,7 +15,7 @@ protocol ServiceDelegate: AnyObject {
     func serviceCanceled() async
 }
 
-public let apiKey = "placeholderToken"
+public let apiKey = "secretToken"
 public let dayInSeconds: TimeInterval = 84600
 
 public enum ServiceError: Error {

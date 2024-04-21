@@ -12,7 +12,7 @@ import Foundation
 
 struct StockChangeService {
     let defaultsSyncTimestampKey = "syncStockChangeTimestamp"
-    let bundleDBTimestamp = 710306200.0 // charts.db includes stocks through 2023-7-6
+    let bundleDBTimestamp = 735434000.0 // charts.db includes stocks through 2024-4-19
 
     enum CorpAction: String, Decodable {
         case added, split, tickerChange, nameChange, delisted
